@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact | Jaelle & JC</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <nav class="nav-container">
+            <a href="index.html" class="nav-link">Retour</a>
+            <img src="assets/logo-noir.jpg" alt="Jaelle & JC" class="main-logo-small">
+        </nav>
+    </header>
+
+    <main class="contact-form-container">
+        <h1 class="titre-luxe">Nous contacter</h1>
+        <p class="subtitle">Une question sur une pièce ou une commande spéciale ?</p>
+
+        <form id="contact-form" class="luxe-form">
+            <div style="display:none;">
+                <label>Ne pas remplir ce champ si vous êtes humain :</label>
+                <input type="text" name="honeypot" id="honeypot">
+            </div>
+
+            <div class="form-group">
+                <input type="text" id="name" name="name" placeholder="NOM & PRÉNOM" required>
+            </div>
+            <div class="form-group">
+                <input type="email" id="email" name="email" placeholder="VOTRE EMAIL" required>
+            </div>
+            <div class="form-group">
+                <textarea id="message" name="message" placeholder="VOTRE MESSAGE" rows="5" required></textarea>
+            </div>
+            
+            <button type="submit" class="btn-acquerir">Envoyer le message</button>
+            <p id="form-status"></p>
+        </form>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

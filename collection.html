@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fr">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Collection | Jaelle & JC - Artisanat Français</title>
+    <link rel="stylesheet" href="style.css">
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org/",
+      "@type": "CollectionPage",
+      "name": "Collection Jaelle & JC",
+      "description": "Sacs cabas et accessoires bébé faits main en France en éditions limitées.",
+      "brand": { "@type": "Brand", "name": "Jaelle & JC" }
+    }
+    </script>
+</head>
+<body>
+    <header>
+        <nav class="nav-luxe">
+            <a href="index.html" class="nav-link">Accueil</a>
+            <div class="logo-central">
+                <img src="assets/logo-noir.jpg" alt="Jaelle & JC" class="logo-img">
+            </div>
+            <a href="manifeste.html" class="nav-link">Le Manifeste</a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="univers">
+            <h2 class="section-title">Maroquinerie</h2>
+            <div class="product-grid">
+                <div class="product-card">
+                    <img src="https://jaellejc.com/products/cabas-100-coton-moutarde-imprime-fleurs-blanches" alt="Cabas Moutarde">
+                    <h3>Cabas 100% Coton Moutarde</h3>
+                    <p class="price">Prix SumUp</p>
+                    <button onclick="acquerirProduit('Cabas Moutarde', 'LIEN_SUMUP_1')" class="btn-acquerir">Acquérir</button>
+                </div>
+                </div>
+        </section>
+
+        <section class="univers">
+            <h2 class="section-title">L'Univers Bébé</h2>
+            <div class="product-grid">
+                <div class="product-card">
+                    <img src="https://jaellejc.com/products/couverture-moutarde-imprime-fleurs" alt="Couverture Moutarde">
+                    <h3>Couverture Moutarde Fleurs</h3>
+                    <button onclick="acquerirProduit('Couverture Moutarde', 'LIEN_SUMUP_BEBE_1')" class="btn-acquerir">Acquérir</button>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

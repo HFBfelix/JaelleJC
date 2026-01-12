@@ -1,0 +1,192 @@
+/* --- POLICES --- */
+@import url('https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400&display=swap');
+
+:root {
+    --noir: #000000;
+    --blanc: #FFFFFF;
+    --gris-fond: #FDFDFD;
+    --font-titre: 'Bodoni Moda', serif;
+    --font-corps: 'Inter', sans-serif;
+}
+
+/* --- BASE --- */
+body {
+    background-color: var(--blanc);
+    color: var(--noir);
+    font-family: var(--font-corps);
+    margin: 0;
+    padding: 0;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* --- HEADER & NAVIGATION --- */
+header {
+    padding: 40px 20px;
+    background: var(--blanc);
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.main-logo { width: 160px; height: auto; }
+
+.nav-link {
+    text-decoration: none;
+    color: var(--noir);
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    transition: opacity 0.3s;
+}
+
+.nav-link:hover { opacity: 0.5; }
+
+/* --- HERO SECTION (ACCUEIL) --- */
+.hero {
+    display: flex;
+    align-items: center;
+    min-height: 80vh;
+    padding: 0 5%;
+    gap: 50px;
+}
+
+.hero-content { flex: 1; }
+
+.hero-title {
+    font-family: var(--font-titre);
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    line-height: 1.1;
+    margin-bottom: 20px;
+    font-weight: 400;
+}
+
+.hero-subtitle {
+    font-size: 1rem;
+    letter-spacing: 1px;
+    margin-bottom: 40px;
+    color: #555;
+}
+
+.hero-image { flex: 1; text-align: right; }
+
+.hero-image img {
+    max-width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+
+.btn-primary {
+    display: inline-block;
+    background: var(--noir);
+    color: var(--blanc);
+    padding: 18px 45px;
+    text-decoration: none;
+    font-size: 0.7rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    transition: 0.3s;
+}
+
+/* --- SECTION VALEURS --- */
+.valeurs {
+    display: flex;
+    justify-content: center;
+    gap: 100px;
+    padding: 100px 5%;
+    text-align: center;
+    background-color: var(--gris-fond);
+}
+
+.valeur-item { max-width: 300px; }
+
+.estampille-jc {
+    font-family: var(--font-titre);
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 15px;
+    border: 1px solid var(--noir);
+    width: 60px;
+    height: 60px;
+    line-height: 60px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+}
+
+.valeur-item h3 {
+    font-family: var(--font-titre);
+    text-transform: uppercase;
+    font-size: 1rem;
+    letter-spacing: 2px;
+}
+
+/* --- GRILLE PRODUITS (COLLECTION) --- */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 60px;
+    padding: 60px 5%;
+}
+
+.product-card img {
+    width: 100%;
+    aspect-ratio: 4/5;
+    object-fit: cover;
+    margin-bottom: 25px;
+    transition: opacity 0.3s ease;
+}
+
+/* --- FOOTER --- */
+footer {
+    background-color: var(--blanc);
+    padding: 80px 5% 40px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.footer-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 60px;
+}
+
+.footer-links, .footer-legal {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.footer-links a, .footer-legal a {
+    text-decoration: none;
+    color: var(--noir);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.footer-bottom {
+    text-align: center;
+    font-size: 0.7rem;
+    color: #888;
+    border-top: 1px solid #f0f0f0;
+    padding-top: 40px;
+}
+
+/* --- RESPONSIVE OPTIMISATION (MOBILE & TABLETTE) --- */
+@media (max-width: 992px) {
+    .hero { flex-direction: column; padding: 60px 5%; text-align: center; }
+    .hero-image { text-align: center; order: -1; } /* Image au dessus du texte sur mobile */
+    .valeurs { flex-direction: column; gap: 50px; }
+}
+
+@media (max-width: 768px) {
+    .nav-container { flex-direction: column; gap: 25px; }
+    .nav-left, .nav-right { width: 100%; text-align: center; }
+    .product-grid { grid-template-columns: 1fr; }
+    .hero-title { font-size: 2.2rem; }
+}
