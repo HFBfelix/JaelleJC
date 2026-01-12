@@ -1,28 +1,65 @@
 <!DOCTYPE html>
 <html lang="fr">
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Le Manifeste | Jaelle & JC</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <header class="header-main">
+        <nav class="nav-container">
+            <div class="nav-left">
+                <a href="index.html" class="nav-link">Accueil</a>
+            </div>
+            <div class="nav-center">
+                <img src="assets/logo fond noir.jpg" alt="Jaelle & JC" class="main-logo-mini">
+            </div>
+            <div class="nav-right">
+                <a href="collection.html" class="nav-link">La Collection</a>
+            </div>
+        </nav>
+    </header>
+
     <main class="manifeste-content">
-        <h1 class="titre-luxe">Notre Promesse</h1>
+        <header class="manifeste-header">
+            <h1 class="titre-luxe">Notre Promesse</h1>
+            <p class="subtitle-manifeste">L'excellence au bout des doigts.</p>
+        </header>
+
         <article class="texte-artisanat">
-            <h2>Savoir-faire Français</h2>
-            <p>Chaque pièce <strong>Jaelle & JC</strong> est confectionnée à la main dans notre atelier en France. Nous croyons en une mode lente, durable et exclusive.</p>
+            <section class="manifeste-section">
+                <h2>Savoir-faire Français</h2>
+                <p>Chaque pièce <strong>Jaelle & JC</strong> est confectionnée à la main dans notre atelier en France. Nous croyons en une mode lente, durable et exclusive.</p>
+            </section>
             
-            <h2>Séries Limitées</h2>
-            <p>Nos tissus sont sélectionnés pour leur qualité et leur rareté. Une fois une collection épuisée, elle ne revient jamais. Cela garantit l'exclusivité de votre acquisition.</p>
+            <section class="manifeste-section">
+                <h2>Séries Limitées</h2>
+                <p>Nos tissus sont sélectionnés pour leur qualité et leur rareté. Une fois une collection épuisée, elle ne revient jamais. Cela garantit l'exclusivité de votre acquisition.</p>
+            </section>
             
-            <h2>Cadeaux de Naissance</h2>
-            <p>Pour les parents et proches, nos coffrets bébé sont pensés comme des héritages, alliant douceur du coton et élégance du design français.</p>
+            <section class="manifeste-section">
+                <h2>Cadeaux de Naissance</h2>
+                <p>Pour les parents et proches, nos coffrets bébé sont pensés comme des héritages, alliant douceur du coton et élégance du design français.</p>
+            </section>
         </article>
-        <div class="estampille-jc">
-            <img src="assets/estampille-jc.gif" alt="Sceau JC">
+
+        <div class="signature-atelier">
+            <img src="assets/JC blanc fond noir.png" alt="Sceau d'authenticité JC" class="estampille-signature">
+            <p class="mention-artisan">Atelier de confection Jaelle & JC</p>
         </div>
     </main>
+
+    <footer class="footer-simple">
+        <div class="footer-bottom">
+            <p>&copy; 2026 Jaelle & JC — Maison de Confection Artisanale</p>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
 </body>
 </html>
