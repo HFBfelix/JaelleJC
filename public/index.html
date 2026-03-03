@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atelier — Jaelle & JC</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --cream: #F5F2EE;
+            --ink: #1A1814;
+            --border: rgba(26,24,20,0.15);
+            --red: #C0392B;
+        }
+
+        html, body {
+            height: 100%;
+            background: var(--cream);
+            color: var(--ink);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .card {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 420px;
+            background: white;
+            border: 0.5px solid var(--border);
+            padding: 56px 48px;
+            box-shadow: 0 2px 40px rgba(26,24,20,0.06);
+        }
+
+        .logo-area {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .logo-area img { height: 36px; width: auto; }
+
+        .logo-text {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 22px;
+            font-weight: 300;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--ink);
+        }
+
+        .eyebrow {
+            font-size: 9px;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            opacity: 0.4;
+            font-weight: 500;
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 16px;
+            border: 0.5px solid var(--ink);
+            background: var(--cream);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 11px;
+            letter-spacing: 0.1em;
+            color: var(--ink);
+            margin-bottom: 12px;
+            outline: none;
+            transition: background 0.2s;
+            -webkit-appearance: none;
+            border-radius: 0;
+        }
+
+        .input-field:focus { background: white; }
+        .input-field::placeholder { color: rgba(26,24,20,0.35); }
+
+        .btn-primary {
+            width: 100%;
+            padding: 18px;
+            background: var(--ink);
+            color: white;
+            border: 0.5px solid var(--ink);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 10px;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border-radius: 0;
+        }
+
+        .btn-primary:hover { background: white; color: var(--ink); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .error-msg {
+            display: none;
+            font-size: 10px;
+            color: var(--red);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-weight: 500;
+            text-align: center;
+            margin-top: 16px;
+            padding: 12px;
+            border: 0.5px solid var(--red);
+            background: rgba(192,57,43,0.04);
+        }
+
+        .status-section {
+            display: none;
+            text-align: center;
+        }
+
+        .status-icon { font-size: 32px; margin-bottom: 20px; }
+
+        .status-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 22px;
+            font-weight: 300;
+            font-style: italic;
+            margin-bottom: 12px;
+        }
+
+        .status-desc {
+            font-size: 11px;
+            opacity: 0.5;
+            line-height: 1.8;
+            letter-spacing: 0.05em;
+        }
+
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(245,242,238,0.92);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
+
+        .loading-overlay.active { display: flex; }
+
+        @media (max-width: 480px) {
+            .card { padding: 40px 28px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loading-overlay">Vérification en cours…</div>
+
+    <div class="card">
+        <div class="logo-area">
+            <img src="assets/Logo noir Jaelle&JC_V2.png" alt="Jaelle & JC"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+            <span class="logo-text" style="display:none">Jaelle & JC</span>
+        </div>
+
+        <div id="login-section">
+            <p class="eyebrow">Accès Atelier</p>
+            <input type="email" id="email" placeholder="votre@email.com"
+                   class="input-field" autocomplete="email" autocapitalize="off">
+            <button id="btn-send" class="btn-primary">
+                Recevoir le lien magique
+            </button>
+            <p id="error-msg" class="error-msg"></p>
+        </div>
+
+        <div id="status-section" class="status-section">
+            <div class="status-icon">✉️</div>
+            <p class="status-title">Lien envoyé</p>
+            <p class="status-desc">Consultez votre boîte mail sur cet appareil<br>pour finaliser la connexion.</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp }          from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import {
+            getAuth,
+            sendSignInLinkToEmail,
+            isSignInWithEmailLink,
+            signInWithEmailLink,
+            onAuthStateChanged,
+            signOut,
+            setPersistence,
+            browserLocalPersistence
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import {
+            getFirestore,
+            doc,
+            getDoc
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // ── Config Firebase ──────────────────────────────────────────────────
+        const firebaseConfig = {
+            apiKey:            "AIzaSyA-kRFLyh_2CnkbTHCsiVZs2cZcE-f-cv4",
+            authDomain:        "jaellejc.firebaseapp.com",
+            projectId:         "jaellejc",
+            storageBucket:     "jaellejc.firebasestorage.app",
+            messagingSenderId: "199093066060",
+            appId:             "1:199093066060:web:298e1528322ff7f47b97e9"
+        };
+
+        const app  = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db   = getFirestore(app);
+
+        // ── Persistance longue durée ─────────────────────────────────────────
+        await setPersistence(auth, browserLocalPersistence);
+
+        // ── Helpers UI ───────────────────────────────────────────────────────
+        const showLoading = (show) =>
+            document.getElementById('loading-overlay').classList.toggle('active', show);
+
+        const showError = (msg) => {
+            const el = document.getElementById('error-msg');
+            el.textContent = msg;
+            el.style.display = 'block';
+        };
+
+        const hideError = () => {
+            document.getElementById('error-msg').style.display = 'none';
+        };
+
+        // ── Helper : vérifier si un email est dans la whitelist ──────────────
+        // Retourne true/false. Lance une exception si Firestore inaccessible.
+        const isWhitelisted = async (email) => {
+            const snap = await getDoc(doc(db, "autorisations", email));
+            return snap.exists() && snap.data().actif === true;
+        };
+
+        // ════════════════════════════════════════════════════════════════════
+        // ÉTAPE 1 : Traitement du lien magique de retour (priorité absolue)
+        // ════════════════════════════════════════════════════════════════════
+        if (isSignInWithEmailLink(auth, window.location.href)) {
+            showLoading(true);
+
+            let email = window.localStorage.getItem('emailForSignIn');
+            if (!email) {
+                // Sécurité : demande à l'utilisateur de confirmer son email
+                // (utile si le lien est ouvert sur un autre appareil)
+                email = window.prompt('Confirmez votre adresse email :');
+            }
+
+            if (email) {
+                try {
+                    await signInWithEmailLink(auth, email.toLowerCase().trim(), window.location.href);
+                    window.localStorage.removeItem('emailForSignIn');
+                    // Nettoyage de l'URL (retire le oobCode Firebase)
+                    window.history.replaceState(null, '', window.location.pathname);
+                    window.location.href = "dashboard.html";
+                } catch (err) {
+                    showLoading(false);
+                    showError("Lien expiré ou déjà utilisé. Recommencez.");
+                    console.error("signInWithEmailLink error:", err);
+                }
+            } else {
+                showLoading(false);
+            }
+
+        } else {
+            // ════════════════════════════════════════════════════════════════
+            // ÉTAPE 2 : Vérification de session existante
+            // Si déjà connecté et whitelisté → redirect dashboard direct
+            // ════════════════════════════════════════════════════════════════
+            showLoading(true);
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    try {
+                        const ok = await isWhitelisted(user.email);
+                        if (ok) {
+                            window.location.href = "dashboard.html";
+                        } else {
+                            // Connecté mais pas dans la whitelist → déconnexion forcée
+                            await signOut(auth);
+                            showLoading(false);
+                            showError("Compte non autorisé.");
+                        }
+                    } catch (e) {
+                        // Firestore inaccessible (hors-ligne) → on laisse sur la page login
+                        showLoading(false);
+                        console.warn("Whitelist check failed (offline?):", e);
+                    }
+                } else {
+                    // Pas de session → afficher le formulaire normalement
+                    showLoading(false);
+                }
+            });
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // ENVOI DU LIEN MAGIQUE
+        // Vérifie la whitelist EN AMONT. Si l'email n'est pas autorisé,
+        // on ne fait rien — zéro email envoyé, zéro info divulguée.
+        // ════════════════════════════════════════════════════════════════════
+        const btn = document.getElementById('btn-send');
+
+        const sendLink = async () => {
+            const email = document.getElementById('email').value.toLowerCase().trim();
+            if (!email) return;
+
+            btn.disabled = true;
+            btn.textContent = "Vérification…";
+            hideError();
+
+            try {
+                // ── VÉRIFICATION WHITELIST (avant tout envoi) ────────────────
+                const ok = await isWhitelisted(email);
+
+                if (!ok) {
+                    // L'email n'est pas dans la whitelist.
+                    // Message volontairement neutre pour ne pas confirmer l'existence de la liste.
+                    showError("Accès refusé — email non reconnu.");
+                    btn.disabled = false;
+                    btn.textContent = "Recevoir le lien magique";
+                    return; // ← ARRÊT TOTAL. Aucun lien ne sera envoyé.
+                }
+
+                // ── EMAIL AUTORISÉ → envoi du lien ───────────────────────────
+                await sendSignInLinkToEmail(auth, email, {
+                    url: window.location.origin + "/index.html",
+                    handleCodeInApp: true
+                });
+
+                // Sauvegarder l'email localement pour l'étape de retour
+                window.localStorage.setItem('emailForSignIn', email);
+
+                // Afficher la confirmation
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('status-section').style.display = 'block';
+
+            } catch (e) {
+                console.error("sendLink error:", e);
+                showError("Erreur système — réessayez dans un instant.");
+                btn.disabled = false;
+                btn.textContent = "Recevoir le lien magique";
+            }
+        };
+
+        btn.addEventListener('click', sendLink);
+        document.getElementById('email').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendLink();
+        });
+    </script>
+</body>
+</html>

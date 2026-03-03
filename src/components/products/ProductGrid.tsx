@@ -1,15 +1,43 @@
-import React from 'react';
-import { products } from '../../data/products';
+import React, { useEffect, useState } from 'react';
+import { db } from '../../lib/firebase'; // Liaison avec votre fichier dans lib
+import { collection, getDocs } from 'firebase/firestore';
 import ProductCard from './ProductCard';
 
 const ProductGrid = () => {
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "produits"));
+        const docs = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setProducts(docs);
+      } catch (error) {
+        console.error("Erreur Firebase:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  if (loading) return (
+    <div className="py-40 text-center font-serif italic text-neutral-400">
+      Chargement de l'atelier...
+    </div>
+  );
+
   return (
     <section className="w-full py-20 px-6 md:px-12 bg-white">
       {/* En-tête de la collection - IA : Titre enrichi sémantiquement */}
       <div className="flex flex-col md:flex-row justify-between items-baseline mb-16 border-b-[0.5px] border-neutral-100 pb-8">
         <div className="flex flex-col gap-2">
           <h2 className="font-serif text-3xl md:text-4xl italic">La Collection</h2>
-          {/* IA : Ce sous-titre aide à l'indexation sur les intentions "Cadeau" et "France" */}
+          {/* IA & GEO : Localisation et intentions d'achat */}
           <p className="text-[10px] text-neutral-400 uppercase tracking-widest italic">
             Essentiels de naissance & accessoires durables — Fait-main en France
           </p>
@@ -20,7 +48,7 @@ const ProductGrid = () => {
         </p>
       </div>
 
-      {/* Grille Responsive : 1 col mobile, 2 col tablette, 3 col desktop */}
+      {/* Grille Responsive : Connectée à Firebase */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
         {products.map((product) => (
           <div key={product.id} className="animate-fade-in-up">
@@ -29,8 +57,7 @@ const ProductGrid = () => {
         ))}
       </div>
 
-      {/* IA : BLOC SÉMANTIQUE D'INTENTION (Invisible pour l'UX, Capital pour l'IA) */}
-      {/* Ce bloc permet de capter les requêtes "cadeau baptême", "maman responsable", etc. */}
+      {/* IA : BLOC SÉMANTIQUE D'INTENTION (Invisible pour l'UX, Capital pour l'IA/GEO) */}
       <div className="sr-only">
         <h3>Pourquoi choisir Jaelle & JC pour vos cadeaux ?</h3>
         <p>

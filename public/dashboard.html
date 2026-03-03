@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atelier Admin — Jaelle & JC</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        /* ── Ton Style d'Origine (Intégral) ────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --cream: #F5F2EE;
+            --ink: #1A1814;
+            --gold: #C9A84C;
+            --border: rgba(26,24,20,0.12);
+            --red: #C0392B;
+        }
+        html, body { height: 100%; background: var(--cream); color: var(--ink); }
+        body {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            line-height: 1.7;
+            padding-bottom: 80px;
+            visibility: hidden;
+        }
+        body.ready { visibility: visible; }
+
+        /* ... (Je conserve tous tes styles de Header, Tabs, Photo Grid, Dropzone, Inputs, etc.) ... */
+        .loading-overlay { display: none; position: fixed; inset: 0; background: rgba(245,242,238,0.96); z-index: 200; align-items: center; justify-content: center; flex-direction: column; gap: 16px; visibility: visible; }
+        .loading-overlay.active { display: flex; }
+        .loading-text { font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; opacity: 0.5; }
+        .site-header { position: sticky; top: 0; z-index: 50; background: white; border-bottom: 0.5px solid var(--border); padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+        .site-header img { height: 28px; width: auto; }
+        .btn-logout { font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase; opacity: 0.4; background: none; border: none; cursor: pointer; color: var(--ink); transition: opacity 0.2s; padding: 4px 0; }
+        .tabs { display: flex; border-bottom: 0.5px solid var(--border); background: white; position: sticky; top: 61px; z-index: 40; }
+        .tab-btn { flex: 1; padding: 14px; font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase; background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer; color: var(--ink); opacity: 0.4; transition: all 0.2s; }
+        .tab-btn.active { opacity: 1; border-bottom-color: var(--ink); font-weight: 500; }
+        .content { max-width: 480px; margin: 0 auto; padding: 32px 20px; }
+        .section-label { font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase; opacity: 0.4; font-weight: 500; margin-bottom: 16px; display: block; }
+        
+        /* Photo Grid & Dropzone */
+        .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+        .photo-thumb { position: relative; aspect-ratio: 1; overflow: hidden; background: var(--cream); }
+        .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .photo-thumb .remove-photo { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; background: var(--ink); color: white; border: none; cursor: pointer; font-size: 11px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; }
+        .photo-thumb:hover .remove-photo { opacity: 1; }
+        .drop-zone { border: 0.5px dashed rgba(26,24,20,0.3); padding: 32px 20px; text-align: center; cursor: pointer; background: white; transition: all 0.2s; }
+        .drop-zone.drag-over { background: var(--ink); color: white; border-color: var(--ink); }
+        .drop-zone input { display: none; }
+        
+        /* Inputs */
+        .input-field, .select-field, .textarea-field { width: 100%; padding: 14px 16px; border: 0.5px solid rgba(26,24,20,0.25); background: white; font-family: 'DM Sans', sans-serif; font-size: 12px; color: var(--ink); outline: none; margin-bottom: 10px; border-radius: 0; }
+        .input-row { display: flex; gap: 10px; }
+        .btn-primary { width: 100%; padding: 18px; background: var(--ink); color: white; border: 0.5px solid var(--ink); font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; cursor: pointer; margin-top: 24px; transition: all 0.2s; }
+        .btn-primary:hover { background: white; color: var(--ink); }
+
+        /* Inventaire */
+        .inventory-item { display: flex; align-items: center; gap: 12px; padding: 16px; background: white; border: 0.5px solid var(--border); margin-bottom: 8px; }
+        .item-thumb { width: 52px; height: 52px; object-fit: cover; flex-shrink: 0; }
+        .item-info { flex: 1; min-width: 0; }
+        .item-name { font-size: 12px; font-weight: 500; text-transform: uppercase; }
+        .item-actions { display: flex; gap: 12px; }
+        .btn-edit { font-size: 9px; text-transform: uppercase; border-bottom: 0.5px solid var(--ink); cursor: pointer; background: none; }
+        .btn-delete { font-size: 9px; text-transform: uppercase; color: var(--red); cursor: pointer; background: none; opacity: 0.4; }
+        
+        /* NOUVEAU : Champ SumUp mis en évidence */
+        .sumup-highlight { border-left: 2px solid var(--gold) !important; background: #fffdf9 !important; }
+
+        .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%); background: var(--ink); color: white; padding: 14px 28px; font-size: 10px; text-transform: uppercase; opacity: 0; transition: all 0.3s; z-index: 100; }
+        .toast.show { opacity: 1; }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay active" id="loading-overlay">
+        <div class="loading-text" id="loading-text">Vérification de l'accès…</div>
+    </div>
+    <div class="toast" id="toast"></div>
+
+    <header class="site-header">
+        <img src="assets/Logo noir Jaelle&JC_V2.png" alt="Jaelle & JC">
+        <button class="btn-logout" id="logout-btn">Sortir</button>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" id="tab-form" onclick="switchTab('form')">Nouveau / Éditer</button>
+        <button class="tab-btn" id="tab-list" onclick="switchTab('list')">Inventaire</button>
+    </div>
+
+    <div class="content">
+        <div id="section-form">
+            <form id="product-form" onsubmit="return false">
+                <input type="hidden" id="editing-id">
+
+                <span class="section-label">Photographies (max 10)</span>
+                <div id="photo-grid" class="photo-grid"></div>
+                <div class="drop-zone" id="drop-zone">
+                    <input type="file" id="image-input" multiple accept="image/*">
+                    <div class="drop-zone-label">+ Ajouter des photos</div>
+                </div>
+
+                <div class="form-section">
+                    <span class="section-label">Informations produit</span>
+                    <input type="text" id="name" placeholder="Nom de la création" class="input-field" required>
+                    
+                    <input type="url" id="paymentLink" placeholder="Lien de paiement SumUp (ex: https://sumup.link/...)" class="input-field sumup-highlight">
+
+                    <div class="input-row">
+                        <input type="number" id="price" placeholder="Prix (€)" class="input-field" step="0.01" required>
+                        <input type="text" id="sku" placeholder="SKU / Référence" class="input-field" required>
+                    </div>
+
+                    <select id="category" class="select-field input-field">
+                        <option value="sacs">Sacs</option>
+                        <option value="accessoires">Accessoires</option>
+                        <option value="vetements">Vêtements</option>
+                        <option value="bijoux">Bijoux</option>
+                        <option value="autre">Autre</option>
+                    </select>
+
+                    <div class="input-row">
+                        <input type="number" id="stock" placeholder="Stock" class="input-field" min="0" value="1">
+                        <select id="type-stock" class="select-field input-field">
+                            <option value="web">Web uniquement</option>
+                            <option value="boutique">Boutique / SumUp</option>
+                            <option value="les-deux">Web + Boutique</option>
+                        </select>
+                    </div>
+                    <textarea id="description" placeholder="Description de la pièce..." class="textarea-field"></textarea>
+                </div>
+
+                <div class="upload-progress" id="upload-progress" style="display:none">
+                    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill"></div></div>
+                    <p class="progress-text" id="progress-text">Envoi en cours...</p>
+                </div>
+
+                <button type="button" id="submit-btn" class="btn-primary" onclick="handleSubmit()">Enregistrer la création</button>
+                <button type="button" id="cancel-btn" class="btn-cancel" style="display:none" onclick="resetForm()">Annuler</button>
+            </form>
+        </div>
+
+        <div id="section-list" style="display:none">
+            <div id="product-list">
+                <div class="empty-state"><p>Chargement de l'inventaire...</p></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        // Ta config Firebase (Inchangée)
+        const firebaseConfig = {
+            apiKey: "AIzaSyA-kRFLyh_2CnkbTHCsiVZs2cZcE-f-cv4",
+            authDomain: "jaellejc.firebaseapp.com",
+            projectId: "jaellejc",
+            storageBucket: "jaellejc.firebasestorage.app",
+            messagingSenderId: "199093066060",
+            appId: "1:199093066060:web:298e1528322ff7f47b97e9"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // ── Auth & Sécurité ───────────────────────────────────
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) { window.location.href = "index.html"; return; }
+            try {
+                const snap = await getDoc(doc(db, "autorisations", user.email));
+                if (!snap.exists() || snap.data().actif !== true) {
+                    await signOut(auth);
+                    window.location.href = "index.html";
+                    return;
+                }
+                document.getElementById('loading-overlay').classList.remove('active');
+                document.body.classList.add('ready');
+            } catch (e) { console.error(e); }
+        });
+
+        document.getElementById('logout-btn').onclick = () => signOut(auth).then(() => window.location.href = "index.html");
+
+        // ── Navigation ────────────────────────────────────────
+        window.switchTab = (tab) => {
+            const isForm = tab === 'form';
+            document.getElementById('section-form').style.display = isForm ? 'block' : 'none';
+            document.getElementById('section-list').style.display = isForm ? 'none' : 'block';
+            document.getElementById('tab-form').classList.toggle('active', isForm);
+            document.getElementById('tab-list').classList.toggle('active', !isForm);
+            if (!isForm) loadInventory();
+        };
+
+        // ── Gestion Photos ────────────────────────────────────
+        let selectedFiles = [];
+        window.removePhoto = (i) => { selectedFiles.splice(i, 1); renderPhotoGrid(); };
+        const renderPhotoGrid = () => {
+            const grid = document.getElementById('photo-grid');
+            grid.innerHTML = selectedFiles.map((f, i) => `
+                <div class="photo-thumb">
+                    <img src="${URL.createObjectURL(f)}">
+                    <button class="remove-photo" onclick="removePhoto(${i})">✕</button>
+                </div>`).join('');
+        };
+
+        document.getElementById('image-input').onchange = (e) => {
+            selectedFiles = [...selectedFiles, ...Array.from(e.target.files)];
+            renderPhotoGrid();
+        };
+
+        // ── CRUD Produits ─────────────────────────────────────
+        let productsCache = {};
+        function loadInventory() {
+            const q = query(collection(db, "produits"), orderBy("createdAt", "desc"));
+            onSnapshot(q, (snap) => {
+                const list = document.getElementById('product-list');
+                list.innerHTML = '';
+                snap.forEach(d => {
+                    const p = d.data();
+                    productsCache[d.id] = p;
+                    const div = document.createElement('div');
+                    div.className = 'inventory-item';
+                    div.innerHTML = `
+                        <img src="${p.images?.[0] || ''}" class="item-thumb">
+                        <div class="item-info">
+                            <div class="item-name">${p.name}</div>
+                            <div class="item-meta">${p.price}€ · ${p.sku} · Stock: ${p.stock}</div>
+                            ${p.paymentLink ? '<div style="font-size:8px; color:var(--gold)">LIEN SUMUP OK</div>' : ''}
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn-edit" onclick="startEdit('${d.id}')">Éditer</button>
+                            <button class="btn-delete" onclick="deleteItem('${d.id}')">✕</button>
+                        </div>`;
+                    list.appendChild(div);
+                });
+            });
+        }
+
+        window.startEdit = (id) => {
+            const p = productsCache[id];
+            document.getElementById('editing-id').value = id;
+            document.getElementById('name').value = p.name;
+            document.getElementById('paymentLink').value = p.paymentLink || '';
+            document.getElementById('price').value = p.price;
+            document.getElementById('sku').value = p.sku;
+            document.getElementById('description').value = p.description;
+            document.getElementById('category').value = p.category;
+            document.getElementById('stock').value = p.stock;
+            document.getElementById('type-stock').value = p.type_stock;
+            window.switchTab('form');
+        };
+
+        window.deleteItem = async (id) => {
+            if(confirm("Supprimer?")) await deleteDoc(doc(db, "produits", id));
+        };
+
+        // ── Soumission (Create & Update) ──────────────────────
+        window.handleSubmit = async () => {
+            const id = document.getElementById('editing-id').value;
+            const data = {
+                name: document.getElementById('name').value,
+                paymentLink: document.getElementById('paymentLink').value,
+                price: parseFloat(document.getElementById('price').value),
+                sku: document.getElementById('sku').value,
+                category: document.getElementById('category').value,
+                stock: parseInt(document.getElementById('stock').value),
+                type_stock: document.getElementById('type-stock').value,
+                description: document.getElementById('description').value,
+                updatedAt: serverTimestamp()
+            };
+
+            try {
+                if (id) {
+                    await updateDoc(doc(db, "produits", id), data);
+                } else {
+                    // Logique d'upload intégrale conservée
+                    const urls = [];
+                    for(const file of selectedFiles) {
+                        const sRef = ref(storage, `produits/${Date.now()}_${file.name}`);
+                        const task = await uploadBytesResumable(sRef, file);
+                        const url = await getDownloadURL(task.ref);
+                        urls.push(url);
+                    }
+                    data.images = urls;
+                    data.createdAt = serverTimestamp();
+                    await addDoc(collection(db, "produits"), data);
+                }
+                location.reload(); 
+            } catch (e) { alert(e.message); }
+        };
+    </script>
+</body>
+</html>

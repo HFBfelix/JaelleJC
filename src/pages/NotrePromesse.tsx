@@ -34,9 +34,13 @@ const NotrePromesse = () => {
             ))}
           </ul>
         </div>
-        <div className="bg-galerie aspect-[4/5] overflow-hidden">
-          <img src="/assets/notre-promesse-engagement.jpg" alt="Atelier Jaelle & JC - Engagement durable" className="w-full h-full object-cover grayscale" />
-        </div>
+        <div className="bg-neutral-50 aspect-[4/5] overflow-hidden flex items-center justify-center p-8">
+  <img 
+    src="/assets/estampille JC broderie.png" 
+    alt="Atelier Jaelle & JC - Engagement durable" 
+    className="max-w-full max-h-full object-contain grayscale" 
+  />
+</div>
       </section>
 
       {/* SECTION 3 : LA RÉPONSE JAELLE & JC - L'INTEMPOREL */}
