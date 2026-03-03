@@ -33,7 +33,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
   return (
     <>
-      {/* Overlay sombre avec flou */}
+      {/* Overlay sombre avec flou - Fermeture au clic dans le vide */}
       <div 
         className={`fixed inset-0 bg-black/20 backdrop-blur-sm z-[200] transition-opacity duration-500 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
         onClick={onClose}
@@ -128,23 +128,38 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             )}
           </div>
 
-          {/* Footer - Résumé et Bouton d'action */}
+          {/* Footer - Résumé et Actions de commande */}
           {cart.length > 0 && (
-            <div className="p-8 border-t border-neutral-100 bg-neutral-50/50">
+            <div className="p-8 border-t border-neutral-100 bg-white shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
               <div className="flex justify-between items-end mb-8">
                 <span className="text-[10px] uppercase tracking-widest text-neutral-400">Total estimation</span>
                 <span className="text-2xl font-light">{total} €</span>
               </div>
-              <p className="text-[8px] uppercase tracking-[0.2em] text-neutral-400 mb-6 text-center italic">
+              
+              <div className="flex flex-col gap-3">
+                {/* Bouton de Finalisation - Prochaine étape vers Option A API */}
+                <button 
+                  onClick={() => { /* onClose(); navigate('/checkout'); */ }}
+                  className="w-full bg-black text-white py-6 flex items-center justify-center gap-4 group hover:bg-neutral-800 transition-all"
+                >
+                  <span className="text-[10px] uppercase tracking-[0.4em]">Finaliser l'acquisition</span>
+                  <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform" />
+                </button>
+
+                {/* Bouton Continuer les achats - Élégant et léger */}
+                <button 
+                  onClick={onClose}
+                  className="w-full bg-transparent text-black py-4 flex items-center justify-center group"
+                >
+                  <span className="text-[9px] uppercase tracking-[0.3em] font-light border-b border-transparent group-hover:border-black transition-all pb-1">
+                    Poursuivre mes achats
+                  </span>
+                </button>
+              </div>
+
+              <p className="text-[8px] uppercase tracking-[0.2em] text-neutral-400 mt-6 text-center italic opacity-60">
                 Livraison offerte
               </p>
-              <button 
-                onClick={() => { onClose(); navigate('/checkout'); }}
-                className="w-full bg-black text-white py-6 flex items-center justify-center gap-4 group hover:bg-neutral-800 transition-all"
-              >
-                <span className="text-[10px] uppercase tracking-[0.4em]">Finaliser l'acquisition</span>
-                <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform" />
-              </button>
             </div>
           )}
         </div>

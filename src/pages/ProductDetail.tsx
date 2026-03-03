@@ -4,12 +4,12 @@ import { db } from '../lib/firebase';
 import { doc, getDoc, collection, query, limit, getDocs } from 'firebase/firestore';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import ProductCard from '../components/products/ProductCard';
-import { useCart } from '../contexts/CartContext'; // IA : Hook Panier
+import { useCart } from '../contexts/CartContext';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { addToCart } = useCart(); // IA : Fonction d'ajout
+  const { addToCart } = useCart();
 
   const [product, setProduct] = useState<any>(null);
   const [similarProducts, setSimilarProducts] = useState<any[]>([]);
@@ -55,6 +55,13 @@ const ProductDetail = () => {
 
   return (
     <div className="bg-white">
+      {/* CSS Injecté pour cacher la scrollbar sur la colonne de gauche uniquement */}
+      <style>
+        {`
+          .no-scrollbar::-webkit-scrollbar { display: none; }
+          .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        `}
+      </style>
 
       {/* VUE MOBILE */}
       <div className="lg:hidden">
@@ -83,7 +90,6 @@ const ProductDetail = () => {
           <h1 className="font-serif text-3xl italic mb-4">{product.name}</h1>
           <p className="text-lg font-light mb-8">{product.price}€</p>
           
-          {/* IA : Ajout au panier mobile */}
           <button 
             onClick={() => addToCart(product)}
             className="block w-full bg-black text-white py-4 text-center text-[10px] uppercase tracking-[0.3em]"
@@ -96,9 +102,9 @@ const ProductDetail = () => {
       {/* VUE DESKTOP */}
       <div className="hidden lg:flex" style={{ height: '100vh' }}>
 
-        {/* ── COLONNE GAUCHE : SCROLL SNAP ── */}
+        {/* ── COLONNE GAUCHE : SCROLL SNAP SANS BARRE DE DÉFILEMENT ── */}
         <div
-          className="w-[62%] overflow-y-scroll"
+          className="w-[62%] overflow-y-scroll no-scrollbar"
           style={{
             scrollSnapType: 'y mandatory',
             height: '100vh',
@@ -184,7 +190,7 @@ const ProductDetail = () => {
 
             <div className="border-t-[0.5px] border-neutral-100 pt-8 mt-2">
               <button
-                onClick={() => addToCart(product)} // IA : Ajout au panier desktop
+                onClick={() => addToCart(product)}
                 className="block w-full bg-black text-white py-5 text-[10px] uppercase tracking-[0.4em] text-center hover:bg-neutral-800 transition-all"
               >
                 Acquérir cette pièce

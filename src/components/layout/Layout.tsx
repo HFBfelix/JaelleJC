@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, Search, User, ShoppingBag, X } from 'lucide-react';
 import { useCart } from '../../contexts/CartContext';
-import { useAuth } from '../../contexts/AuthContext'; // IA : Hook Auth
+import { useAuth } from '../../contexts/AuthContext';
 import CartDrawer from '../cart/CartDrawer';
 
 interface LayoutProps {
@@ -10,12 +10,13 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const { user } = useAuth(); // IA : État de connexion
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const { itemCount } = useCart();
+  
+  // On utilise l'état global du CartContext pour l'ouverture automatique
+  const { itemCount, isCartOpen, setIsCartOpen } = useCart();
 
   const isCollectionPage = location.pathname === '/collection';
   const isProductPage = location.pathname.startsWith('/product/');
@@ -23,7 +24,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   useEffect(() => {
     setIsMenuOpen(false);
     setIsCartOpen(false);
-  }, [location.pathname]);
+  }, [location.pathname, setIsCartOpen]);
 
   const handleNavigation = (path: string) => {
     setIsMenuOpen(false);
@@ -33,7 +34,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   return (
     <div className="min-h-screen bg-white flex flex-col relative">
       
-      {/* HEADER FIXE (65px) */}
+      {/* HEADER FIXE */}
       <header className="fixed top-0 left-0 w-full bg-white z-[100] border-b-[0.5px] border-neutral-100">
         <div className="h-[65px] px-6 md:px-12 flex items-center">
           
@@ -43,23 +44,14 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <span className="text-sans text-[11px] uppercase tracking-[0.2em] hidden md:block">Menu</span>
             </button>
             
-            <button 
-              onClick={() => navigate('/collection?focus=true')} 
-              className="md:hidden hover:opacity-50 transition-opacity"
-              aria-label="Rechercher"
-            >
+            <button onClick={() => navigate('/collection?focus=true')} className="md:hidden hover:opacity-50 transition-opacity">
               <Search size={18} strokeWidth={1} />
             </button>
             
             {!isCollectionPage && (
-              <button 
-                onClick={() => navigate('/collection?focus=true')} 
-                className="hidden md:flex items-center gap-3 hover:opacity-50 group transition-opacity"
-              >
+              <button onClick={() => navigate('/collection?focus=true')} className="hidden md:flex items-center gap-3 hover:opacity-50 group transition-opacity">
                 <Search size={18} strokeWidth={1} />
-                <span className="text-sans text-[11px] uppercase tracking-[0.2em] text-neutral-400 group-hover:text-black">
-                  Rechercher
-                </span>
+                <span className="text-sans text-[11px] uppercase tracking-[0.2em] text-neutral-400 group-hover:text-black">Rechercher</span>
               </button>
             )}
           </div>
@@ -71,11 +63,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
 
           <div className="w-1/3 flex items-center justify-end gap-6">
-            {/* IA : Redirection vers Profile si connecté, sinon Login */}
-            <button 
-              onClick={() => navigate(user ? '/profile' : '/login')} 
-              className="hover:opacity-50 transition-opacity"
-            >
+            <button onClick={() => navigate(user ? '/profile' : '/login')} className="hover:opacity-50 transition-opacity">
               <User size={20} strokeWidth={1} />
             </button>
             
@@ -94,6 +82,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </header>
 
+      {/* NAVIGATION SECONDAIRE */}
       {!isProductPage && (
         <nav className={`fixed left-0 w-full h-[45px] bg-white/90 backdrop-blur-md z-[40] border-b-[0.5px] border-neutral-50 flex items-center justify-center gap-10 md:gap-12 px-6 transition-all duration-300 top-[65px]`}>
           <Link to="/collection" className="text-sans text-[10px] uppercase tracking-[0.3em] text-neutral-500 hover:text-black">Sacs</Link>
@@ -102,8 +91,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </nav>
       )}
 
-      {/* MENU OVERLAY */}
-      <div className={`fixed inset-0 bg-white z-[150] transition-transform duration-500 ease-in-out ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      {/* MENU OVERLAY REINTEGRE - Correction Z-index à 300 pour passer devant le header */}
+      <div className={`fixed inset-0 bg-white z-[300] transition-transform duration-500 ease-in-out ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="h-[65px] flex items-center justify-between px-6 md:px-12 border-b-[0.5px] border-neutral-100">
           <div className="w-1/3"></div>
           <div className="w-1/3 flex justify-center">
@@ -148,6 +137,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         </div>
       </div>
 
+      {/* PANIER LATERAL */}
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
 
       <main className={`flex-grow bg-white overflow-x-hidden ${isProductPage ? 'pt-[65px]' : 'pt-[110px]'}`}>
