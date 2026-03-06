@@ -53,7 +53,7 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-white px-6">
       <div className="max-w-sm w-full">
         <h1 className="font-serif text-3xl italic mb-2 text-center">
-          {isRegister ? 'Rejoindre la Maison' : 'Se Connecter'}
+          {isRegister ? 'Rejoindre Jaelle & JC' : 'Se Connecter'}
         </h1>
         <p className="text-[10px] uppercase tracking-[0.3em] text-neutral-400 mb-12 text-center">
           {isRegister ? 'Créez votre profil client' : 'Accédez à votre espace'}

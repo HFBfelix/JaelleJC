@@ -1,5 +1,5 @@
 /**
- * DÉFINITIONS DES TYPES - MAISON JAELLE & JC
+ * DÉFINITIONS DES TYPES - JAELLE & JC
  * Garantit la cohérence des données entre le code et Firebase
  */
 

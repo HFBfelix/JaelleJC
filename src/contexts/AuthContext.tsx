@@ -7,7 +7,6 @@ import {
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase';
 
-// Définition du profil client pour Jaelle & JC
 interface UserProfile {
   uid: string;
   email: string;
@@ -15,7 +14,9 @@ interface UserProfile {
   address?: string;
   city?: string;
   zipCode?: string;
+  phone?: string;
   createdAt: any;
+  isAdmin?: boolean; // Ajout du flag Admin
 }
 
 interface AuthContextType {
@@ -33,26 +34,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Surveillance de l'état de connexion Firebase
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       setUser(currentUser);
       
       if (currentUser) {
-        // Récupération des données étendues du client dans Firestore
-        const docRef = doc(db, "users", currentUser.uid);
-        const docSnap = await getDoc(docRef);
+        try {
+          // 1. Récupération du profil client classique
+          const userDocRef = doc(db, "users", currentUser.uid);
+          const userSnap = await getDoc(userDocRef);
+          
+          // 2. VÉRIFICATION WHITELIST (Indispensable pour l'Espace Créateur)
+          // On cherche si l'email de l'utilisateur est dans 'autorisations'
+          const adminDocRef = doc(db, "autorisations", currentUser.email!);
+          const adminSnap = await getDoc(adminDocRef);
+          const isAdmin = adminSnap.exists() && adminSnap.data().actif === true;
 
-        if (docSnap.exists()) {
-          setProfile(docSnap.data() as UserProfile);
-        } else {
-          // Si nouveau client : création d'un profil de base
-          const newProfile = {
-            uid: currentUser.uid,
-            email: currentUser.email!,
-            createdAt: new Date(),
-          };
-          await setDoc(docRef, newProfile);
-          setProfile(newProfile);
+          if (userSnap.exists()) {
+            // On fusionne les données de profil avec le statut Admin
+            setProfile({ ...(userSnap.data() as UserProfile), isAdmin });
+          } else {
+            const newProfile = {
+              uid: currentUser.uid,
+              email: currentUser.email!,
+              createdAt: new Date(),
+              isAdmin // Même un nouveau compte peut être admin si l'email est whitelisted
+            };
+            await setDoc(userDocRef, {
+              uid: newProfile.uid,
+              email: newProfile.email,
+              createdAt: newProfile.createdAt
+            });
+            setProfile(newProfile);
+          }
+        } catch (error) {
+          console.error("Erreur AuthContext:", error);
         }
       } else {
         setProfile(null);
@@ -72,7 +87,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
-// Hook personnalisé pour accéder à l'auth partout dans l'app
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

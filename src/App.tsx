@@ -1,56 +1,80 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext'; // IA : Branchement du contexte d'authentification
-import { CartProvider } from './contexts/CartContext'; // IA : Branchement du contexte Panier
-import Auth from './pages/Auth';
-import Profile from './pages/Profile';
-import Checkout from './pages/Checkout';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { CartProvider } from './contexts/CartContext';
+
+// Layout & Pages Publiques
 import Layout from './components/layout/Layout';
 import Home from './pages/Home';
-import ProductDetail from './pages/ProductDetail'; 
-import Collection from './pages/Collection'; 
-import NotrePromesse from './pages/NotrePromesse'; 
+import Auth from './pages/Auth';
+import Profile from './pages/Profile';
+import Collection from './pages/Collection';
+import ProductDetail from './pages/ProductDetail';
+import Success from './pages/Success';
 import Contact from './pages/Contact';
-import Blog from './pages/Blog';
+import NotrePromesse from './pages/NotrePromesse';
+import Checkout from './pages/Checkout';
 
-// Imports des pages légales
+// Blog
+import Blog from './pages/Blog';
+import BlogPost from './pages/BlogPost';
+
+// Pages Légales
 import LegalNotice from './pages/legal/LegalNotice';
 import PrivacyPolicy from './pages/legal/PrivacyPolicy';
 import ShippingRefund from './pages/legal/ShippingRefund';
 import TermsOfService from './pages/legal/TermsOfService';
-import BlogPost from './pages/BlogPost';
+
+// Espace Créateur
+import Dashboard from './pages/createur/Dashboard';
+
+const CreateurRoute = ({ children }: { children: JSX.Element }) => {
+  const { user, profile, loading } = useAuth();
+  if (loading) return null;
+  if (!user || !profile?.isAdmin) { 
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+};
 
 function App() {
   return (
-    /* IA : Emboîtement des providers pour une gestion globale des données client et du panier */
     <AuthProvider>
       <CartProvider>
         <Router>
-          <Layout>
-            <Routes>
-              {/* Pages principales */}
+          <Routes>
+            {/* 🛠️ ESPACE CRÉATEUR (Isolé) */}
+            <Route 
+              path="/createur" 
+              element={
+                <CreateurRoute>
+                  <Dashboard />
+                </CreateurRoute>
+              } 
+            />
+
+            {/* 🏛️ ESPACE CLIENT (Sous Layout) */}
+            <Route element={<Layout />}>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Auth />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/collection" element={<Collection />} />
+              <Route path="/checkout" element={<Checkout />} />
               <Route path="/notre-promesse" element={<NotrePromesse />} />
               <Route path="/product/:id" element={<ProductDetail />} />
-              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/success" element={<Success />} />
               <Route path="/contact" element={<Contact />} />
               
-              {/* Section Journal */}
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:id" element={<BlogPost />} />
 
-              {/* Pages Légales */}
               <Route path="/mentions-legales" element={<LegalNotice />} />
               <Route path="/confidentialite" element={<PrivacyPolicy />} />
               <Route path="/livraison-et-retours" element={<ShippingRefund />} />
               <Route path="/CGV" element={<TermsOfService />} />
-              
-              {/* Redirection automatique vers l'accueil si la page n'existe pas */}
+
               <Route path="*" element={<Home />} />
-            </Routes>
-          </Layout>
+            </Route>
+          </Routes>
         </Router>
       </CartProvider>
     </AuthProvider>

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProductGrid from '../components/products/ProductGrid';
+import HeroImmersif from '../components/home/HeroImmersif';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -14,30 +15,35 @@ const Home = () => {
   };
 
   return (
-    <div className="w-full bg-white">
+    <div className="w-full bg-white font-sans antialiased">
       
       {/* ═══════════════════════════════════════════════════
-          SECTION MANIFESTE : L'entrée dans l'Atelier
+          HERO IMMERSIF : Le plein écran (100vh)
       ═══════════════════════════════════════════════════ */}
-      <article className="min-h-[95vh] flex flex-col items-center justify-center px-6 md:px-12 text-center bg-white">
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      <HeroImmersif />
+
+      {/* ═══════════════════════════════════════════════════
+          SECTION MANIFESTE : Marges fluides (LV Style)
+      ═══════════════════════════════════════════════════ */}
+      <article className="py-[12vh] px-[6.4vw] md:px-[8.33vw] flex flex-col items-center text-center">
+        <div className="max-w-[1200px] animate-in fade-in slide-in-from-bottom-8 duration-1000">
           
-          <h1 className="font-serif text-5xl md:text-8xl italic leading-[1.1] max-w-6xl mb-16">
+          <h1 className="font-serif text-[clamp(2.5rem,6vw,5rem)] italic leading-[1.1] mb-[6vh]">
             Dessiner un vestiaire de l'essentiel <br className="hidden md:block"/> pour la femme et l'enfant.
           </h1>
           
-          <div className="w-[0.5px] h-32 bg-black mx-auto mb-16 opacity-20"></div> 
+          {/* Ligne signature fine et discrète */}
+          <div className="w-[1px] h-[10vh] bg-black mx-auto mb-[6vh] opacity-10"></div> 
 
-          <div className="space-y-12 max-w-3xl mx-auto">
-            <p className="font-serif text-2xl md:text-3xl text-neutral-800 leading-relaxed italic">
+          <div className="max-w-[800px] mx-auto space-y-[4vh]">
+            <p className="font-serif text-[clamp(1.2rem,2.5vw,1.8rem)] text-neutral-800 italic tracking-tight">
               "Bienvenue là où l'artisanat français rencontre une mode pensée pour durer."
             </p>
             
-            <div className="max-w-xl mx-auto">
-              <p className="text-sans text-[13px] md:text-[15px] text-neutral-500 leading-relaxed tracking-wide">
-                Qu'il s'agisse d'un <span className="text-black border-b-[0.5px] border-black/20 pb-1">cabas en coton</span> qui vous accompagne chaque jour 
-                ou d'un <span className="text-black border-b-[0.5px] border-black/20 pb-1">cadeau de naissance intemporel</span> à transmettre, nous créons pour 
-                ceux qui cherchent une alternative durable à la fast-fashion.
+            <div className="max-w-[500px] mx-auto">
+              <p className="text-[clamp(12px,1.2vw,14px)] text-neutral-500 leading-relaxed tracking-[0.05em] uppercase opacity-70">
+                L'excellence du <span className="text-black border-b-[0.5px] border-black/30 pb-1">fait-main</span> pour 
+                ceux qui cherchent une alternative durable.
               </p>
             </div>
           </div>
@@ -45,28 +51,26 @@ const Home = () => {
       </article>
 
       {/* ═══════════════════════════════════════════════════
-          SECTION RECHERCHE : L'Expérience Mobile & Desktop
-          IA : Positionnée en transition avant la grille
+          SECTION RECHERCHE : Barre "Écrin"
       ═══════════════════════════════════════════════════ */}
-      <section className="py-24 px-6 md:px-12 bg-neutral-50/50">
-        <div className="max-w-4xl mx-auto">
-          <form onSubmit={handleSearch} className="relative group">
+      <section className="py-[8vh] px-[6.4vw] md:px-[8.33vw] bg-neutral-50/40 border-y-[0.5px] border-neutral-100">
+        <div className="max-w-[600px] mx-auto">
+          <form onSubmit={handleSearch} className="relative">
             <input
               type="text"
               placeholder="Chercher une pièce, un usage..."
-              className="w-full py-8 text-2xl md:text-5xl font-serif italic text-center outline-none bg-transparent placeholder:text-neutral-200"
+              className="w-full py-4 text-center text-xl md:text-2xl font-serif italic outline-none bg-transparent placeholder:text-neutral-500 border-b border-neutral-200 focus:border-black transition-all duration-700"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/4 h-[0.5px] bg-black scale-x-0 group-focus-within:scale-x-100 transition-transform duration-1000"></div>
           </form>
           
-          <div className="mt-10 flex flex-wrap justify-center gap-x-10 gap-y-4">
+          <div className="mt-[4vh] flex flex-wrap justify-center gap-x-12 gap-y-4">
             {['Cabas', 'Naissance', 'Lin'].map((tag) => (
               <button 
                 key={tag}
                 onClick={() => navigate(`/collection?search=${tag}`)}
-                className="text-[9px] uppercase tracking-[0.4em] text-neutral-400 hover:text-black transition-colors"
+                className="text-[10px] uppercase tracking-[0.4em] text-neutral-400 hover:text-black transition-colors"
               >
                 {tag}
               </button>
@@ -76,49 +80,37 @@ const Home = () => {
       </section>
 
       {/* ═══════════════════════════════════════════════════
-          SECTION PRODUITS : La Galerie
+          SECTION PRODUITS : Rythme Fluide
       ═══════════════════════════════════════════════════ */}
-      <div id="collection" className="py-32 px-6 md:px-12">
-        <div className="flex items-center gap-8 mb-20">
-          <span className="text-[10px] uppercase tracking-[0.5em] text-neutral-300">01</span>
-          <h2 className="font-serif text-3xl italic">L'Essentiel</h2>
-          <div className="h-[0.5px] flex-grow bg-neutral-100"></div>
-        </div>
-        <ProductGrid />
-      </div>
+      <div id="collection" className="pt-[10vh] pb-0 px-[6.4vw] md:px-[8.33vw]">
+  
+  {/* BLOC TITRE : On utilise le même espacement en bas qu'en haut (10vh) */}
+  <div className="flex items-center gap-6 md:gap-10 mb-[1vh]">
+    <span className="text-[10px] font-bold tracking-[0.6em] text-neutral-300">01</span>
+    <h2 className="font-serif text-[clamp(1.5rem,3vw,2.5rem)] italic text-black whitespace-nowrap">
+      L'essentiel
+    </h2>
+    <div className="h-[0.5px] flex-grow bg-neutral-100"></div>
+  </div>
+  
+  {/* Grille : L'espace au-dessus est maintenant exactement de 10vh */}
+  <div className="relative">
+     <ProductGrid />
+  </div>
+</div>
 
       {/* ═══════════════════════════════════════════════════
-          SECTION IMAGE LARGE : Le Focus Visuel
+          FOOTER : Signature de Maison
       ═══════════════════════════════════════════════════ */}
-      <section className="h-[75vh] md:h-[90vh] w-full overflow-hidden relative">
-        <img 
-          src="/assets/Cabasmoutarde4.png" 
-          alt="Cabas artisanat français Jaelle & JC" 
-          className="w-full h-full object-cover grayscale-[15%] brightness-[0.9] hover:scale-105 transition-transform duration-[6s] ease-out"
-        />
-        <div className="absolute inset-0 bg-black/5 md:hidden"></div> {/* Overlay léger mobile */}
-        <div className="absolute bottom-12 right-12 text-white text-right">
-          <p className="text-[10px] uppercase tracking-[0.5em] opacity-70">Maison Jaelle & JC</p>
-          <p className="font-serif italic text-xl mt-2">L'âme de l'artisanat</p>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════
-          FOOTER MANIFESTE : La Signature finale
-      ═══════════════════════════════════════════════════ */}
-      <footer className="py-32 px-6 text-center border-t-[0.5px] border-neutral-50">
-        <div className="max-w-2xl mx-auto space-y-8">
-          <p className="font-serif italic text-2xl md:text-3xl text-neutral-800">
-            De belles matières, l'amour de l'artisanat'.
+      <footer className="py-[12vh] px-[6.4vw] text-center border-t-[0.5px] border-neutral-100">
+        <div className="max-w-[600px] mx-auto space-y-10">
+          <p className="font-serif italic text-[clamp(1.5rem,2.5vw,2rem)] text-neutral-800">
+            De belles matières, l'amour de l'artisanat.
           </p>
-          <div className="space-y-2">
-            <p className="text-sans text-[10px] text-neutral-400 uppercase tracking-[0.5em]">
-              Basiques et intemporels.
-            </p>
-            <p className="text-[9px] text-neutral-300 uppercase tracking-[0.3em] pt-4">
-              © 2026 — Jaelle & JC
-            </p>
-          </div>
+          <div className="w-12 h-[1px] bg-neutral-200 mx-auto"></div>
+          <p className="text-[9px] text-neutral-400 uppercase tracking-[0.6em]">
+            Atelier Jaelle & JC — France
+          </p>
         </div>
       </footer>
     </div>

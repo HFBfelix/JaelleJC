@@ -1,0 +1,35 @@
+[debug] [2026-03-03T11:41:55.821Z] ----------------------------------------------------------------------
+[debug] [2026-03-03T11:41:55.826Z] Command:       /usr/local/bin/node /Users/felixhamilton/.npm-global/bin/firebase functions:secrets:set SUMUP_CLIENT_ID
+[debug] [2026-03-03T11:41:55.826Z] CLI Version:   15.8.0
+[debug] [2026-03-03T11:41:55.827Z] Platform:      darwin
+[debug] [2026-03-03T11:41:55.827Z] Node Version:  v24.12.0
+[debug] [2026-03-03T11:41:55.827Z] Time:          Tue Mar 03 2026 12:41:55 GMT+0100 (heure normale d’Europe centrale)
+[debug] [2026-03-03T11:41:55.827Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-03-03T11:41:56.258Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-03T11:41:56.259Z] > authorizing via signed-in user (hfentreprises@gmail.com)
+[debug] [2026-03-03T11:41:56.260Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-03-03T11:41:56.260Z] > authorizing via signed-in user (hfentreprises@gmail.com)
+[debug] [2026-03-03T11:41:56.260Z] [iam] checking project jaellejc for permissions ["firebase.projects.get","secretmanager.secrets.create","secretmanager.secrets.get","secretmanager.secrets.update","secretmanager.versions.add"]
+[debug] [2026-03-03T11:41:56.262Z] Checked if tokens are valid: false, expires at: 1772536283380
+[debug] [2026-03-03T11:41:56.262Z] Checked if tokens are valid: false, expires at: 1772536283380
+[debug] [2026-03-03T11:41:56.262Z] > refreshing access token with scopes: []
+[debug] [2026-03-03T11:41:56.264Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-03-03T11:41:56.265Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-03-03T11:41:56.398Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-03-03T11:41:56.398Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-03-03T11:41:56.439Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/jaellejc:testIamPermissions [none]
+[debug] [2026-03-03T11:41:56.439Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/jaellejc:testIamPermissions  x-goog-user-project=jaellejc
+[debug] [2026-03-03T11:41:56.439Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/jaellejc:testIamPermissions {"permissions":["firebase.projects.get","secretmanager.secrets.create","secretmanager.secrets.get","secretmanager.secrets.update","secretmanager.versions.add"]}
+[debug] [2026-03-03T11:41:57.309Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/jaellejc:testIamPermissions 200
+[debug] [2026-03-03T11:41:57.310Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/jaellejc:testIamPermissions {"permissions":["firebase.projects.get","secretmanager.secrets.create","secretmanager.secrets.get","secretmanager.secrets.update","secretmanager.versions.add"]}
+[debug] [2026-03-03T11:41:57.312Z] Checked if tokens are valid: true, expires at: 1772541715399
+[debug] [2026-03-03T11:41:57.312Z] Checked if tokens are valid: true, expires at: 1772541715399
+[debug] [2026-03-03T11:41:57.312Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/projects/jaellejc [none]
+[debug] [2026-03-03T11:41:57.483Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/projects/jaellejc 200
+[debug] [2026-03-03T11:41:57.483Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/projects/jaellejc {"projectNumber":"199093066060","projectId":"jaellejc","lifecycleState":"ACTIVE","name":"JaelleJC","labels":{"firebase":"enabled","firebase-core":"disabled"},"createTime":"2026-01-12T18:07:59.966716Z"}
+[debug] [2026-03-03T11:41:57.484Z] Checked if tokens are valid: true, expires at: 1772541715399
+[debug] [2026-03-03T11:41:57.485Z] Checked if tokens are valid: true, expires at: 1772541715399
+[debug] [2026-03-03T11:41:57.485Z] >>> [apiv2][query] GET https://secretmanager.googleapis.com/v1/projects/jaellejc/secrets/SUMUP_CLIENT_ID [none]
+[debug] [2026-03-03T11:41:57.709Z] <<< [apiv2][status] GET https://secretmanager.googleapis.com/v1/projects/jaellejc/secrets/SUMUP_CLIENT_ID 200
+[debug] [2026-03-03T11:41:57.709Z] <<< [apiv2][body] GET https://secretmanager.googleapis.com/v1/projects/jaellejc/secrets/SUMUP_CLIENT_ID {"name":"projects/199093066060/secrets/SUMUP_CLIENT_ID","replication":{"automatic":{}},"createTime":"2026-02-28T13:02:18.190726Z","labels":{"firebase-managed":"functions"},"etag":"\"164be1f6adb378\""}

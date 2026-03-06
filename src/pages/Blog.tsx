@@ -44,8 +44,8 @@ const Blog = () => {
 
       {/* HERO */}
       <section className="px-6 md:px-16 pt-8 pb-16 border-b-[0.5px] border-neutral-100">
-        <span className="text-[9px] uppercase tracking-[0.6em] text-neutral-300 block mb-3">Maison</span>
-        <h1 className="font-serif text-5xl md:text-7xl italic leading-none mb-2">Le Journal</h1>
+        <span className="text-[9px] uppercase tracking-[0.6em] text-neutral-300 block mb-3"> </span>
+        <h1 className="font-serif text-5xl md:text-7xl italic leading-none mb-2">Le journal</h1>
         <p className="text-[9px] uppercase tracking-[0.4em] text-neutral-400 mt-4">
           Les chroniques de Jaelle & JC
         </p>

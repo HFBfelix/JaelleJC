@@ -2,67 +2,63 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ─────────────────────────────────────────────────────────
-    // FONCTION CENTRALE : vérifie si l'email connecté est admin
-    // Utilisée par dashboard.html ET les Cloud Functions côté client
-    // ─────────────────────────────────────────────────────────
+    // FONCTION : Vérifie si l'utilisateur est un admin actif
     function estAdmin() {
       return request.auth != null
           && request.auth.token.email != null
           && get(/databases/$(database)/documents/autorisations/$(request.auth.token.email)).data.actif == true;
     }
 
-    // ─────────────────────────────────────────────────────────
-    // COLLECTION : autorisations
-    // Sert de whitelist. ID du document = adresse email exacte.
-    // Structure requise : { actif: true, role: "admin" }
-    // ─────────────────────────────────────────────────────────
-    match /autorisations/{emailDoc} {
-      // Lecture par document autorisée SANS authentification
-      // → index.html peut vérifier l'email AVANT d'envoyer le lien magique
+    // WHITELIST : Lecture autorisée pour la vérification pré-connexion
+    match /autorisations/{email} {
       allow get: if true;
-
-      // On ne peut pas lister tous les admins ni modifier la whitelist via le web
-      allow list: if false;
-      allow write: if false;
+      allow list, write: if false;
     }
 
-    // ─────────────────────────────────────────────────────────
-    // COLLECTION : produits
-    // Lecture publique pour le site vitrine.
-    // Écriture réservée aux admins whitelistés (dashboard.html).
-    // L'Admin SDK (Cloud Functions) contourne ces règles automatiquement.
-    // ─────────────────────────────────────────────────────────
+    // PRODUITS : Lecture publique, écriture réservée à l'admin
     match /produits/{produitId} {
       allow read: if true;
-      allow create: if estAdmin();
-      allow update: if estAdmin();
-      allow delete: if estAdmin();
+      allow write: if estAdmin();
     }
 
-    // ─────────────────────────────────────────────────────────
-    // COLLECTION : articles_blog
-    // Lecture publique pour le site vitrine.
-    // Écriture uniquement via Cloud Functions (Admin SDK) — pas depuis le web.
-    // ─────────────────────────────────────────────────────────
+    // BLOG : Lecture publique, écriture admin
     match /articles_blog/{articleId} {
       allow read: if true;
-      allow write: if false; // L'agent Cloud Function écrit via Admin SDK, contourne cette règle
+      allow write: if estAdmin();
     }
 
-    // ─────────────────────────────────────────────────────────
-    // COLLECTION : commandes
-    // Les clients peuvent créer une commande.
-    // Seul l'Admin SDK (ton agent) peut lire/modifier.
-    // ─────────────────────────────────────────────────────────
-    match /commandes/{commandeId} {
+    // COMMANDES : Création par utilisateurs connectés, gestion admin
+    match /orders/{orderId} {
+      allow create: if request.auth != null;
+      allow read, update, delete: if estAdmin();
+    }
+
+    // PROFILS UTILISATEURS : Lecture/écriture par le propriétaire ou l'admin
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if estAdmin();
+    }
+
+    // NEWSLETTER : Création publique (non connecté possible), lecture admin
+    match /newsletter/{id} {
       allow create: if true;
-      allow read, update, delete: if false;
+      allow read, delete: if estAdmin();
     }
 
-    // ─────────────────────────────────────────────────────────
-    // SÉCURITÉ PAR DÉFAUT : tout le reste est bloqué
-    // ─────────────────────────────────────────────────────────
+    // CONTACTS : Création publique (formulaire contact), lecture admin
+    // Point 5 : était bloqué par la règle catch-all
+    match /contacts/{contactId} {
+      allow create: if true;
+      allow read, delete: if estAdmin();
+    }
+
+    // PARAMÈTRES LIVRAISON : Lecture publique, écriture admin
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if estAdmin();
+    }
+
+    // Sécurité par défaut
     match /{document=**} {
       allow read, write: if false;
     }

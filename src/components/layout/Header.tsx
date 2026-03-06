@@ -65,7 +65,7 @@ const Header = () => {
         )}
 
         <nav className="h-[45px] border-t-[0.5px] border-neutral-100 flex items-center justify-center gap-8 md:gap-12 bg-white">
-          <Link to="/collection" className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 hover:text-black">Sacs</Link>
+          <Link to="/collection" className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 hover:text-black">Femmes</Link>
           <Link to="/collection" className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 hover:text-black">Bébé</Link>
           <Link to="/collection" className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 hover:text-black">Coffrets</Link>
         </nav>
@@ -75,7 +75,7 @@ const Header = () => {
       <div className={`fixed inset-0 bg-white z-[100] transition-transform duration-500 ease-in-out ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="h-[65px] flex items-center justify-between px-6 md:px-12 border-b-[0.5px] border-neutral-200">
           <div className="flex-1"></div>
-          <p className="font-serif text-lg italic text-black">Maison Jaelle & JC</p>
+          <p className="font-serif text-lg italic text-black">Jaelle & JC</p>
           <div className="flex-1 flex justify-end">
             <button onClick={() => setIsMenuOpen(false)} className="text-black hover:rotate-90 transition-transform">
               <X size={24} strokeWidth={1} />
@@ -97,13 +97,13 @@ const Header = () => {
       <div className={`fixed inset-0 bg-white z-[90] transition-transform duration-500 ease-in-out ${isSearchOpen ? 'translate-y-0' : '-translate-y-full'}`}>
         <div className="h-[65px] flex items-center justify-between px-6 md:px-12 border-b-[0.5px] border-neutral-200">
           <div className="flex-1"></div>
-          <p className="font-serif text-lg italic text-black">Maison Jaelle & JC</p>
+          <p className="font-serif text-lg italic text-black">Jaelle & JC</p>
           <div className="flex-1 flex justify-end">
             <button onClick={() => setIsSearchOpen(false)} className="text-black"><X size={24} strokeWidth={1} /></button>
           </div>
         </div>
         <div className="max-w-4xl mx-auto mt-32 px-6">
-          <input type="text" placeholder="Que recherchez-vous ?" className="w-full text-center font-serif text-3xl md:text-5xl outline-none text-black placeholder:text-neutral-200" autoFocus={isSearchOpen} />
+          <input type="text" placeholder="Que recherchez-vous ?" className="w-full text-center font-serif text-3xl md:text-5xl outline-none text-black placeholder:text-neutral-500" autoFocus={isSearchOpen} />
         </div>
       </div>
 

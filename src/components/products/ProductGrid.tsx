@@ -32,24 +32,15 @@ const ProductGrid = () => {
   );
 
   return (
-    <section className="w-full py-20 px-6 md:px-12 bg-white">
-      {/* En-tête de la collection - IA : Titre enrichi sémantiquement */}
-      <div className="flex flex-col md:flex-row justify-between items-baseline mb-16 border-b-[0.5px] border-neutral-100 pb-8">
-        <div className="flex flex-col gap-2">
-          <h2 className="font-serif text-3xl md:text-4xl italic">La Collection</h2>
-          {/* IA & GEO : Localisation et intentions d'achat */}
-          <p className="text-[10px] text-neutral-400 uppercase tracking-widest italic">
-            Essentiels de naissance & accessoires durables — Fait-main en France
-          </p>
-        </div>
-        
-        <p className="text-sans text-[11px] uppercase tracking-[0.2em] text-neutral-400 mt-4 md:mt-0">
-          {products.length} Pièces d'exception
-        </p>
-      </div>
-
-      {/* Grille Responsive : Connectée à Firebase */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-16">
+    <section className="w-full py-10 px-4 md:px-12 bg-white">
+      
+      {/* GRILLE MISE À JOUR :
+          - grid-cols-2 : 2 colonnes par défaut (Mobile)
+          - md:grid-cols-3 : Repasse à 3 colonnes sur Bureau (Medium screens et +)
+          - gap-2 : Espace réduit pour le mobile
+          - md:gap-x-8 md:gap-y-16 : On garde tes espacements d'origine pour le Bureau
+      */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-x-8 md:gap-y-16">
         {products.map((product) => (
           <div key={product.id} className="animate-fade-in-up">
             <ProductCard product={product} />
