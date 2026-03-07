@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { db } from '../lib/firebase';
+import { db, trackEvent } from '../lib/firebase'; // Ajout de trackEvent
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Check, Loader2 } from 'lucide-react';
 
@@ -10,7 +10,6 @@ const NewsletterPage = () => {
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
 
   useEffect(() => {
-    // On récupère l'email de l'URL automatiquement
     const emailParam = searchParams.get('email');
     if (emailParam) setEmail(emailParam);
   }, [searchParams]);
@@ -26,6 +25,12 @@ const NewsletterPage = () => {
         source: 'email_redirect',
         createdAt: serverTimestamp(),
       });
+
+      // 💡 TRACKING : Inscription Newsletter réussie
+      trackEvent('newsletter_signup', {
+        source: 'email_magic_link'
+      });
+
       setStatus('success');
     } catch (error) {
       console.error(error);

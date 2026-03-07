@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import {
-  X, Trash2, ArrowRight, Minus, Plus, Loader2, Lock, Truck, Check
+  X, Trash2, ArrowRight, Minus, Plus, Lock, Truck, Check
 } from 'lucide-react';
 import { useCart } from '../../contexts/CartContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { db } from '../../lib/firebase';
+import { db, trackEvent } from '../../lib/firebase'; // Ajout de trackEvent
 import { doc, onSnapshot } from 'firebase/firestore';
 
 interface CartDrawerProps {
@@ -47,14 +47,19 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOpenLogin })
     updateQuantity(id, newQty);
   };
 
-  // Point 8 : on redirige vers /checkout pour collecter les infos de livraison
-  // Point 3 : on ne crée PAS la commande ici, ni on ne vide le panier
-  //           La commande est créée et le panier vidé dans Success.tsx après confirmation Stripe
   const handleFinalize = () => {
     if (!user) {
       onOpenLogin();
       return;
     }
+
+    // 💡 TRACKING : Début du tunnel de paiement
+    trackEvent('begin_checkout', {
+      value: total,
+      currency: 'EUR',
+      items_count: itemCount
+    });
+
     onClose();
     navigate('/checkout');
   };
@@ -179,10 +184,6 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOpenLogin })
                     Connexion requise pour payer
                   </span>
                 </div>
-              )}
-
-              {error && (
-                <p className="mb-4 text-[9px] uppercase tracking-widest text-red-400">{error}</p>
               )}
 
               <button
