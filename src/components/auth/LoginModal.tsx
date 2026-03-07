@@ -94,8 +94,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  // Style harmonisé avec l'interface Atelier
-  const inputClass = "w-full py-3 outline-none bg-transparent text-[11px] tracking-widest  placeholder:text-neutral-300 transition-colors uppercase";
+  // 💡 UX SENIOR : Suppression de "uppercase" pour éviter les erreurs de saisie (notamment sur le mot de passe)
+  const inputClass = "w-full py-3 outline-none bg-transparent text-[11px] tracking-widest placeholder:text-neutral-300 transition-colors";
 
   return (
     <>
