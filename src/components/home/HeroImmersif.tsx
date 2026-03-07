@@ -6,7 +6,7 @@ const SLIDES = [
   {
     // ID Firestore : cabas bleu
     id: 'giDoycYl8m1OYehLlws8', 
-    title: "L'élégance du lin",
+    title: "L'élégance du coton",
     subtitle: "le cabas imprimé bleu",
     images: ["/assets/cabasbleu3.webp", "/assets/cabas_bleu_2.webp"],
     description: "Une silhouette intemporelle pour vos journées ensoleillées.",

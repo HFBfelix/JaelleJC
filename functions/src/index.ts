@@ -44,7 +44,7 @@ export const onUserSignup = onDocumentCreated({
             <p>Bonjour ${name},</p>
             <p>Nous sommes ravis de vous compter parmi nous. L'Atelier Jaelle & JC est né d'une envie simple : dessiner un vestiaire de l'essentiel, où chaque pièce raconte une histoire de transmission et de savoir-faire français.</p>
             <div style="text-align: center; margin: 40px 0;">
-              <a href="https://jaellejc.web.app/collection" style="background: #000; color: #fff; padding: 15px 30px; text-decoration: none; text-transform: uppercase; font-size: 11px; letter-spacing: 2px;">Explorer les pièces</a>
+              <a href="https://jaellejc.com/collection" style="background: #000; color: #fff; padding: 15px 30px; text-decoration: none; text-transform: uppercase; font-size: 11px; letter-spacing: 2px;">Explorer les pièces</a>
             </div>
             <p style="font-size: 13px; color: #666; font-style: italic;">"De belles matières, l'amour de l'artisanat."</p>
             <hr style="border: none; border-top: 0.5px solid #eee; margin-top: 50px;" />
@@ -162,7 +162,7 @@ export const onProductAdded = onDocumentCreated({
         sender: {name: "Atelier Jaelle & JC", email: "contact@jaellejc.com"},
         to: [{email: "contact@jaellejc.com"}],
         subject: `IA : Brouillons prêts pour ${name} (Validation requise)`,
-        htmlContent: `<p>Le travail de l'IA est terminé pour <strong>${name}</strong>. <a href="https://jaellejc.web.app/createur">Ouvrir l'Atelier</a></p>`,
+        htmlContent: `<p>Le travail de l'IA est terminé pour <strong>${name}</strong>. <a href="https://jaellejc.com/createur">Ouvrir l'Atelier</a></p>`,
       },
       {headers: {"api-key": BREVO_API_KEY.value()}}
     );
@@ -171,46 +171,137 @@ export const onProductAdded = onDocumentCreated({
   }
 });
 
-// 5. CRM & CONFIRMATION DE COMMANDE
+// 5. CRM & CONFIRMATION DE COMMANDE + ALERTE ATELIER
 export const onOrderCreated = onDocumentCreated({
   document: "orders/{orderId}",
   secrets: [BREVO_API_KEY],
 }, async (event) => {
   const snapshot = event.data;
   if (!snapshot) return;
-  const {customerName, customerEmail, total} = snapshot.data();
+
+  const orderData = snapshot.data();
+  const amount = orderData.total || orderData.amount || 0;
+  const {customerName, customerEmail, deliveryFee, items, shippingAddress, customerPhone} = orderData;
   const refOrder = `#${event.params.orderId.slice(0, 8).toUpperCase()}`;
+  const logoUrl = "https://jaellejc.com/assets/Logo%20noirJaelle&JC_v2.png";
+
   try {
+    // 5a. MISE À JOUR CRM BREVO
     await axios.post(
       "https://api.brevo.com/v3/contacts",
       {
         email: customerEmail,
-        attributes: {NOM: customerName || "", IS_CUSTOMER: true, MONTANT_TOTAL: total},
+        attributes: {NOM: customerName || "", IS_CUSTOMER: true, DERNIER_ACHAT: amount},
         listIds: [2],
         updateEnabled: true,
       },
       {headers: {"api-key": BREVO_API_KEY.value()}}
     );
+
+    // 5b. CONSTRUCTION DU TABLEAU DES PRODUITS
+    const itemsHtml = items.map((item: {name: string, quantity: number, price: number}) => `
+      <tr>
+        <td style="padding: 15px 0; border-bottom: 0.5px solid #eee; font-family: serif; font-style: italic; font-size: 14px;">${item.name}</td>
+        <td style="padding: 15px 0; border-bottom: 0.5px solid #eee; text-align: center; font-size: 12px; color: #666;">${item.quantity}</td>
+        <td style="padding: 15px 0; border-bottom: 0.5px solid #eee; text-align: right; font-size: 13px; font-weight: 300;">${item.price} €</td>
+      </tr>
+    `).join("");
+
+    // 5c. ENVOI MAIL AU CLIENT (DESIGN COMPLET)
     await axios.post(
       "https://api.brevo.com/v3/smtp/email",
       {
         sender: {name: "Jaelle & JC", email: "contact@jaellejc.com"},
         to: [{email: customerEmail, name: customerName}],
-        subject: `Confirmation de votre acquisition - ${refOrder}`,
-        htmlContent: `<p>Merci ${customerName}, votre pièce est en préparation.</p>`,
+        subject: `Confirmation de votre acquisition — ${refOrder}`,
+        htmlContent: `
+          <!DOCTYPE html>
+          <html>
+          <body style="margin: 0; padding: 0; background-color: #ffffff; color: #1a1a1a; font-family: sans-serif;">
+            <table width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 600px; margin: auto; padding: 40px 20px;">
+              <tr>
+                <td align="center" style="padding-bottom: 50px;">
+                  <img src="${logoUrl}" alt="Jaelle & JC" width="180" style="display: block; border: 0;" />
+                  <div style="height: 1px; width: 30px; background-color: #000; margin-top: 25px; margin-left: auto; margin-right: auto;"></div>
+                </td>
+              </tr>
+              <tr><td style="font-family: serif; font-size: 22px; font-style: italic; padding-bottom: 25px;">Bonjour ${customerName || "Cher client"},</td></tr>
+              <tr><td style="font-size: 13px; line-height: 1.8; color: #666; padding-bottom: 40px;">Nous avons le plaisir de vous confirmer la réception de votre commande. Chaque pièce est préparée avec soin dans notre atelier.</td></tr>
+              <tr>
+                <td>
+                  <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-top: 1px solid #000; padding-top: 10px;">
+                    <thead>
+                      <tr>
+                        <th align="left" style="font-size: 9px; text-transform: uppercase; color: #999;">Pièce</th>
+                        <th align="center" style="font-size: 9px; text-transform: uppercase; color: #999;">Qté</th>
+                        <th align="right" style="font-size: 9px; text-transform: uppercase; color: #999;">Prix</th>
+                      </tr>
+                    </thead>
+                    <tbody>${itemsHtml}</tbody>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding-top: 25px;">
+                  <table width="100%" border="0" cellspacing="0" cellpadding="0">
+                    <tr><td style="font-size: 10px; text-transform: uppercase; color: #999;">Livraison</td><td align="right" style="font-size: 13px;">${deliveryFee === 0 ? "Offerte" : deliveryFee + " €"}</td></tr>
+                    <tr><td style="font-size: 10px; text-transform: uppercase; font-weight: bold; padding-top: 10px;">Total</td><td align="right" style="font-size: 22px; font-family: serif; padding-top: 10px;">${amount} €</td></tr>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding-top: 50px;">
+                  <div style="background-color: #fcfcfc; padding: 25px; border-left: 1px solid #000;">
+                    <h4 style="font-size: 9px; text-transform: uppercase; color: #999;">Détails d'expédition</h4>
+                    <p style="font-family: serif; font-style: italic; font-size: 13px; color: #333;">${shippingAddress}</p>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td align="center" style="padding-top: 70px;">
+                  <a href="https://jaellejc.com/newsletter?email=${customerEmail}" style="display: inline-block; padding: 18px 35px; background-color: #000; color: #fff; text-decoration: none; font-size: 9px; text-transform: uppercase; letter-spacing: 3px;">Rejoindre la Newsletter</a>
+                </td>
+              </tr>
+            </table>
+          </body>
+          </html>
+        `,
       },
       {headers: {"api-key": BREVO_API_KEY.value()}}
     );
+
+    // 5d. ENVOI ALERTE À L'ATELIER (POUR TOI)
+    await axios.post(
+      "https://api.brevo.com/v3/smtp/email",
+      {
+        sender: {name: "Système Atelier", email: "contact@jaellejc.com"},
+        to: [{email: "contact@jaellejc.com"}],
+        subject: `🚨 NOUVELLE COMMANDE — ${refOrder}`,
+        htmlContent: `
+          <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee;">
+            <h2 style="font-size: 14px; text-transform: uppercase;">Alerte Nouvelle Vente</h2>
+            <p><strong>Référence :</strong> ${refOrder}</p>
+            <p><strong>Client :</strong> ${customerName} (${customerEmail})</p>
+            <p><strong>Tél :</strong> ${customerPhone || "Non renseigné"}</p>
+            <hr />
+            <table width="100%">${itemsHtml}</table>
+            <p><strong>Total encaissé : ${amount} €</strong></p>
+            <p><strong>Adresse :</strong> ${shippingAddress}</p>
+          </div>
+        `,
+      },
+      {headers: {"api-key": BREVO_API_KEY.value()}}
+    );
+
   } catch (error) {
-    console.error("Erreur CRM :", error);
+    console.error("Erreur CRM / Notification :", error);
   }
 });
 
-// 6. PAIEMENT STRIPE
+// 6. PAIEMENT STRIPE (Création de session)
 export const createStripeCheckout = onCall({
   secrets: [STRIPE_SECRET_KEY],
 }, async (request) => {
-  if (!request.auth) throw new HttpsError("unauthenticated", "Connexion requise.");
   const reqData = request.data as {
     cartItems: CartItem[],
     customerEmail: string,
@@ -237,7 +328,7 @@ export const createStripeCheckout = onCall({
           currency: "eur",
           product_data: {
             name: "Livraison sécurisée",
-            images: ["https://jaellejc.web.app/delivery-icon.png"],
+            images: ["https://jaellejc.com/delivery-icon.png"],
           },
           unit_amount: Math.round(reqData.deliveryFee * 100),
         },
@@ -246,15 +337,45 @@ export const createStripeCheckout = onCall({
     }
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
-      customer_email: reqData.customerEmail || request.auth.token.email,
+      customer_email: reqData.customerEmail || (request.auth ? request.auth.token.email : undefined),
       line_items: lineItems,
       mode: "payment",
-      success_url: reqData.success_url || "https://jaellejc.web.app/success",
-      cancel_url: reqData.cancel_url || "https://jaellejc.web.app/cart",
+      success_url: `${reqData.success_url || "https://jaellejc.com/success"}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: reqData.cancel_url || "https://jaellejc.com/cart",
+      payment_intent_data: {
+        description: `Commande Jaelle & JC - Client: ${reqData.customerEmail}`,
+      },
     });
-    return {url: session.url};
+    return {url: session.url, sessionId: session.id};
   } catch (error) {
     console.error("Erreur Stripe :", error);
     throw new HttpsError("internal", "Erreur Stripe.");
+  }
+});
+
+// 7. RÉCUPÉRATION DES DÉTAILS DE PAIEMENT
+export const getStripeSessionDetails = onCall({
+  secrets: [STRIPE_SECRET_KEY],
+}, async (request) => {
+  const {sessionId} = request.data as {sessionId: string};
+  if (!sessionId) throw new HttpsError("invalid-argument", "Session ID manquant.");
+
+  try {
+    const stripe = new Stripe(STRIPE_SECRET_KEY.value());
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ["payment_intent.payment_method"],
+    });
+
+    const paymentIntent = session.payment_intent as Stripe.PaymentIntent;
+    const paymentMethod = paymentIntent?.payment_method as Stripe.PaymentMethod;
+
+    return {
+      paymentIntentId: paymentIntent?.id || "",
+      fingerprint: paymentMethod?.card?.fingerprint || "non-disponible",
+      status: session.payment_status,
+    };
+  } catch (error) {
+    console.error("Erreur récupération détails Stripe :", error);
+    throw new HttpsError("internal", "Impossible de récupérer les détails.");
   }
 });

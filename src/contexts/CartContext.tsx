@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 
 interface CartItem {
@@ -24,66 +24,63 @@ interface CartContextType {
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
+const GUEST_KEY = 'cart_guest';
 
 export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const { user, loading: authLoading } = useAuth();
+  
+  // 💡 INIT SYNCHRONE : On regarde tout de suite dans le localStorage avant même le premier render
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    const guestSaved = localStorage.getItem(GUEST_KEY);
+    return guestSaved ? tryParse(guestSaved) : [];
+  });
+  
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const isInitialMount = useRef(true);
 
-  const getCartKey = () => (user ? `cart_${user.uid}` : null);
+  const getUserKey = () => (user ? `cart_${user.uid}` : GUEST_KEY);
 
-  // CHARGER le panier
+  // 1. GESTION DU CHARGEMENT / FUSION (Quand l'auth change)
   useEffect(() => {
-    const key = getCartKey();
+    // Si l'auth charge encore, on reste sur le panier guest initialisé plus haut
+    if (authLoading) return;
 
-    if (key) {
-      // Utilisateur connecté : charger depuis localStorage
-      const savedCart = localStorage.getItem(key);
-      if (savedCart) {
-        try {
-          const parsed = JSON.parse(savedCart);
-          setCart(Array.isArray(parsed) ? parsed : []);
-          // Nettoyer le backup de session une fois restauré
-          sessionStorage.removeItem('cart_backup');
-          return;
-        } catch (e) {
-          setCart([]);
-        }
+    if (user) {
+      const guestRaw = localStorage.getItem(GUEST_KEY);
+      const userRaw = localStorage.getItem(`cart_${user.uid}`);
+      
+      const guestItems = guestRaw ? tryParse(guestRaw) : [];
+      const userItems = userRaw ? tryParse(userRaw) : [];
+
+      if (guestItems.length > 0) {
+        const merged = mergeItems(userItems, guestItems);
+        setCart(merged);
+        localStorage.setItem(`cart_${user.uid}`, JSON.stringify(merged));
+        localStorage.removeItem(GUEST_KEY);
+      } else {
+        setCart(userItems);
       }
-
-      // Pas de panier en localStorage → essayer le backup sessionStorage
-      // (cas du retour depuis Stripe avant que Firebase ait rechargé le profil)
-      const sessionBackup = sessionStorage.getItem('cart_backup');
-      if (sessionBackup) {
-        try {
-          const parsed = JSON.parse(sessionBackup);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setCart(parsed);
-            // Immédiatement persister dans localStorage pour la clé user
-            localStorage.setItem(key, sessionBackup);
-            sessionStorage.removeItem('cart_backup');
-            return;
-          }
-        } catch (e) {
-          // silencieux
-        }
-      }
-
-      setCart([]);
     } else {
-      // Non connecté : pas de panier, mais on conserve le backup session
-      // (Firebase peut encore être en train de charger l'auth au retour de Stripe)
-      setCart([]);
+      // Utilisateur déconnecté ou session terminée -> Repasser en Guest
+      const savedGuest = localStorage.getItem(GUEST_KEY);
+      setCart(savedGuest ? tryParse(savedGuest) : []);
     }
-  }, [user]);
+    
+    isInitialMount.current = false;
+  }, [user, authLoading]);
 
-  // SAUVEGARDER le panier (uniquement si connecté)
+  // 2. SAUVEGARDE AUTOMATIQUE (À chaque modification du panier)
   useEffect(() => {
-    const key = getCartKey();
-    if (key && cart.length > 0) {
+    if (authLoading) return;
+    
+    const key = getUserKey();
+    if (cart.length > 0) {
       localStorage.setItem(key, JSON.stringify(cart));
+    } else if (!isInitialMount.current) {
+      // On ne remove que si ce n'est pas le tout premier chargement vide
+      localStorage.removeItem(key);
     }
-  }, [cart, user]);
+  }, [cart, user, authLoading]);
 
   const addToCart = (product: any) => {
     setCart(prev => {
@@ -100,9 +97,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: product.name,
         price: product.price,
         category: product.category,
-        stock: product.stock,
+        stock: product.stock || 10,
         quantity: 1,
-        image: product.images?.[0] || ''
+        image: product.images?.[0] || product.image || '',
       }];
     });
     setIsCartOpen(true);
@@ -118,13 +115,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setCart(prev => prev.filter(item => item.id !== productId));
   };
 
-  // VIDER le panier — uniquement après confirmation Stripe
   const clearCart = () => {
     setCart([]);
-    const key = getCartKey();
-    if (key) localStorage.removeItem(key);
+    localStorage.removeItem(getUserKey());
+    localStorage.removeItem(GUEST_KEY);
     sessionStorage.removeItem('cart_backup');
-    sessionStorage.removeItem('cart_total_backup');
   };
 
   const total = cart.reduce((acc, item) => acc + (Number(item.price) * item.quantity || 0), 0);
@@ -140,8 +135,31 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 };
 
+// ─── Helpers ───────────────────────────────────────────────
+function tryParse(raw: string): CartItem[] {
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function mergeItems(base: CartItem[], incoming: CartItem[]): CartItem[] {
+  const result = [...base];
+  for (const item of incoming) {
+    const existing = result.find(r => r.id === item.id);
+    if (existing) {
+      existing.quantity = Math.min(existing.quantity + item.quantity, existing.stock || 10);
+    } else {
+      result.push(item);
+    }
+  }
+  return result;
+}
+
 export const useCart = () => {
   const context = useContext(CartContext);
-  if (!context) throw new Error("useCart doit être utilisé dans un CartProvider");
+  if (!context) throw new Error('useCart doit être utilisé dans un CartProvider');
   return context;
 };

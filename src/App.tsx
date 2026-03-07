@@ -13,6 +13,7 @@ import Success from './pages/Success';
 import Contact from './pages/Contact';
 import NotrePromesse from './pages/NotrePromesse';
 import Checkout from './pages/Checkout';
+import NewsletterPage from './pages/NewsletterPage';
 
 // Blog
 import Blog from './pages/Blog';
@@ -63,6 +64,7 @@ function App() {
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/success" element={<Success />} />
               <Route path="/contact" element={<Contact />} />
+              <Route path="/newsletter" element={<NewsletterPage />} />
               
               <Route path="/blog" element={<Blog />} />
               <Route path="/blog/:id" element={<BlogPost />} />

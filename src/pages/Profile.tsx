@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { db, auth } from '../lib/firebase';
-import { doc, updateDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { doc, updateDoc, collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { MapPin, User, Package, Check, LogOut, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -33,28 +33,31 @@ const Profile = () => {
     }
   }, [profile]);
 
-  // Charger l'historique des commandes
+  // --- LOGIQUE CHIRURGICALE : RÉCUPÉRATION DES ACQUISITIONS ---
   useEffect(() => {
-    const fetchOrders = async () => {
-      if (!user) return;
-      try {
-        const q = query(
-          collection(db, "orders"), 
-          where("userId", "==", user.uid),
-          orderBy("createdAt", "desc")
-        );
-        const querySnapshot = await getDocs(q);
-        const ordersData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        setOrders(ordersData);
-      } catch (error) {
-        console.error("Erreur lors de la récupération des commandes:", error);
-      }
-    };
+    if (!user) {
+      setOrders([]);
+      return;
+    }
 
-    fetchOrders();
+    // Requête temps réel pour l'historique des commandes
+    const q = query(
+      collection(db, "orders"), 
+      where("userId", "==", user.uid),
+      orderBy("createdAt", "desc")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const ordersData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setOrders(ordersData);
+    }, (error) => {
+      console.error("Erreur récupération acquisitions:", error);
+    });
+
+    return () => unsubscribe();
   }, [user]);
 
   const handleUpdate = async (e: React.FormEvent) => {

@@ -30,10 +30,7 @@ const BuyButton: React.FC<BuyButtonProps> = ({ product, onNeedLogin, className }
     if (isOutOfStock || isAtMaxStock) return;
 
     // Si non connecté, déclencher la modal de connexion
-    if (!user && onNeedLogin) {
-      onNeedLogin();
-      return;
-    }
+    
 
     addToCart(product);
 

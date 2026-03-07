@@ -27,32 +27,36 @@ service cloud.firestore {
       allow write: if estAdmin();
     }
 
+    // CATÉGORIES : Lecture publique (utilisée par Layout), écriture admin
+    match /categories/{catId} {
+      allow read: if true;
+      allow write: if estAdmin();
+    }
+
     // COMMANDES : Création par utilisateurs connectés, gestion admin
     match /orders/{orderId} {
       allow create: if request.auth != null;
       allow read, update, delete: if estAdmin();
     }
 
-    // PROFILS UTILISATEURS : Lecture/écriture par le propriétaire ou l'admin
+    // PROFILS UTILISATEURS : Lecture/écriture par le propriétaire
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
-      allow read: if estAdmin();
     }
 
-    // NEWSLETTER : Création publique (non connecté possible), lecture admin
+    // NEWSLETTER : Création publique, lecture admin
     match /newsletter/{id} {
       allow create: if true;
       allow read, delete: if estAdmin();
     }
 
-    // CONTACTS : Création publique (formulaire contact), lecture admin
-    // Point 5 : était bloqué par la règle catch-all
+    // CONTACTS : Création publique, lecture admin
     match /contacts/{contactId} {
       allow create: if true;
       allow read, delete: if estAdmin();
     }
 
-    // PARAMÈTRES LIVRAISON : Lecture publique, écriture admin
+    // PARAMÈTRES : Lecture publique, écriture admin
     match /settings/{settingId} {
       allow read: if true;
       allow write: if estAdmin();

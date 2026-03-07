@@ -92,6 +92,9 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
+  // Style harmonisé avec l'interface Atelier
+  const inputClass = "w-full py-3 outline-none bg-transparent text-[11px] tracking-widest  placeholder:text-neutral-300 transition-colors";
+
   return (
     <>
       <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[500]" onClick={handleClose} />
@@ -127,20 +130,20 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                   <div className="border-b border-neutral-100 focus-within:border-black transition-colors">
                     <input
                       type="text"
-                      placeholder="Prénom *"
+                      placeholder="PRÉNOM *"
                       value={firstName}
                       onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full py-3 outline-none bg-transparent text-sm font-serif italic placeholder:text-neutral-300"
+                      className={inputClass}
                     />
                   </div>
                   {/* Nom */}
                   <div className="border-b border-neutral-100 focus-within:border-black transition-colors">
                     <input
                       type="text"
-                      placeholder="Nom *"
+                      placeholder="NOM *"
                       value={lastName}
                       onChange={(e) => setLastName(e.target.value)}
-                      className="w-full py-3 outline-none bg-transparent text-sm font-serif italic placeholder:text-neutral-300"
+                      className={inputClass}
                     />
                   </div>
                 </div>
@@ -149,10 +152,10 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                 <div className="border-b border-neutral-100 focus-within:border-black transition-colors">
                   <input
                     type="tel"
-                    placeholder="Téléphone *"
+                    placeholder="TÉLÉPHONE *"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="w-full py-3 outline-none bg-transparent text-sm font-serif italic placeholder:text-neutral-300"
+                    className={inputClass}
                   />
                 </div>
               </>
@@ -160,19 +163,19 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
 
             {/* Email */}
             <div className="border-b border-neutral-100 focus-within:border-black transition-colors">
-              <input type="email" placeholder="Adresse email *" value={email}
+              <input type="email" placeholder="ADRESSE EMAIL *" value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
-                className="w-full py-3 outline-none bg-transparent text-sm font-serif italic placeholder:text-neutral-300"
+                className={inputClass}
               />
             </div>
 
             {mode !== 'forgot' && (
               <div className="border-b border-neutral-100 focus-within:border-black transition-colors">
-                <input type="password" placeholder="Mot de passe *" value={password}
+                <input type="password" placeholder="MOT DE PASSE *" value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
-                  className="w-full py-3 outline-none bg-transparent text-sm font-serif italic placeholder:text-neutral-300"
+                  className={inputClass}
                 />
               </div>
             )}
