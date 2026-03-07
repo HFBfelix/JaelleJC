@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ArrowLeft } from 'lucide-react';
+import { X, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -21,6 +21,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false); // État pour la visibilité
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
@@ -31,6 +32,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const reset = () => {
     setEmail(''); setPassword(''); setFirstName(''); setLastName(''); setPhone('');
     setError(''); setMessage(''); setLoading(false);
+    setShowPassword(false);
     setMode('login');
   };
 
@@ -93,7 +95,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   // Style harmonisé avec l'interface Atelier
-  const inputClass = "w-full py-3 outline-none bg-transparent text-[11px] tracking-widest  placeholder:text-neutral-300 transition-colors";
+  const inputClass = "w-full py-3 outline-none bg-transparent text-[11px] tracking-widest  placeholder:text-neutral-300 transition-colors uppercase";
 
   return (
     <>
@@ -171,12 +173,22 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
             </div>
 
             {mode !== 'forgot' && (
-              <div className="border-b border-neutral-100 focus-within:border-black transition-colors">
-                <input type="password" placeholder="MOT DE PASSE *" value={password}
+              <div className="border-b border-neutral-100 focus-within:border-black transition-colors relative">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  placeholder="MOT DE PASSE *" 
+                  value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
                   className={inputClass}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-0 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black transition-colors"
+                >
+                  {showPassword ? <EyeOff size={16} strokeWidth={1} /> : <Eye size={16} strokeWidth={1} />}
+                </button>
               </div>
             )}
 
