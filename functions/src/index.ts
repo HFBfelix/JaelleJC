@@ -292,7 +292,6 @@ export const onOrderCreated = onDocumentCreated({
       },
       {headers: {"api-key": BREVO_API_KEY.value()}}
     );
-
   } catch (error) {
     console.error("Erreur CRM / Notification :", error);
   }
