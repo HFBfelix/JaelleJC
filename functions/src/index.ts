@@ -274,7 +274,7 @@ export const onOrderCreated = onDocumentCreated({
     await axios.post(
       "https://api.brevo.com/v3/smtp/email",
       {
-        sender: {name: "Système Atelier", email: "contact@jaellejc.com"},
+        sender: {name: "Atelier Jaelle & JC", email: "contact@jaellejc.com"},
         to: [{email: "contact@jaellejc.com"}],
         subject: `🚨 NOUVELLE COMMANDE — ${refOrder}`,
         htmlContent: `

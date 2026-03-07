@@ -21,7 +21,7 @@ const NewsletterPage = () => {
     setStatus('loading');
     try {
       await addDoc(collection(db, 'newsletter'), {
-        email,
+        email: email.toLowerCase(), // Nettoyage Senior
         source: 'email_redirect',
         createdAt: serverTimestamp(),
       });
@@ -55,7 +55,13 @@ const NewsletterPage = () => {
             <div className="flex justify-center mb-6 text-black">
               <Check size={30} strokeWidth={1} />
             </div>
-            <p className="text-[10px] uppercase tracking-[0.3em]">Vous faites désormais partie de l'histoire.</p>
+            <p className="text-[10px] uppercase tracking-[0.3em] font-medium">Vous faites désormais partie de l'histoire.</p>
+            <button 
+              onClick={() => window.location.href = '/'}
+              className="mt-12 text-[9px] uppercase tracking-[0.4em] border-b border-black pb-1"
+            >
+              Retour à l'Atelier
+            </button>
           </div>
         ) : (
           <form onSubmit={handleSubscribe} className="space-y-8">
@@ -65,7 +71,7 @@ const NewsletterPage = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="VOTRE ADRESSE EMAIL"
-                className="w-full py-4 bg-transparent outline-none text-[11px] tracking-[0.2em] text-center"
+                className="w-full py-4 bg-transparent outline-none text-[11px] tracking-[0.2em] text-center uppercase"
                 required
               />
             </div>

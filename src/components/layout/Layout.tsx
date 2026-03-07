@@ -36,6 +36,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const isCollectionPage = location.pathname === '/collection';
   const isProductPage = location.pathname.startsWith('/product/');
+  
+  // --- DÉTECTION PAGE NEWSLETTER UNIQUE ---
+  const isNewsletterPage = location.pathname === '/newsletter';
 
   const handleNavigation = (path: string) => {
     setIsMenuOpen(false);
@@ -192,7 +195,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {children || <Outlet />}
       </main>
 
-      {!isProductPage && <Newsletter />}
+      {/* RÈGLE DE GESTION : On masque le bloc Newsletter UNIQUEMENT sur la page /newsletter */}
+      {!isNewsletterPage && <Newsletter />}
 
       <footer className="py-24 bg-neutral-50 mt-auto px-12 border-t border-neutral-100">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-12">

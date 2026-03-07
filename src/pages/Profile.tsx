@@ -90,7 +90,7 @@ const Profile = () => {
     <div className="min-h-screen bg-white pt-32 pb-20 px-6">
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-16">
-          <h1 className="font-serif text-4xl italic mb-4">Votre Espace</h1>
+          <h1 className="font-serif text-4xl italic mb-4">Votre espace</h1>
           <p className="text-[10px] uppercase tracking-[0.3em] text-neutral-400">Gérez vos informations et vos acquisitions</p>
         </div>
 

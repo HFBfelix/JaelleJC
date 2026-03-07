@@ -19,6 +19,16 @@ const Success = () => {
 
   useEffect(() => {
     window.scrollTo(0, 0);
+
+    // ─── AJOUT SÉCURITÉ : NETTOYAGE URL DOUBLÉE ───────────────────────────
+    const currentUrl = window.location.href;
+    if (currentUrl.includes('?session_id=') && currentUrl.split('?').length > 2) {
+      const parts = currentUrl.split('?');
+      const cleanUrl = parts[0] + '?' + parts[1];
+      window.history.replaceState({}, '', cleanUrl);
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     if (!isPaid) { setStatus('done'); return; }
 
     let unsubscribe: (() => void) | null = null;

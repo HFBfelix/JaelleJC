@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ArrowRight } from 'lucide-react';
 import { trackEvent } from '../../lib/firebase';
+import { useCart } from '../../contexts/CartContext';
 
 interface ExitIntentPopupProps {
   cartCount: number;
@@ -9,6 +10,9 @@ interface ExitIntentPopupProps {
 const ExitIntentPopup: React.FC<ExitIntentPopupProps> = ({ cartCount }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [hasBeenDismissed, setHasBeenDismissed] = useState(false);
+  
+  // On récupère setIsCartOpen depuis ton CartContext pour déclencher le tiroir latéral
+  const { setIsCartOpen } = useCart();
 
   useEffect(() => {
     // On vérifie si l'utilisateur a déjà fermé la pop-up durant cette session
@@ -33,6 +37,12 @@ const ExitIntentPopup: React.FC<ExitIntentPopupProps> = ({ cartCount }) => {
     sessionStorage.setItem('exit_popup_dismissed', 'true');
   };
 
+  // Logique de finalisation : on ferme la popup et on ouvre le panier latéral
+  const handleFinalizeAction = () => {
+    closePopup();
+    setIsCartOpen(true);
+  };
+
   if (!isVisible) return null;
 
   return (
@@ -54,7 +64,7 @@ const ExitIntentPopup: React.FC<ExitIntentPopupProps> = ({ cartCount }) => {
 
             <div className="flex flex-col gap-4">
               <button 
-                onClick={() => { window.location.href = '/checkout'; }}
+                onClick={handleFinalizeAction}
                 className="w-full bg-black text-white py-5 text-[10px] uppercase tracking-[0.4em] flex items-center justify-center gap-4 hover:bg-neutral-800 transition-all"
               >
                 Finaliser maintenant <ArrowRight size={14} />

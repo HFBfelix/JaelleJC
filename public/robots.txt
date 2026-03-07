@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# Interdire l'indexation des pages privées ou de processus
+Disallow: /createur/
+Disallow: /profile
+Disallow: /success
+Disallow: /checkout
+
+# Lien vers le plan du site
+Sitemap: https://jaellejc.com/sitemap.xml
