@@ -78,7 +78,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, onOpenLogin })
 
           <div className="h-[65px] px-8 flex items-center justify-between border-b border-neutral-100">
             <span className="text-[10px] uppercase tracking-[0.4em] font-light italic">
-              Votre Sélection ({itemCount})
+              Votre sélection ({itemCount})
             </span>
             <button onClick={onClose} className="hover:rotate-90 transition-transform duration-300">
               <X size={20} strokeWidth={1} />
