@@ -88,7 +88,7 @@ const Newsletter = () => {
           </form>
         )}
         
-        <p className="text-[8px] uppercase tracking-[0.2em] text-neutral-300 mt-12 leading-relaxed max-w-xs mx-auto">
+        <p className="text-[8px] uppercase tracking-[0.2em] text-neutral-500 mt-12 leading-relaxed max-w-xs mx-auto">
           En vous inscrivant, vous acceptez de recevoir nos actualités. 
           Désinscription possible à tout moment.
         </p>

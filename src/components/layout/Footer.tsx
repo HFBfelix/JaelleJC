@@ -21,7 +21,6 @@ const Footer = () => {
       const snap = await getDocs(q);
       if (!snap.empty) { setStatus('exists'); return; }
 
-      // Entrée distincte dans la collection "newsletter" (séparée des "users")
       await addDoc(collection(db, "newsletter"), {
         email: email.toLowerCase(),
         subscribedAt: serverTimestamp(),
@@ -60,11 +59,10 @@ const Footer = () => {
           <div className="flex flex-col gap-3">
             <span className="text-sans text-[11px] uppercase tracking-[0.2em] mb-2 text-black">Informations</span>
             <Link to="/confidentialite" className="text-sans text-[13px] text-neutral-500 hover:text-black transition-colors">Confidentialité</Link>
-            {/* Point 4 : lien corrigé vers la bonne route */}
             <Link to="/mentions-legales" className="text-sans text-[13px] text-neutral-500 hover:text-black transition-colors">Mentions Légales</Link>
           </div>
 
-          {/* Colonne 4 : Newsletter fonctionnelle */}
+          {/* Colonne 4 : Newsletter */}
           <div className="flex flex-col gap-4">
             <span className="text-sans text-[11px] uppercase tracking-[0.2em] mb-2 text-black">Newsletter</span>
             {status === 'success' ? (
@@ -74,7 +72,6 @@ const Footer = () => {
               </div>
             ) : (
               <form onSubmit={handleNewsletter} className="relative border-b-[0.5px] border-neutral-300 pb-2 focus-within:border-black transition-colors">
-                {/* Honeypot */}
                 <input type="text" className="hidden" tabIndex={-1} autoComplete="off" onChange={(e) => setHp(e.target.value)} />
                 <input
                   type="email"
@@ -98,14 +95,15 @@ const Footer = () => {
           </div>
         </div>
 
-        {/* Bas du Footer */}
+        {/* Bas du Footer - LOGO CORRIGÉ ICI */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-10 border-t-[0.5px] border-neutral-100">
           <img
             src="/assets/logo.png"
             alt="Jaelle & JC"
-            className="h-5 opacity-30 grayscale contrast-125"
+            /* J'ai augmenté l'opacité à 80% et retiré le grayscale agressif */
+            className="h-6 opacity-80 hover:opacity-100 transition-opacity duration-300"
           />
-          <p className="text-sans text-[10px] uppercase tracking-[0.1em] text-neutral-400">
+          <p className="text-sans text-[10px] uppercase tracking-[0.1em] text-neutral-500">
             © {currentYear} Jaelle & JC — Tous droits réservés.
           </p>
         </div>

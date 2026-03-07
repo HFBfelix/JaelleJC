@@ -47,8 +47,8 @@ const getEmailLayout = (content: string) => `
             </tr>
             <tr>
               <td align="center" style="padding-top: 50px; border-top: 0.5px solid #f0f0f0;">
-                <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.2em; color: #cccccc; margin: 0;">© 2026 — Jaelle & JC Atelier</p>
-                <p style="font-family: serif; font-style: italic; font-size: 12px; color: #999; margin-top: 10px;">Fait main avec passion</p>
+                <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.2em; color: #cccccc; margin: 0;">© 2026 — Jaelle & JC</p>
+                <p style="font-family: serif; font-style: italic; font-size: 12px; color: #999; margin-top: 10px;">Basiques & Intemporels. Confection artisanale française.</p>
               </td>
             </tr>
           </table>
