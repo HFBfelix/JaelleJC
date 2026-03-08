@@ -14,7 +14,7 @@ const BREVO_API_KEY = defineSecret("BREVO_API_KEY");
 const STRIPE_SECRET_KEY = defineSecret("STRIPE_SECRET_KEY");
 
 // ─── CONFIGURATION VISUELLE COMMUNE (LUXE & RESPONSIVE) ──────────────────
-const LOGO_URL = "https://jaellejc.com/assets/Logo%20noirJaelle&JC_v2.png";
+const LOGO_URL = "https://jaellejc.com/assets/logomail.png";
 
 const getEmailLayout = (content: string) => `
   <!DOCTYPE html>
@@ -48,7 +48,7 @@ const getEmailLayout = (content: string) => `
             <tr>
               <td align="center" style="padding-top: 50px; border-top: 0.5px solid #f0f0f0;">
                 <p style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.2em; color: #cccccc; margin: 0;">© 2026 — Jaelle & JC</p>
-                <p style="font-family: serif; font-style: italic; font-size: 12px; color: #999; margin-top: 10px;">Basiques & Intemporels. Confection artisanale française.</p>
+                <p style="font-family: serif; font-style: italic; font-size: 12px; color: #999; margin-top: 10px;">Basiques & Intemporels</p>
               </td>
             </tr>
           </table>

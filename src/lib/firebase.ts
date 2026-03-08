@@ -1,9 +1,10 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
-import { getAnalytics, logEvent } from "firebase/analytics"; // Ajout de logEvent
+import { getAnalytics, logEvent } from "firebase/analytics";
 import { getAuth } from 'firebase/auth';
 import { getFunctions } from 'firebase/functions';
+import { loadStripe } from '@stripe/stripe-js'; // 1. Importation Stripe
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -22,9 +23,11 @@ export const storage = getStorage(app);
 export const auth = getAuth(app);
 export const functions = getFunctions(app, 'us-central1');
 
+// 2. Initialisation Stripe avec la variable d'environnement
+export const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+
 export const analytics = typeof window !== "undefined" ? getAnalytics(app) : null;
 
-// 💡 Fonction magique pour suivre les actions de tes clients
 export const trackEvent = (eventName: string, params?: object) => {
   if (analytics) {
     logEvent(analytics, eventName, params);
