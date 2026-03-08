@@ -183,7 +183,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               className="flex items-center gap-3 text-[10px] uppercase tracking-[0.3em] text-neutral-500 hover:text-black">
               <span className="w-8 h-[0.5px] bg-neutral-300" />Instagram
             </a>
-            <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-300">© 2026 — Jaelle & JC Atelier</p>
+            <p className="text-[9px] uppercase tracking-[0.3em] text-neutral-300">© 2026 — Jaelle & JC</p>
           </div>
         </div>
       </div>
