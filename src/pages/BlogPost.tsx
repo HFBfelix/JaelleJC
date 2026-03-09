@@ -24,7 +24,7 @@ Chez Jaelle & JC, nous sommes amoureux des basiques et des intemporels, c'est no
     title: "A la découverte d'un tissu : le jersey",
     date: "30 JUIN 2023",
     category: "MATIERE",
-    image: "/assets/products/Jersey2.png",
+    image: "/assets/Jersey2.png",
     content: `C'est quoi le jersey : Rappelons en préambule cette définition ; le tissu est un matériau fabriqué à partir de fibres entrelacées qui est utilisé pour créer une grande variété de produits textiles. Le jersey est un type de tissu tricoté qui est souple, extensible et confortable à porter.
 
 Il est important de retenir ici "type de tissu tricoté". Donc le jersey n'est pas un tissu; c'est un abus de langage. Le jersey plus précisément, c'est la façon dont le tissu est tricoté. C'est cette phase de tricotage spécifique qui lui confère les attributs de souplesse et d'extensibilité naturelle.
