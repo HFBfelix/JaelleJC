@@ -36,7 +36,7 @@ const NotrePromesse = () => {
         </div>
         <div className="bg-neutral-50 aspect-[4/5] overflow-hidden flex items-center justify-center p-8">
   <img 
-    src="/assets/estampille JC broderie.png" 
+    src="/assets/JC fond noir.png" 
     alt="Atelier Jaelle & JC - Engagement durable" 
     className="max-w-full max-h-full object-contain grayscale" 
   />
