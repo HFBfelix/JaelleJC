@@ -6,12 +6,14 @@ import {getFirestore, FieldValue} from "firebase-admin/firestore";
 import axios from "axios";
 import {defineSecret} from "firebase-functions/params";
 import Stripe from "stripe";
+import OpenAI from "openai";
 
 initializeApp();
 const db = getFirestore();
 
 const BREVO_API_KEY = defineSecret("BREVO_API_KEY");
 const STRIPE_SECRET_KEY = defineSecret("STRIPE_SECRET_KEY");
+const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
 
 // ─── CONFIGURATION VISUELLE COMMUNE (LUXE & RESPONSIVE) ──────────────────
 const LOGO_URL = "https://jaellejc.com/assets/logomail.png";
@@ -352,5 +354,35 @@ export const getStripeSessionDetails = onCall({
   } catch (error) {
     console.error("Erreur détails :", error);
     throw new HttpsError("internal", "Erreur.");
+  }
+});
+
+// 8. RECHERCHE INTELLIGENTE (SMART SEARCH IA)
+export const analyzeIntent = onCall({
+  secrets: [OPENAI_API_KEY],
+}, async (request) => {
+  if (!request.data.query) {
+    throw new HttpsError("invalid-argument", "Requête manquante.");
+  }
+
+  const openai = new OpenAI({apiKey: OPENAI_API_KEY.value()});
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "Tu es un expert e-commerce luxe. Analyse la requête client et réponds uniquement en JSON avec : query_type (intent/keyword/mixed), category, attributes (array), usage_context (array), constraints (array), confidence (0-1), clarify_if_needed (string ou null).",
+        },
+        {role: "user", content: request.data.query},
+      ],
+      response_format: {type: "json_object"},
+    });
+
+    return JSON.parse(response.choices[0].message.content || "{}");
+  } catch (error) {
+    console.error("Erreur IA Search :", error);
+    throw new HttpsError("internal", "Erreur analyse IA.");
   }
 });
