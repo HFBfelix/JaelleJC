@@ -1,3 +1,4 @@
+/* eslint-disable require-jsdoc */
 /* eslint-disable max-len */
 import {onDocumentCreated} from "firebase-functions/v2/firestore";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
@@ -357,32 +358,268 @@ export const getStripeSessionDetails = onCall({
   }
 });
 
+// / ─── TYPES INTERNES POUR LE MATCHING SERVEUR ──────────────────────────────
+
+interface ProductDoc {
+  id: string;
+  name?: string;
+  description?: string;
+  category?: string;
+  subCategory?: string;
+  matieres?: string;
+  seo_tags?: string;
+  seo_metadata?: {
+    intents?: string[];
+    invisible_tags?: string;
+  };
+  price?: number;
+  stock?: number;
+  status?: string;
+  images?: string[];
+}
+
+interface IntentJSON {
+  query_type: "keyword" | "intent" | "mixed";
+  category: string | null;
+  sub_category: string | null;
+  attributes: string[];
+  usage_context: string[];
+  constraints: string[];
+  confidence: number;
+  clarify_if_needed: string | null;
+}
+
+interface MatchResult {
+  productId: string;
+  name: string;
+  price: number | null;
+  images: string[];
+  score: number;
+  reasons: string[];
+}
+
+// ─── UTILITAIRES ───────────────────────────────────────────────────────────
+
+function normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
+function tokenize(text: string): string[] {
+  return normalize(text)
+    .replace(/[^\w\s-]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.map((v) => String(v).trim()).filter(Boolean);
+}
+
+function canonicalCategory(input: string | null): string | null {
+  if (!input) return null;
+  const v = normalize(input);
+  if (["bebe", "bébé", "enfant", "naissance"].includes(v)) return "Bébé";
+  if (["femme", "femmes"].includes(v)) return "Femmes";
+  if (["coffret", "coffrets", "cadeau"].includes(v)) return "Coffrets";
+  return null;
+}
+
+function safeIntent(raw: any): IntentJSON {
+  const queryType = ["keyword", "intent", "mixed"].includes(raw?.query_type) ? raw.query_type : "mixed";
+  const confidenceRaw = Number(raw?.confidence);
+  const confidence = Number.isFinite(confidenceRaw) ? Math.max(0, Math.min(1, confidenceRaw)) : 0.5;
+
+  const category = canonicalCategory(raw?.category ? String(raw.category).trim() : null);
+  const subCategory = raw?.sub_category ? String(raw.sub_category).trim() : null;
+  const clarify = raw?.clarify_if_needed ? String(raw.clarify_if_needed).trim() : null;
+
+  return {
+    query_type: queryType,
+    category,
+    sub_category: subCategory,
+    attributes: asStringArray(raw?.attributes).map((x) => normalize(x)),
+    usage_context: asStringArray(raw?.usage_context).map((x) => normalize(x)),
+    constraints: asStringArray(raw?.constraints).map((x) => normalize(x)),
+    confidence,
+    clarify_if_needed: clarify || null,
+  };
+}
+
+const ATTR_MAP: Record<string, string[]> = {
+  impermeable: ["imperm", "pluie", "eau", "deperlant"],
+  coupe_vent: ["vent", "coupe-vent"],
+  doux: ["doux", "confort", "moelleux", "souple"],
+  respirant: ["respirant", "leger", "aere", "ventile"],
+  chaud: ["chaud", "hiver", "froid", "laine", "molleton"],
+  naturel: ["lin", "coton", "naturel", "bio", "biologique", "chanvre"],
+  premium: ["luxe", "premium", "haut de gamme", "noble"],
+  cadeau: ["cadeau", "naissance", "offrir", "coffret"],
+  artisanal: ["artisan", "fait-main", "brode", "couture", "main"],
+  leger: ["leger", "fin", "fluide", "aere"],
+};
+
+function scoreProduct(product: ProductDoc, queryTokens: string[], intent: IntentJSON): {score: number; reasons: string[]} {
+  const reasons: string[] = [];
+  let score = 0;
+
+  const cat = normalize(product.category || "");
+  const sub = normalize(product.subCategory || "");
+  const mat = normalize(product.matieres || "");
+  const desc = normalize(product.description || "");
+  const tags = normalize(product.seo_tags || "");
+  const intents = normalize((product.seo_metadata?.intents || []).join(" "));
+  const invisible = normalize(product.seo_metadata?.invisible_tags || "");
+
+  const longText = [desc, tags, intents, invisible, mat, cat, sub, normalize(product.name || "")]
+    .filter(Boolean)
+    .join(" ");
+
+  // Correction du bug : utilisation de queryTokens (passé en paramètre) au lieu de Tokens
+  const intentHits = queryTokens.filter((t) => intents.includes(t) || invisible.includes(t)).length;
+  if (intentHits > 0) {
+    score += Math.min(35, intentHits * 9);
+    reasons.push(`Intention proche : ${intentHits} signal(aux)`);
+  }
+
+  if (intent.category && cat === normalize(intent.category)) {
+    score += 24;
+    reasons.push(`Catégorie : ${product.category}`);
+  }
+
+  if (intent.sub_category && sub === normalize(intent.sub_category)) {
+    score += 16;
+    reasons.push(`Sous-catégorie : ${product.subCategory}`);
+  }
+
+  let attrHits = 0;
+  for (const attr of intent.attributes) {
+    const probes = ATTR_MAP[attr] || [attr];
+    if (probes.some((p) => longText.includes(p))) {
+      attrHits += 1;
+    }
+  }
+  if (attrHits > 0) {
+    score += Math.min(18, attrHits * 6);
+    reasons.push(`Attribut(s) compatible(s) : ${attrHits}`);
+  }
+
+  // Correction du bug : utilisation de queryTokens au lieu de Tokens
+  const lexHits = queryTokens.filter((t) => longText.includes(t)).length;
+  if (lexHits > 0) {
+    score += Math.min(10, lexHits * 2);
+  }
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+  if (reasons.length === 0) reasons.push("Alternative la plus proche");
+
+  return {score, reasons: reasons.slice(0, 3)};
+}
+
 // 8. RECHERCHE INTELLIGENTE (SMART SEARCH IA)
 export const analyzeIntent = onCall({
   secrets: [OPENAI_API_KEY],
 }, async (request) => {
-  if (!request.data.query) {
+  const rawQuery = String(request.data?.query || "").trim();
+  if (!rawQuery) {
     throw new HttpsError("invalid-argument", "Requête manquante.");
   }
 
   const openai = new OpenAI({apiKey: OPENAI_API_KEY.value()});
 
+  const systemPrompt = `
+Tu es un parser d'intention e-commerce pour Jaelle & JC.
+Tu réponds UNIQUEMENT en JSON valide avec EXACTEMENT ces clés :
+{
+  "query_type": "keyword" | "intent" | "mixed",
+  "category": string | null,
+  "sub_category": string | null,
+  "attributes": string[],
+  "usage_context": string[],
+  "constraints": string[],
+  "confidence": number,
+  "clarify_if_needed": string | null
+}
+Règles:
+- Catégories autorisées: "Bébé", "Femmes", "Coffrets" (sinon null).
+- Sous-catégories possibles (exemples): "linges de lit", "accessoires", "vestes".
+- Attributes autorisés: impermeable, coupe_vent, doux, respirant, chaud, naturel, premium, cadeau, artisanal, leger.
+- Si requête ambiguë, confidence basse (<0.6) et clarify_if_needed non null.
+- Aucun texte hors JSON.
+`;
+
+  let intent: IntentJSON;
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        {
-          role: "system",
-          content: "Tu es un expert e-commerce luxe. Analyse la requête client et réponds uniquement en JSON avec : query_type (intent/keyword/mixed), category, attributes (array), usage_context (array), constraints (array), confidence (0-1), clarify_if_needed (string ou null).",
-        },
-        {role: "user", content: request.data.query},
+        {role: "system", content: systemPrompt},
+        {role: "user", content: rawQuery},
       ],
       response_format: {type: "json_object"},
+      temperature: 0.1,
     });
 
-    return JSON.parse(response.choices[0].message.content || "{}");
+    const parsed = JSON.parse(response.choices[0].message.content || "{}");
+    intent = safeIntent(parsed);
+
+    if (!intent.category) {
+      const lowerQuery = normalize(rawQuery);
+      if (lowerQuery.includes("bebe") || lowerQuery.includes("bébé") || lowerQuery.includes("naissance") || lowerQuery.includes("bapteme")) {
+        intent.category = "Bébé";
+      } else if (lowerQuery.includes("coffret")) {
+        intent.category = "Coffrets";
+      } else if (lowerQuery.includes("femme") || lowerQuery.includes("femmes")) {
+        intent.category = "Femmes";
+      }
+    }
+
+    const lowerQueryForAttr = normalize(rawQuery);
+    if ((lowerQueryForAttr.includes("cadeau") || lowerQueryForAttr.includes("naissance") || lowerQueryForAttr.includes("bapteme") || lowerQueryForAttr.includes("offrir")) && !intent.attributes.includes("cadeau")) {
+      intent.attributes.push("cadeau");
+    }
   } catch (error) {
-    console.error("Erreur IA Search :", error);
+    console.error("Erreur OpenAI analyzeIntent:", error);
     throw new HttpsError("internal", "Erreur analyse IA.");
   }
+
+  const queryTokens = tokenize(rawQuery);
+
+  let products: ProductDoc[] = [];
+  try {
+    const snap = await db.collection("produits")
+      .where("status", "in", ["published", "draft"])
+      .get();
+
+    products = snap.docs
+      .map((d) => ({id: d.id, ...d.data()} as ProductDoc))
+      .filter((p) => typeof p.stock !== "number" || p.stock > 0);
+  } catch (error) {
+    console.error("Erreur Firestore catalogue:", error);
+    throw new HttpsError("internal", "Erreur lecture catalogue.");
+  }
+
+  const results: MatchResult[] = products
+    .map((p) => {
+      const {score, reasons} = scoreProduct(p, queryTokens, intent);
+      return {
+        productId: p.id,
+        name: p.name || "Sans nom",
+        price: typeof p.price === "number" ? p.price : null,
+        images: p.images || [],
+        score,
+        reasons,
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+
+  const MIN_SCORE = 10;
+  const filteredResults = results.filter((r) => r.score >= MIN_SCORE);
+
+  return {intent, results: filteredResults};
 });

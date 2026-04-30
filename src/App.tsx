@@ -14,6 +14,7 @@ import Contact from './pages/Contact';
 import NotrePromesse from './pages/NotrePromesse';
 import Checkout from './pages/Checkout';
 import NewsletterPage from './pages/NewsletterPage';
+import SmartSearchPOC from './pages/SmartSearchPOC';
 
 // Blog
 import Blog from './pages/Blog';
@@ -69,6 +70,7 @@ const AppContent = () => {
           <Route path="/success" element={<Success />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/newsletter" element={<NewsletterPage />} />
+          <Route path="/smart-search-poc" element={<SmartSearchPOC />} />
           
           <Route path="/blog" element={<Blog />} />
           <Route path="/blog/:id" element={<BlogPost />} />
