@@ -1,6 +1,6 @@
 # Suivi — ce qui reste à faire (mis à jour au fil des étapes)
 
-Dernière mise à jour : 2026-10-24, fin de l'étape 0 (livraison A). Chaque ligne renvoie au rapport ou à la décision d'origine.
+Dernière mise à jour : 2026-10-24, fin de l'étape 1 (socle Next.js). Chaque ligne renvoie au rapport ou à la décision d'origine.
 
 ## Décisions de Jaelle (2026-10-24)
 
@@ -9,6 +9,9 @@ Dernière mise à jour : 2026-10-24, fin de l'étape 0 (livraison A). Chaque lig
 - Les 6 vulnérabilités élevées de `firebase` 10 sont acceptées jusqu'à l'étape 1.
 - Les clés Brevo exposées (ci-dessous) sont traitées plus tard.
 - Stripe de test laissé de côté pour la visualisation locale.
+- Étapes enchaînées sans validation intermédiaire du plan : à la fin de chaque étape, Claude indique quoi vérifier, Jaelle vérifie, puis l'étape suivante démarre.
+- Bandeau cookies conservé tel quel (plein écran), malgré « non bloquant » dans `CLAUDE.md` : décision de Jaelle.
+- Descriptions produits : à répartir dans les sous-parties de la fiche (accroche, description, composition, matières et entretien, dimensions et détails), via la migration de l'étape 1bis, validée par Jaelle.
 - E-mails : Brevo ne servira plus qu'à la newsletter (1 par mois). Les e-mails du parcours d'achat seront repensés (voir « E-mails »).
 
 ## Mise en production de l'étape 0, livraison A (2026-10-24)
@@ -31,8 +34,9 @@ Dernière mise à jour : 2026-10-24, fin de l'étape 0 (livraison A). Chaque lig
 | Priorité | Sujet | Détail | Origine |
 |---|---|---|---|
 | **Critique** | Clés API Brevo exposées | 2 clés `xkeysib-` dans l'historique public GitHub (janvier et mars 2026), dont une incluse dans le site entre janvier et mars. Dans Brevo, onglet **« Clés API »** (pas « Clés SMTP ») : désactiver/supprimer ces clés, vérifier l'activité du compte. Si une clé active sert au secret Firebase `BREVO_API_KEY`, en créer une nouvelle avant. | `reports/securite/etape-0.md` #1 |
-| Élevée | Firebase 10 → version récente | 6 vulnérabilités élevées (modules Node, absents du site publié) | rapport étape 0 #4 → étape 1 |
-| Moyenne | Outils de dev `vite` 4, `firebase-tools` 14 | Vulnérabilités, correctif = version majeure | rapport étape 0, Dépendances → étape 1 |
+| Moyenne | Outils de dev : 8 vulnérabilités moyennes | `postcss-selector-parser` (Tailwind 3), `uuid`, `gaxios`, `@opentelemetry/core` (firebase-tools) ; absentes du site publié | `reports/securite/etape-1.md` #3 |
+| Moyenne | Retrait du consentement cookies | Lien « Gérer les cookies », choix daté et redemandé après 6 mois | rapport étape 1 #2 → étape 8/9 |
+| Faible | CSP complète | Seule `frame-ancestors` est posée | rapport étape 1 #4 → étape 9 |
 | Moyenne | Commandes écrites par le navigateur | Fausses commandes « payées », e-mails de confirmation déclenchables vers n'importe qui | PLAN #2 → étape 5 (webhook) |
 | Moyenne | Lecture publique de `autorisations` | Permet de deviner les e-mails admin | PLAN #8 → étape 4 (custom claim) |
 | Moyenne | Brouillons lisibles et vendables | Livraison B de l'étape 0 : filtre `published`, règle `produits`, `REQUIRE_PUBLISHED = true` | rapport étape 0 → après publication des produits par Jaelle dans `/createur` |
@@ -45,11 +49,18 @@ Dernière mise à jour : 2026-10-24, fin de l'étape 0 (livraison A). Chaque lig
 |---|---|---|
 | Inscription newsletter probablement cassée en production | `Newsletter.tsx:19` et `Footer.tsx:20` lisent `newsletter` (refusé au public) avant d'écrire | `reports/qa/etape-0.md` Q1 |
 | Design de l'espace créatrice | Aligner sur la marque (logo, bordures 0,5 px, pas d'ombres ni d'arrondis) | QA Q2 → étape 7 |
-| Bandeau cookies plein écran | Doit être non bloquant (RGPD) | QA Q3 → étape 1 / 9 |
 | Erreur de types `ProductDetail.tsx:38` | Corrigée avec la livraison B | rapport QA |
 | `src/lib/mail.ts` | Code mort | QA Q4 → suppression avec `legacy/` |
 | Émulateur des fonctions | Délai dépassé au chargement (10 s) en local ; utile seulement pour tester Stripe en local | étape 5 |
 | Fonction `onProductAdded` | Texte à trous et brouillon de blog automatiques à supprimer | `BACKOFFICE.md` §5 → étape 7 |
+
+## Étape 1 — socle Next.js (2026-10-24)
+
+- Ancien site dans `legacy/` ; nouveau site Next.js 16 identique au pixel près sur le Layout (`reports/qa/etape-1.md`).
+- Firebase 10 → 13 et firebase-tools 14 → 15 : failles élevées supprimées.
+- Catégories du menu : liste fixe provisoire (Bébé, Coffrets, Femmes), remplacée par la base à l'étape 2.
+- Boutons panier, compte, recherche et formulaire newsletter visibles mais inactifs jusqu'aux étapes 1bis à 4.
+- Rapports : `reports/securite/etape-1.md`, `reports/qa/etape-1.md`.
 
 ## E-mails du parcours d'achat (à concevoir, étape 5)
 
