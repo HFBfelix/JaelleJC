@@ -21,3 +21,11 @@ playwright-report/
 
 # Sauvegardes de la migration (données, jamais dans git)
 backups/
+
+# Clés de comptes techniques : jamais dans git (à ranger dans C:\Users\hfent\.secrets\)
+.secrets/
+*service-account*.json
+*serviceaccount*.json
+jaellejc-staging-*.json
+jaellejc-[0-9a-f]*.json
+*-key.json

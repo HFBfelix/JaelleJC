@@ -56,6 +56,31 @@ Dernière mise à jour : 2026-10-24, fin de l'étape 1 (socle Next.js). Chaque l
 | Émulateur des fonctions | Délai dépassé au chargement (10 s) en local ; utile seulement pour tester Stripe en local | étape 5 |
 | Fonction `onProductAdded` | Texte à trous et brouillon de blog automatiques à supprimer | `BACKOFFICE.md` §5 → étape 7 |
 
+## Projet de test et compte technique `scripts-test` (étape 1bis, 2026-10-24)
+
+Projet `jaellejc-staging` : Firestore Standard à Paris (europe-west9), règles « tout fermé » à la création ; connexion par e-mail + mot de passe et par lien e-mail activée. Stockage des photos : non activé (forfait Blaze requis, à faire par Jaelle si besoin ; les photos du test pointent vers celles du site actuel).
+
+Compte technique `scripts-test@jaellejc-staging.iam.gserviceaccount.com` : identité des scripts locaux (copie du catalogue, migration, règles du test). Créé et doté de ses droits par Claude avec l'autorisation explicite de Jaelle (2026-10-24).
+
+**Protections en place (à respecter à chaque étape) :**
+
+| # | Protection | Comment c'est vérifié |
+|---|---|---|
+| P1 | Droits limités au projet de test : Utilisateur Cloud Datastore, Administrateur Firebase Authentication, Administrateur des règles Firebase. Ni Propriétaire, ni Éditeur, ni facturation, ni droit de donner des droits. Aucun accès à `jaellejc` (production). | Console IAM du projet de test ; toute action sur la production est refusée par Google |
+| P2 | Personne d'autre n'a accès au compte (« Principaux avec accès » laissé vide). | Console IAM |
+| P3 | Une seule clé, rangée dans `C:\Users\hfent\.secrets\`, hors du dossier du code et hors de OneDrive (synchronisé dans le cloud). | `scripts/lib/admin.ts` refuse de démarrer sinon (testé : clé absente, dans le code, dans OneDrive, introuvable) |
+| P4 | La clé n'est jamais ouverte, affichée, copiée dans la conversation, ni commitée. | `.gitignore` (motifs de fichiers de clé) + gitleaks à chaque envoi sur GitHub |
+| P5 | Les scripts refusent la production sans `--confirmation JE-MODIFIE-LA-PRODUCTION`, réservée à Jaelle à la bascule. | `scripts/lib/admin.ts` (testé) |
+| P6 | Le test ne contient aucune donnée client : catalogue public et données fictives uniquement. | `scripts/copy-catalogue-to-staging.ts` (aucune lecture de commandes, profils ou messages réels) |
+
+**En cas de doute (clé perdue, ordinateur volé) :** console Google Cloud → IAM → Comptes de service → `scripts-test` → Clés → supprimer la clé. Puis vider la base de test et la remplir de nouveau avec les scripts. Aucun effet sur la boutique.
+
+**À faire à la bascule (étape 10), avant la mise en ligne :**
+1. Supprimer la clé du compte `scripts-test` (console IAM) et effacer le fichier de `C:\Users\hfent\.secrets\`.
+2. Désactiver le compte `scripts-test` s'il ne sert plus au test.
+3. La migration de la production se lance avec un accès donné par Jaelle pour l'occasion et retiré juste après (comme la déconnexion de Firebase CLI à l'étape 0), jamais avec ce compte.
+4. Vérifier dans la console IAM de la production qu'aucun compte de service ni aucune clé inconnue n'existe.
+
 ## Étape 1 — socle Next.js (2026-10-24)
 
 - Ancien site dans `legacy/` ; nouveau site Next.js 16 identique au pixel près sur le Layout (`reports/qa/etape-1.md`).
