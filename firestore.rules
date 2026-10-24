@@ -1,88 +1,122 @@
 rules_version = '2';
+
+// Règles de la refonte (étape 1bis). Déployées sur le projet de test ; en production à la bascule (étape 10).
+// Principe : le navigateur ne fait que lire (catalogue publié, ses propres commandes, son profil)
+// et créer un message de contact ou une inscription à la newsletter. Toute autre écriture passe
+// par le serveur (Admin SDK), qui contourne ces règles après ses propres contrôles.
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // FONCTION : Vérifie si l'utilisateur est un admin actif
+    function connecte() {
+      return request.auth != null;
+    }
+
+    // Administratrice : revendication personnalisée `admin: true` posée par scripts/set-admin.ts.
     function estAdmin() {
-      return request.auth != null
-          && request.auth.token.email != null
-          && request.auth.token.email_verified == true
-          && get(/databases/$(database)/documents/autorisations/$(request.auth.token.email)).data.actif == true;
-    }
-
-    // WHITELIST : Lecture autorisée pour la vérification pré-connexion
-    match /autorisations/{email} {
-      allow get: if true;
-      allow list, write: if false;
-    }
-
-    // PRODUITS : Lecture publique, écriture réservée à l'admin
-    match /produits/{produitId} {
-      allow read: if true;
-      allow write: if estAdmin();
-    }
-
-    // BLOG : Lecture publique, écriture admin
-    match /articles_blog/{articleId} {
-      allow read: if true;
-      allow write: if estAdmin();
-    }
-
-    // CATÉGORIES : Lecture publique (utilisée par Layout), écriture admin
-    match /categories/{catId} {
-      allow read: if true;
-      allow write: if estAdmin();
-    }
-
-    // COMMANDES : Création par utilisateurs connectés, gestion admin
-    match /orders/{orderId} {
-      allow create: if request.auth != null;
-      allow read, update, delete: if estAdmin();
-    }
-
-    // PROFILS UTILISATEURS : Lecture/écriture par le propriétaire
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      return connecte() && request.auth.token.admin == true;
     }
 
     function texte(v, max) {
       return v is string && v.size() <= max;
     }
+
     function emailValide(v) {
       return texte(v, 254) && v.matches('^[^@\\s<>]+@[^@\\s<>]+\\.[^@\\s<>]+$');
     }
 
-    // NEWSLETTER : création publique validée (champs des formulaires du site), lecture admin
-    match /newsletter/{id} {
-      allow create: if request.resource.data.keys().hasOnly(['email', 'source', 'subscribedAt', 'createdAt'])
-                    && emailValide(request.resource.data.email)
-                    && request.resource.data.source in ['footer_site', 'email_redirect']
-                    && request.resource.data.get('subscribedAt', request.time) == request.time
-                    && request.resource.data.get('createdAt', request.time) == request.time;
-      allow read, delete: if estAdmin();
+    // CATALOGUE : lecture publique des seuls produits publiés ; brouillons et archives pour l'admin.
+    match /produits/{produitId} {
+      allow read: if resource.data.status == 'published' || estAdmin();
+      allow write: if false;
+
+      match /variantes/{varianteId} {
+        allow read: if get(/databases/$(database)/documents/produits/$(produitId)).data.status == 'published'
+                    || estAdmin();
+        allow write: if false;
+      }
     }
 
-    // CONTACTS : création publique validée (champs de Contact.tsx), lecture admin
+    match /categories/{categorieId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /articles_blog/{articleId} {
+      allow read: if resource.data.status == 'published' || estAdmin();
+      allow write: if false;
+    }
+
+    // Livraison et informations de la maison : non sensibles.
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // COMMANDES : créées uniquement par le webhook Stripe (serveur).
+    match /orders/{orderId} {
+      allow read: if (connecte() && resource.data.userId == request.auth.uid) || estAdmin();
+      allow write: if false;
+    }
+
+    // PROFIL : le propriétaire lit et écrit ses champs, sans pouvoir se donner de droits.
+    match /users/{userId} {
+      function proprietaire() {
+        return connecte() && request.auth.uid == userId;
+      }
+      function profilValide() {
+        return request.resource.data.keys().hasOnly(['displayName', 'phone', 'createdAt', 'updatedAt'])
+            && texte(request.resource.data.get('displayName', ''), 100)
+            && texte(request.resource.data.get('phone', ''), 30);
+      }
+      allow read: if proprietaire() || estAdmin();
+      allow create, update: if proprietaire() && profilValide();
+      allow delete: if false; // suppression du compte : par le serveur (export et effacement RGPD)
+
+      match /adresses/{adresseId} {
+        function adresseValide() {
+          return request.resource.data.keys().hasOnly(['label', 'name', 'line1', 'line2', 'zipCode', 'city', 'country', 'phone'])
+              && request.resource.data.keys().hasAll(['name', 'line1', 'zipCode', 'city'])
+              && texte(request.resource.data.get('label', ''), 40)
+              && texte(request.resource.data.name, 100)
+              && texte(request.resource.data.line1, 200)
+              && texte(request.resource.data.get('line2', ''), 200)
+              && request.resource.data.zipCode is string && request.resource.data.zipCode.matches('^[0-9]{5}$')
+              && texte(request.resource.data.city, 100)
+              && request.resource.data.get('country', 'FR') == 'FR'
+              && texte(request.resource.data.get('phone', ''), 30);
+        }
+        allow read, delete: if proprietaire();
+        allow create, update: if proprietaire() && adresseValide();
+      }
+    }
+
+    // CONTACT : création publique validée, lecture admin.
     match /contacts/{contactId} {
       allow create: if request.resource.data.keys().hasOnly(['name', 'email', 'subject', 'message', 'createdAt', 'status'])
-                    && request.resource.data.keys().hasAll(['email', 'message', 'createdAt'])
+                    && request.resource.data.keys().hasAll(['email', 'message', 'createdAt', 'status'])
                     && texte(request.resource.data.get('name', ''), 100)
                     && emailValide(request.resource.data.email)
                     && texte(request.resource.data.get('subject', ''), 100)
                     && texte(request.resource.data.message, 5000)
                     && request.resource.data.message.size() >= 10
                     && request.resource.data.createdAt == request.time
-                    && request.resource.data.get('status', 'unread') == 'unread';
-      allow read, delete: if estAdmin();
+                    && request.resource.data.status == 'unread';
+      allow read: if estAdmin();
+      allow update, delete: if false;
     }
 
-    // PARAMÈTRES : Lecture publique, écriture admin
-    match /settings/{settingId} {
-      allow read: if true;
-      allow write: if estAdmin();
+    // NEWSLETTER : création publique validée, lecture admin. Jamais de lecture publique
+    // (l'ancien code cherchait les doublons depuis le navigateur : le serveur s'en charge).
+    match /newsletter/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['email', 'source', 'consentAt'])
+                    && emailValide(request.resource.data.email)
+                    && request.resource.data.source in ['footer_site', 'page_newsletter']
+                    && request.resource.data.consentAt == request.time;
+      allow read: if estAdmin();
+      allow update, delete: if false;
     }
 
-    // Sécurité par défaut
+    // carts, auditLog, stripeEvents, autorisations, messages et tout le reste : serveur uniquement.
     match /{document=**} {
       allow read, write: if false;
     }

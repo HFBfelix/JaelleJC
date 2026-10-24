@@ -1,37 +1,24 @@
 rules_version = '2';
+
+// Règles Storage de la refonte (étape 1bis). Administratrice = revendication `admin: true`
+// (plus de lecture croisée de la collection `autorisations`).
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // ─────────────────────────────────────────────────────────
-    // DOSSIER : produits/
-    // Contient les photos uploadées depuis dashboard.html
-    // ─────────────────────────────────────────────────────────
-    // ADMIN : même liste blanche que Firestore (autorisations/<email>, actif == true)
-    // Lecture croisée Firestore : le compte de service Storage doit y être autorisé
-    // (Firebase le propose au premier déploiement de ces règles).
     function estAdmin() {
-      return request.auth != null
-          && request.auth.token.email != null
-          && request.auth.token.email_verified == true
-          && firestore.get(/databases/(default)/documents/autorisations/$(request.auth.token.email)).data.actif == true;
+      return request.auth != null && request.auth.token.admin == true;
     }
 
+    // Photos produits : lecture publique ; envoi d'images (JPEG, PNG, WebP, < 10 Mo) et suppression par l'admin.
     match /produits/{allPaths=**} {
-      // Lecture publique — le site vitrine affiche les photos
       allow read: if true;
-
-      // Envoi : admin uniquement, images de 10 Mo maximum
       allow create, update: if estAdmin()
                    && request.resource.size < 10 * 1024 * 1024
                    && request.resource.contentType.matches('image/(jpeg|png|webp)');
-
-      // Suppression : admin uniquement
       allow delete: if estAdmin();
     }
 
-    // ─────────────────────────────────────────────────────────
-    // SÉCURITÉ PAR DÉFAUT : tout le reste est bloqué
-    // ─────────────────────────────────────────────────────────
+    // Tout le reste est refusé.
     match /{allPaths=**} {
       allow read, write: if false;
     }
