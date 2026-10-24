@@ -61,8 +61,9 @@ const Auth = () => {
       } else if (mode === 'login') {
         await signInWithEmailAndPassword(auth, email, password);
       } else if (mode === 'forgot') {
-        await sendPasswordResetEmail(auth, email);
-        setMessage("Un lien de réinitialisation a été envoyé par email.");
+        // Même réponse que l'e-mail existe ou non (pas d'énumération des comptes).
+        await sendPasswordResetEmail(auth, email).catch(() => {});
+        setMessage("Si un compte existe pour cette adresse, un lien de réinitialisation vient d'être envoyé.");
         return;
       } else if (mode === 'resetPassword' && oobCode) { // Nouvelle logique pour la réinitialisation
         if (newPassword !== confirmNewPassword) {
@@ -78,7 +79,13 @@ const Auth = () => {
       }
       navigate('/collection'); // Redirection après succès
     } catch (err: any) {
-      setError("Une erreur est survenue. Vérifiez vos informations.");
+      if (mode === 'resetPassword' && (err?.code === 'auth/expired-action-code' || err?.code === 'auth/invalid-action-code')) {
+        setError("Ce lien a expiré ou a déjà servi. Demandez un nouveau lien.");
+      } else if (err?.code === 'auth/weak-password') {
+        setError("Mot de passe trop court : 6 caractères minimum.");
+      } else {
+        setError("Une erreur est survenue. Vérifiez vos informations.");
+      }
     }
   };
 
@@ -103,14 +110,16 @@ const Auth = () => {
               required
             />
           )}
-          <input
-            type="email"
-            placeholder="EMAIL"
-            className="w-full border-b border-neutral-100 py-3 text-[11px] tracking-widest outline-none focus:border-black transition-colors"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+          {mode !== 'resetPassword' && (
+            <input
+              type="email"
+              placeholder="EMAIL"
+              className="w-full border-b border-neutral-100 py-3 text-[11px] tracking-widest outline-none focus:border-black transition-colors"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          )}
           {(mode === 'login' || mode === 'register') && (
             <input
               type="password"
