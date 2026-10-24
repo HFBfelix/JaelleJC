@@ -27,6 +27,7 @@ Montants en centimes (entiers). Dates en horodatage serveur. Les noms de collect
 | `description` | texte | requis pour publier |
 | `materials` | liste de textes | ex. « gaze de coton » |
 | `entretien` | texte | facultatif ; n'écrire « lavable » que si c'est prouvé |
+| `details` | liste de textes | rubrique « Dimensions & détails » : une ligne par élément (ex. « Lange : 70 × 70 cm », « Délai de confection : 2 semaines ») ; ajouté le 2026-10-24 pour répartir les anciennes descriptions |
 | `faq` | liste `{question, reponse}` | facultatif, alimente les données structurées |
 | `images` | liste `{path, url, alt, order}` | 1re = couverture ; texte alternatif requis |
 | `priceCents` | entier | prix TTC de base, requis |

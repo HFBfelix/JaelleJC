@@ -18,3 +18,6 @@ next-env.d.ts
 *.tsbuildinfo
 test-results/
 playwright-report/
+
+# Sauvegardes de la migration (données, jamais dans git)
+backups/
