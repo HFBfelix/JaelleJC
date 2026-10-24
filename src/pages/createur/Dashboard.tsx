@@ -16,6 +16,7 @@ const Dashboard = () => {
   // --- ÉTATS ---
   const [user, setUser] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'orders' | 'inventory' | 'customers' | 'settings'>('inventory');
   
   // Modales et Sélection
@@ -53,10 +54,16 @@ const Dashboard = () => {
   useEffect(() => {
     const unsub = auth.onAuthStateChanged(async (u) => {
       if (u) {
-        const docRef = doc(db, "autorisations", u.email!);
-        const snap = await getDoc(docRef);
-        if (snap.exists() && snap.data().actif === true) { setUser(u); } 
-        else { await signOut(auth); setUser(null); }
+        let allowed = false;
+        try {
+          const snap = u.email ? await getDoc(doc(db, "autorisations", u.email)) : null;
+          allowed = !!snap && snap.exists() && snap.data().actif === true;
+        } catch { allowed = false; }
+        if (allowed) { setUser(u); setAccessDenied(null); }
+        else {
+          setAccessDenied(u.email || "");
+          await signOut(auth); setUser(null);
+        }
       } else { setUser(null); }
       setIsAuthLoading(false);
     });
@@ -182,7 +189,16 @@ const Dashboard = () => {
   };
 
   if (isAuthLoading) return <div className="min-h-screen flex items-center justify-center bg-[#F5F2EE]"><Loader2 className="animate-spin opacity-20" /></div>;
-  if (!user) return <div className="min-h-screen flex items-center justify-center bg-[#F5F2EE]"><button onClick={() => signInWithPopup(auth, new GoogleAuthProvider())} className="border border-black px-8 py-4 uppercase text-[10px] tracking-widest">S'identifier</button></div>;
+  if (!user) return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-[#F5F2EE] px-6">
+      <button onClick={() => { setAccessDenied(null); signInWithPopup(auth, new GoogleAuthProvider()).catch(() => {}); }} className="border border-black px-8 py-4 uppercase text-[10px] tracking-widest">S'identifier</button>
+      {accessDenied !== null && (
+        <p className="text-[10px] uppercase tracking-widest text-center max-w-xs leading-relaxed" style={{ color: styles.mutedInk }}>
+          Ce compte{accessDenied ? ` (${accessDenied})` : ''} n'a pas accès à l'espace créatrice.
+        </p>
+      )}
+    </div>
+  );
 
   return (
     <div className="min-h-screen pb-24 font-sans" style={{ backgroundColor: styles.cream, color: styles.ink }}>

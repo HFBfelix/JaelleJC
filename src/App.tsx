@@ -1,5 +1,5 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider, useCart } from './contexts/CartContext'; // Ajout de useCart
 
 // Layout & Pages Publiques
@@ -26,20 +26,11 @@ import PrivacyPolicy from './pages/legal/PrivacyPolicy';
 import ShippingRefund from './pages/legal/ShippingRefund';
 import TermsOfService from './pages/legal/TermsOfService';
 
-// Espace Créateur
+// Espace Créateur (le Dashboard gère lui-même sa connexion et la vérification admin)
 import Dashboard from './pages/createur/Dashboard';
 
 // UI Components
 import ExitIntentPopup from './components/ui/ExitIntentPopup'; // Ajout du Popup
-
-const CreateurRoute = ({ children }: { children: JSX.Element }) => {
-  const { user, profile, loading } = useAuth();
-  if (loading) return null;
-  if (!user || !profile?.isAdmin) { 
-    return <Navigate to="/login" replace />;
-  }
-  return children;
-};
 
 // Composant intermédiaire pour accéder au contexte du panier
 const AppContent = () => {
@@ -49,14 +40,7 @@ const AppContent = () => {
     <Router>
       <Routes>
         {/* 🛠️ ESPACE CRÉATEUR (Isolé) */}
-        <Route 
-          path="/createur" 
-          element={
-            <CreateurRoute>
-              <Dashboard />
-            </CreateurRoute>
-          } 
-        />
+        <Route path="/createur" element={<Dashboard />} />
 
         {/* 🏛️ ESPACE CLIENT (Sous Layout) */}
         <Route element={<Layout />}>
