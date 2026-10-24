@@ -12,11 +12,29 @@ import {
   Trash2, X, Loader2, Camera, ExternalLink, ChevronRight, Settings, Truck, Globe, Edit3, CheckCircle, Eye
 } from 'lucide-react';
 
+// Erreurs de connexion Google affichées en clair (au lieu d'un échec silencieux).
+const loginErrorMessage = (code?: string): string | null => {
+  switch (code) {
+    case 'auth/popup-closed-by-user':
+    case 'auth/cancelled-popup-request':
+      return null;
+    case 'auth/popup-blocked':
+      return "La fenêtre de connexion a été bloquée par le navigateur. Autorisez les fenêtres pour ce site, puis réessayez.";
+    case 'auth/operation-not-allowed':
+      return "La connexion Google n'est pas activée pour ce site (console Firebase, Authentication).";
+    case 'auth/unauthorized-domain':
+      return "Cette adresse du site n'est pas autorisée pour la connexion (console Firebase, domaines autorisés).";
+    default:
+      return "La connexion n'a pas abouti. Réessayez.";
+  }
+};
+
 const Dashboard = () => {
   // --- ÉTATS ---
   const [user, setUser] = useState<any>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [accessDenied, setAccessDenied] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'orders' | 'inventory' | 'customers' | 'settings'>('inventory');
   
   // Modales et Sélection
@@ -191,7 +209,12 @@ const Dashboard = () => {
   if (isAuthLoading) return <div className="min-h-screen flex items-center justify-center bg-[#F5F2EE]"><Loader2 className="animate-spin opacity-20" /></div>;
   if (!user) return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-6 bg-[#F5F2EE] px-6">
-      <button onClick={() => { setAccessDenied(null); signInWithPopup(auth, new GoogleAuthProvider()).catch(() => {}); }} className="border border-black px-8 py-4 uppercase text-[10px] tracking-widest">S'identifier</button>
+      <button onClick={() => { setAccessDenied(null); setLoginError(null); signInWithPopup(auth, new GoogleAuthProvider()).catch((err) => setLoginError(loginErrorMessage(err?.code))); }} className="border border-black px-8 py-4 uppercase text-[10px] tracking-widest">S'identifier</button>
+      {loginError && (
+        <p className="text-[10px] uppercase tracking-widest text-center max-w-xs leading-relaxed" style={{ color: styles.mutedInk }}>
+          {loginError}
+        </p>
+      )}
       {accessDenied !== null && (
         <p className="text-[10px] uppercase tracking-widest text-center max-w-xs leading-relaxed" style={{ color: styles.mutedInk }}>
           Ce compte{accessDenied ? ` (${accessDenied})` : ''} n'a pas accès à l'espace créatrice.
