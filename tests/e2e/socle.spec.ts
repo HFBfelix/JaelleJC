@@ -4,7 +4,7 @@ import { test, expect } from '@playwright/test';
 test('en-têtes de sécurité présents', async ({ request }) => {
   const res = await request.get('/');
   const h = res.headers();
-  expect(h['strict-transport-security']).toContain('max-age=63072000');
+  expect(h['strict-transport-security']).toBe('max-age=63072000');
   expect(h['x-content-type-options']).toBe('nosniff');
   expect(h['referrer-policy']).toBe('strict-origin-when-cross-origin');
   expect(h['x-frame-options']).toBe('DENY');
