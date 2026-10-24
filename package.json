@@ -9,7 +9,7 @@
         "preview": "vite preview",
         "typecheck": "tsc --noEmit",
         "dev:emulateurs": "vite --mode emulator",
-        "emulateurs": "firebase emulators:start --only auth,firestore,storage --project demo-jaellejc",
+        "emulateurs": "npm --prefix functions run build && firebase emulators:start --only auth,firestore,storage,functions --project demo-jaellejc",
         "seed:emulateur": "node scripts/seed-emulateur.mjs",
         "test:rules": "firebase emulators:exec --only firestore,storage --project demo-jaellejc \"node --test tests/rules/rules.test.mjs\""
     },
