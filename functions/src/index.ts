@@ -21,8 +21,9 @@ const BREVO_API_KEY = defineSecret("BREVO_API_KEY");
 const STRIPE_SECRET_KEY = defineSecret("STRIPE_SECRET_KEY");
 const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
 // Origines autorisées pour le retour après paiement (la première sert par défaut).
-// Sur le staging : ALLOWED_ORIGINS dans functions/.env.<projet>.
-const ALLOWED_ORIGINS = defineString("ALLOWED_ORIGINS", {default: "https://jaellejc.com,https://www.jaellejc.com"});
+// Pas de valeur par défaut : chaque projet la déclare dans functions/.env.<projet>
+// (.env.jaellejc = production, .env.jaellejc-staging = test, .env.demo-jaellejc = émulateurs).
+const ALLOWED_ORIGINS = defineString("ALLOWED_ORIGINS");
 // Étape 0, livraison A : les brouillons sont encore visibles sur le site, donc encore vendables.
 // Passe à true dans la livraison B (hotfix-publies), avec le filtre « published » du site.
 const REQUIRE_PUBLISHED = false;
@@ -229,7 +230,9 @@ export const onOrderCreated = onDocumentCreated({
   const orderData = snapshot.data();
   const amount = orderData.total || orderData.amount || 0;
   const {customerName, customerEmail, deliveryFee, items, shippingAddress, customerPhone} = orderData;
-  const refOrder = `#${event.params.orderId.slice(0, 8).toUpperCase()}`;
+  // L'identifiant peut être choisi par le client (commande écrite par le navigateur jusqu'à l'étape 5) :
+  // on ne garde que lettres et chiffres, sûr pour le HTML comme pour l'objet de l'e-mail.
+  const refOrder = `#${event.params.orderId.slice(0, 8).toUpperCase().replace(/[^A-Z0-9]/g, "")}`;
 
   try {
     await axios.post("https://api.brevo.com/v3/contacts", {
@@ -317,9 +320,13 @@ export const createStripeCheckout = onCall({
   } catch (error) {
     if (error instanceof CheckoutError) {
       if (error.code === "invalid_request") throw new HttpsError("invalid-argument", "Panier invalide.");
+      if (error.code === "delivery_config") {
+        console.error("Paiement refusé : settings/delivery absent ou invalide.");
+        throw new HttpsError("failed-precondition", error.code, {code: error.code});
+      }
       throw new HttpsError("failed-precondition", error.code, {code: error.code, productId: error.productId});
     }
-    console.error("Erreur préparation paiement :", error);
+    console.error("Erreur préparation paiement :", error instanceof Error ? error.name : "inconnue");
     throw new HttpsError("internal", "Erreur Stripe.");
   }
 
@@ -361,7 +368,9 @@ export const createStripeCheckout = onCall({
     });
     return {url: session.url, sessionId: session.id, totalCents: computation.totalCents, deliveryCents: computation.deliveryCents};
   } catch (error) {
-    console.error("Erreur Stripe :", error);
+    // Pas l'objet complet : son message peut contenir l'e-mail du client (RGPD, pas de données perso dans les logs).
+    const e = error as {type?: string; code?: string; requestId?: string};
+    console.error("Erreur Stripe :", {type: e?.type, code: e?.code, requestId: e?.requestId});
     throw new HttpsError("internal", "Erreur Stripe.");
   }
 });

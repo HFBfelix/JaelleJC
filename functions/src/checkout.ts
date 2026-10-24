@@ -46,7 +46,7 @@ export interface CheckoutComputation {
   totalCents: number;
 }
 
-export type CheckoutErrorCode = "invalid_request" | "unavailable" | "out_of_stock";
+export type CheckoutErrorCode = "invalid_request" | "unavailable" | "out_of_stock" | "delivery_config";
 
 export class CheckoutError extends Error {
   constructor(public code: CheckoutErrorCode, public productId?: string) {
@@ -126,8 +126,11 @@ export function computeCheckout(
   }
 
   const subtotalCents = lines.reduce((sum, l) => sum + l.unitAmountCents * l.quantity, 0);
+  // Forfait absent ou invalide : on refuse plutôt que d'offrir la livraison par erreur.
+  const flatRateCents = eurosToCents(delivery?.flatRate);
+  if (flatRateCents === null) throw new CheckoutError("delivery_config");
+  // Seuil invalide = pas de gratuité (jamais l'inverse).
   const freeThresholdCents = eurosToCents(delivery?.freeThreshold) || 0;
-  const flatRateCents = eurosToCents(delivery?.flatRate) || 0;
   const isFree = freeThresholdCents > 0 && subtotalCents >= freeThresholdCents;
   const deliveryCents = isFree ? 0 : flatRateCents;
 

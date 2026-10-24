@@ -8,6 +8,7 @@ const product = (over: Partial<CheckoutProduct> = {}): CheckoutProduct => ({
   name: "Cape de bain", price: 89.9, stock: 3, status: "published", images: ["https://firebasestorage.googleapis.com/x.jpg"], ...over,
 });
 const catalog = (entries: Record<string, CheckoutProduct | undefined>) => new Map(Object.entries(entries));
+const DELIVERY = {flatRate: 6.9, freeThreshold: 150};
 const strict = {requirePublished: true};
 const legacy = {requirePublished: false};
 
@@ -83,42 +84,62 @@ test("un e-mail invalide n'est pas transmis à Stripe", () => {
 
 test("stock insuffisant refusé", () => {
   const items = parseCheckoutRequest({cartItems: [{productId: "cape", quantity: 4}]}).items;
-  assert.equal(codeOf(() => computeCheckout(items, catalog({cape: product({stock: 3})}), {}, strict)), "out_of_stock");
+  assert.equal(codeOf(() => computeCheckout(items, catalog({cape: product({stock: 3})}), DELIVERY, strict)), "out_of_stock");
 });
 
 test("stock absent ou invalide refusé (pas de survente)", () => {
   const items = parseCheckoutRequest({cartItems: [{productId: "cape", quantity: 1}]}).items;
   for (const stock of [undefined, null, Number.NaN, "5", 0, -2]) {
-    assert.equal(codeOf(() => computeCheckout(items, catalog({cape: product({stock})}), {}, strict)), "out_of_stock", `stock=${String(stock)}`);
+    assert.equal(codeOf(() => computeCheckout(items, catalog({cape: product({stock})}), DELIVERY, strict)), "out_of_stock", `stock=${String(stock)}`);
   }
 });
 
 test("produit inexistant refusé", () => {
   const items = parseCheckoutRequest({cartItems: [{productId: "fantome", quantity: 1}]}).items;
-  assert.equal(codeOf(() => computeCheckout(items, catalog({fantome: undefined}), {}, strict)), "unavailable");
+  assert.equal(codeOf(() => computeCheckout(items, catalog({fantome: undefined}), DELIVERY, strict)), "unavailable");
 });
 
 test("prix absent, nul ou négatif refusé", () => {
   const items = parseCheckoutRequest({cartItems: [{productId: "cape", quantity: 1}]}).items;
   for (const price of [undefined, 0, -5, "89"]) {
-    assert.equal(codeOf(() => computeCheckout(items, catalog({cape: product({price})}), {}, strict)), "unavailable", `price=${String(price)}`);
+    assert.equal(codeOf(() => computeCheckout(items, catalog({cape: product({price})}), DELIVERY, strict)), "unavailable", `price=${String(price)}`);
   }
 });
 
 test("produit archivé toujours refusé", () => {
   const items = parseCheckoutRequest({cartItems: [{productId: "cape", quantity: 1}]}).items;
-  assert.equal(codeOf(() => computeCheckout(items, catalog({cape: product({status: "archived"})}), {}, legacy)), "unavailable");
+  assert.equal(codeOf(() => computeCheckout(items, catalog({cape: product({status: "archived"})}), DELIVERY, legacy)), "unavailable");
 });
 
 test("brouillon : refusé en mode strict, accepté en mode transition (livraison A)", () => {
   const items = parseCheckoutRequest({cartItems: [{productId: "cape", quantity: 1}]}).items;
-  assert.equal(codeOf(() => computeCheckout(items, catalog({cape: product({status: "draft"})}), {}, strict)), "unavailable");
-  assert.equal(computeCheckout(items, catalog({cape: product({status: "draft"})}), {}, legacy).totalCents, 8990);
+  assert.equal(codeOf(() => computeCheckout(items, catalog({cape: product({status: "draft"})}), DELIVERY, strict)), "unavailable");
+  assert.equal(computeCheckout(items, catalog({cape: product({status: "draft"})}), DELIVERY, legacy).subtotalCents, 8990);
+});
+
+// --- Réglages de livraison : jamais de livraison offerte par erreur ---
+
+test("réglages de livraison absents ou invalides : paiement refusé", () => {
+  const items = parseCheckoutRequest({cartItems: [{productId: "cape", quantity: 1}]}).items;
+  for (const delivery of [undefined, {}, {flatRate: Number.NaN, freeThreshold: 150}, {flatRate: -1}, {flatRate: "6.9"}]) {
+    assert.equal(codeOf(() => computeCheckout(items, catalog({cape: product()}), delivery, strict)), "delivery_config", JSON.stringify(delivery));
+  }
+});
+
+test("seuil de gratuité invalide : pas de livraison offerte", () => {
+  const items = parseCheckoutRequest({cartItems: [{productId: "cape", quantity: 3}]}).items;
+  const r = computeCheckout(items, catalog({cape: product()}), {flatRate: 6.9, freeThreshold: Number.NaN}, strict);
+  assert.equal(r.deliveryCents, 690);
+});
+
+test("forfait à 0 € explicitement choisi : livraison offerte", () => {
+  const items = parseCheckoutRequest({cartItems: [{productId: "cape", quantity: 1}]}).items;
+  assert.equal(computeCheckout(items, catalog({cape: product()}), {flatRate: 0}, strict).deliveryCents, 0);
 });
 
 test("image non https ignorée", () => {
   const items = parseCheckoutRequest({cartItems: [{productId: "cape", quantity: 1}]}).items;
-  const r = computeCheckout(items, catalog({cape: product({images: ["javascript:alert(1)"]})}), {}, strict);
+  const r = computeCheckout(items, catalog({cape: product({images: ["javascript:alert(1)"]})}), DELIVERY, strict);
   assert.equal(r.lines[0].image, null);
 });
 

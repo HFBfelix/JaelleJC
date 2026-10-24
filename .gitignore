@@ -5,6 +5,7 @@ dist/
 !.env.example
 !.env.emulator
 !functions/.env.demo-jaellejc
+!functions/.env.jaellejc
 .secret.local
 .DS_Store
 **/.DS_Store

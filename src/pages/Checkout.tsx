@@ -206,7 +206,7 @@ const Checkout = () => {
     } catch (err: any) {
       console.error('Erreur Stripe:', err?.code);
       const reason = err?.details?.code;
-      if (reason === 'out_of_stock' || reason === 'unavailable') {
+      if ((reason === 'out_of_stock' || reason === 'unavailable') && err?.details?.productId) {
         const piece = cart.find((item) => item.id === err.details.productId);
         alert(`Cette pièce vient de trouver preneur${piece ? ` (${piece.name})` : ''}. Merci de la retirer de votre sélection.`);
       } else {
