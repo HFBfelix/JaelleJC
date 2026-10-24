@@ -5,9 +5,14 @@ import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {initializeApp} from "firebase-admin/app";
 import {getFirestore, FieldValue} from "firebase-admin/firestore";
 import axios from "axios";
-import {defineSecret} from "firebase-functions/params";
+import {defineSecret, defineString} from "firebase-functions/params";
 import Stripe from "stripe";
 import OpenAI from "openai";
+import {
+  CheckoutComputation, CheckoutError, CheckoutProduct, DeliverySettings,
+  computeCheckout, parseCheckoutRequest, resolveSiteOrigin,
+} from "./checkout";
+import {escapeHtml, escapeMultiline} from "./escape";
 
 initializeApp();
 const db = getFirestore();
@@ -15,6 +20,12 @@ const db = getFirestore();
 const BREVO_API_KEY = defineSecret("BREVO_API_KEY");
 const STRIPE_SECRET_KEY = defineSecret("STRIPE_SECRET_KEY");
 const OPENAI_API_KEY = defineSecret("OPENAI_API_KEY");
+// Origines autorisées pour le retour après paiement (la première sert par défaut).
+// Sur le staging : ALLOWED_ORIGINS dans functions/.env.<projet>.
+const ALLOWED_ORIGINS = defineString("ALLOWED_ORIGINS", {default: "https://jaellejc.com,https://www.jaellejc.com"});
+// Étape 0, livraison A : les brouillons sont encore visibles sur le site, donc encore vendables.
+// Passe à true dans la livraison B (hotfix-publies), avec le filtre « published » du site.
+const REQUIRE_PUBLISHED = false;
 
 // ─── CONFIGURATION VISUELLE COMMUNE (LUXE & RESPONSIVE) ──────────────────
 const LOGO_URL = "https://jaellejc.com/assets/logomail.png";
@@ -62,13 +73,6 @@ const getEmailLayout = (content: string) => `
   </html>
 `;
 
-interface CartItem {
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-}
-
 // 1. BIENVENUE AUTOMATIQUE
 export const onUserSignup = onDocumentCreated({
   document: "users/{userId}",
@@ -84,7 +88,7 @@ export const onUserSignup = onDocumentCreated({
 
   const content = `
     <h1 style="font-family: serif; font-style: italic; font-weight: normal; font-size: 26px; text-align: center; margin-bottom: 30px;">Bienvenue à l'Atelier</h1>
-    <p style="font-size: 14px; line-height: 1.8;">Bonjour ${name},</p>
+    <p style="font-size: 14px; line-height: 1.8;">Bonjour ${escapeHtml(name)},</p>
     <p style="font-size: 14px; line-height: 1.8;">Nous sommes ravis de vous compter parmi nous. L'Atelier Jaelle & JC est né d'une envie simple : dessiner un vestiaire de l'essentiel, où chaque pièce raconte une histoire de transmission et de savoir-faire français.</p>
     <div style="text-align: center; margin: 40px 0;">
       <a href="https://jaellejc.com/collection" style="display: inline-block; background: #000; color: #fff; padding: 18px 35px; text-decoration: none; text-transform: uppercase; font-size: 10px; letter-spacing: 3px;">Explorer la collection</a>
@@ -117,9 +121,9 @@ export const onNewContact = onDocumentCreated({
 
   const content = `
     <h2 style="font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px;">Nouveau Message Site</h2>
-    <p style="font-size: 14px;"><strong>De :</strong> ${data.name} (${data.email})</p>
+    <p style="font-size: 14px;"><strong>De :</strong> ${escapeHtml(data.name)} (${escapeHtml(data.email)})</p>
     <div style="background: #f9f9f9; padding: 20px; font-style: italic; border-left: 2px solid #000; margin: 20px 0;">
-      ${data.message}
+      ${escapeMultiline(data.message)}
     </div>
   `;
 
@@ -127,7 +131,7 @@ export const onNewContact = onDocumentCreated({
     await axios.post("https://api.brevo.com/v3/smtp/email", {
       sender: {name: "Atelier Jaelle & JC", email: "contact@jaellejc.com"},
       to: [{email: "contact@jaellejc.com"}],
-      subject: `Nouveau message de ${data.name}`,
+      subject: `Nouveau message de ${String(data.name || "").replace(/[\r\n]/g, " ").slice(0, 100)}`,
       htmlContent: getEmailLayout(content),
     }, {headers: {"api-key": BREVO_API_KEY.value()}});
   } catch (error) {
@@ -151,7 +155,7 @@ export const onNewsletterSignup = onDocumentCreated({
       sender: {name: "Atelier Jaelle & JC", email: "contact@jaellejc.com"},
       to: [{email: "contact@jaellejc.com"}],
       subject: "Nouvel abonné à la newsletter",
-      htmlContent: getEmailLayout(`<p>Un nouveau client souhaite suivre l'Atelier : <strong>${data.email}</strong></p>`),
+      htmlContent: getEmailLayout(`<p>Un nouveau client souhaite suivre l'Atelier : <strong>${escapeHtml(data.email)}</strong></p>`),
     }, {headers: {"api-key": BREVO_API_KEY.value()}});
   } catch (error) {
     console.error("Erreur newsletter :", error);
@@ -205,7 +209,7 @@ export const onProductAdded = onDocumentCreated({
       sender: {name: "Atelier Jaelle & JC", email: "contact@jaellejc.com"},
       to: [{email: "contact@jaellejc.com"}],
       subject: `IA : Brouillons prêts pour ${name}`,
-      htmlContent: getEmailLayout(`<p>Le travail de l'IA est terminé pour <strong>${name}</strong>. Dimensions prises en compte : ${dimensions || "Standard"}.</p>`),
+      htmlContent: getEmailLayout(`<p>Le travail de l'IA est terminé pour <strong>${escapeHtml(name)}</strong>. Dimensions prises en compte : ${escapeHtml(dimensions || "Standard")}.</p>`),
     }, {headers: {"api-key": BREVO_API_KEY.value()}});
   } catch (error) {
     console.error("Erreur IA :", error);
@@ -237,9 +241,9 @@ export const onOrderCreated = onDocumentCreated({
 
     const itemsHtml = items.map((item: {name: string, quantity: number, price: number}) => `
       <tr>
-        <td style="padding: 15px 0; border-bottom: 0.5px solid #eee; font-family: serif; font-style: italic; font-size: 14px;">${item.name}</td>
-        <td align="center" style="padding: 15px 0; border-bottom: 0.5px solid #eee; font-size: 12px; color: #666;">${item.quantity}</td>
-        <td align="right" style="padding: 15px 0; border-bottom: 0.5px solid #eee; font-size: 13px;">${item.price} €</td>
+        <td style="padding: 15px 0; border-bottom: 0.5px solid #eee; font-family: serif; font-style: italic; font-size: 14px;">${escapeHtml(item.name)}</td>
+        <td align="center" style="padding: 15px 0; border-bottom: 0.5px solid #eee; font-size: 12px; color: #666;">${escapeHtml(item.quantity)}</td>
+        <td align="right" style="padding: 15px 0; border-bottom: 0.5px solid #eee; font-size: 13px;">${escapeHtml(item.price)} €</td>
       </tr>
     `).join("");
 
@@ -249,7 +253,7 @@ export const onOrderCreated = onDocumentCreated({
         <h1 style="font-family: serif; font-style: italic; font-weight: normal; font-size: 28px; margin: 10px 0;">Merci pour votre commande.</h1>
         <p style="font-size: 12px; color: #666;">Référence : ${refOrder}</p>
       </div>
-      <p style="font-size: 14px;">Bonjour ${customerName || "Cher client"},</p>
+      <p style="font-size: 14px;">Bonjour ${escapeHtml(customerName || "Cher client")},</p>
       <p style="font-size: 14px; color: #666; margin-bottom: 40px;">Nous préparons votre sélection avec le plus grand soin. Voici le détail de votre commande :</p>
       <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-top: 1px solid #000;">
         <thead>
@@ -262,13 +266,13 @@ export const onOrderCreated = onDocumentCreated({
         <tbody>${itemsHtml}</tbody>
       </table>
       <table width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 20px 0;">
-        <tr><td style="font-size: 11px; text-transform: uppercase; color: #999;">Livraison</td><td align="right" style="font-size: 13px;">${deliveryFee === 0 ? "Offerte" : deliveryFee + " €"}</td></tr>
-        <tr><td style="padding-top: 15px; font-size: 11px; text-transform: uppercase; font-weight: bold;">Total</td><td align="right" style="padding-top: 15px; font-size: 22px; font-family: serif; font-style: italic;">${amount} €</td></tr>
+        <tr><td style="font-size: 11px; text-transform: uppercase; color: #999;">Livraison</td><td align="right" style="font-size: 13px;">${deliveryFee === 0 ? "Offerte" : escapeHtml(deliveryFee) + " €"}</td></tr>
+        <tr><td style="padding-top: 15px; font-size: 11px; text-transform: uppercase; font-weight: bold;">Total</td><td align="right" style="padding-top: 15px; font-size: 22px; font-family: serif; font-style: italic;">${escapeHtml(amount)} €</td></tr>
       </table>
       <div style="background-color: #fafafa; padding: 25px; border-left: 1px solid #000; margin-bottom: 40px;">
         <h4 style="font-size: 9px; text-transform: uppercase; color: #999; margin: 0 0 10px 0;">Détails d'expédition</h4>
-        <p style="font-family: serif; font-style: italic; font-size: 14px; color: #333; margin: 0;">${shippingAddress}</p>
-        <p style="font-size: 12px; color: #666; margin-top: 10px;">Contact : ${customerPhone || "Non renseigné"}</p>
+        <p style="font-family: serif; font-style: italic; font-size: 14px; color: #333; margin: 0;">${escapeHtml(shippingAddress)}</p>
+        <p style="font-size: 12px; color: #666; margin-top: 10px;">Contact : ${escapeHtml(customerPhone || "Non renseigné")}</p>
       </div>
     `;
 
@@ -283,7 +287,7 @@ export const onOrderCreated = onDocumentCreated({
       sender: {name: "Atelier", email: "contact@jaellejc.com"},
       to: [{email: "contact@jaellejc.com"}],
       subject: `🚨 COMMANDE — ${refOrder}`,
-      htmlContent: `<h2>Nouvelle vente</h2><p>Client: ${customerName}</p><p>Total: ${amount} €</p><p>Tel: ${customerPhone || "N/A"}</p>`,
+      htmlContent: `<h2>Nouvelle vente</h2><p>Client: ${escapeHtml(customerName)}</p><p>Total: ${escapeHtml(amount)} €</p><p>Tel: ${escapeHtml(customerPhone || "N/A")}</p>`,
     }, {headers: {"api-key": BREVO_API_KEY.value()}});
   } catch (error) {
     console.error("Erreur commande :", error);
@@ -291,33 +295,57 @@ export const onOrderCreated = onDocumentCreated({
 });
 
 // 6. PAIEMENT STRIPE
+// Le navigateur n'envoie que {productId, quantity} : prix, stock et livraison sont relus en base.
 export const createStripeCheckout = onCall({
   secrets: [STRIPE_SECRET_KEY],
 }, async (request) => {
-  const reqData = request.data as {cartItems: CartItem[], customerEmail: string, deliveryFee: number, success_url: string, cancel_url: string};
+  let computation: CheckoutComputation;
+  let customerEmail: string | null;
+  try {
+    const parsed = parseCheckoutRequest(request.data);
+    customerEmail = parsed.customerEmail;
+
+    const refs = parsed.items.map((i) => db.collection("produits").doc(i.productId));
+    const [productSnaps, deliverySnap] = await Promise.all([
+      db.getAll(...refs),
+      db.collection("settings").doc("delivery").get(),
+    ]);
+    const products = new Map<string, CheckoutProduct | undefined>();
+    for (const snap of productSnaps) products.set(snap.id, snap.exists ? snap.data() as CheckoutProduct : undefined);
+
+    computation = computeCheckout(parsed.items, products, deliverySnap.data() as DeliverySettings | undefined, {requirePublished: REQUIRE_PUBLISHED});
+  } catch (error) {
+    if (error instanceof CheckoutError) {
+      if (error.code === "invalid_request") throw new HttpsError("invalid-argument", "Panier invalide.");
+      throw new HttpsError("failed-precondition", error.code, {code: error.code, productId: error.productId});
+    }
+    console.error("Erreur préparation paiement :", error);
+    throw new HttpsError("internal", "Erreur Stripe.");
+  }
+
+  const origin = resolveSiteOrigin(request.rawRequest?.headers?.origin, ALLOWED_ORIGINS.value().split(",").map((o) => o.trim()).filter(Boolean));
+
   try {
     const stripe = new Stripe(STRIPE_SECRET_KEY.value());
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = reqData.cartItems.map((item) => ({
+    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = computation.lines.map((line) => ({
       price_data: {
         currency: "eur",
         product_data: {
-          name: item.name,
-          images: [item.image || ""],
+          name: line.name,
+          ...(line.image ? {images: [line.image]} : {}),
+          metadata: {productId: line.productId},
         },
-        unit_amount: Math.round(item.price * 100),
+        unit_amount: line.unitAmountCents,
       },
-      quantity: item.quantity,
+      quantity: line.quantity,
     }));
 
-    if (reqData.deliveryFee > 0) {
+    if (computation.deliveryCents > 0) {
       lineItems.push({
         price_data: {
           currency: "eur",
-          product_data: {
-            name: "Livraison sécurisée",
-            images: ["https://jaellejc.com/delivery-icon.png"],
-          },
-          unit_amount: Math.round(reqData.deliveryFee * 100),
+          product_data: {name: "Livraison sécurisée"},
+          unit_amount: computation.deliveryCents,
         },
         quantity: 1,
       });
@@ -325,13 +353,13 @@ export const createStripeCheckout = onCall({
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
-      customer_email: reqData.customerEmail,
+      ...(customerEmail ? {customer_email: customerEmail} : {}),
       line_items: lineItems,
       mode: "payment",
-      success_url: reqData.success_url,
-      cancel_url: reqData.cancel_url,
+      success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/checkout`,
     });
-    return {url: session.url, sessionId: session.id};
+    return {url: session.url, sessionId: session.id, totalCents: computation.totalCents, deliveryCents: computation.deliveryCents};
   } catch (error) {
     console.error("Erreur Stripe :", error);
     throw new HttpsError("internal", "Erreur Stripe.");

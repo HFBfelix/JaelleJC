@@ -191,25 +191,27 @@ const Checkout = () => {
 
     try {
       const createStripeCheckout = httpsCallable(functions, 'createStripeCheckout');
-      const baseUrl = window.location.origin;
 
+      // Seuls l'identifiant et la quantité partent : le serveur relit prix, stock et livraison.
       const result: any = await createStripeCheckout({
         customerEmail: user?.email || '',
         cartItems: cart.map((item) => ({
-          name: item.name.toUpperCase(),
-          price: item.price,
+          productId: item.id,
           quantity: item.quantity,
-          image: item.image,
         })),
-        deliveryFee,
-        success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${baseUrl}/checkout`,
       });
 
       const { url } = result.data;
       if (url) window.location.href = url;
-    } catch (err) {
-      console.error('Erreur Stripe:', err);
+    } catch (err: any) {
+      console.error('Erreur Stripe:', err?.code);
+      const reason = err?.details?.code;
+      if (reason === 'out_of_stock' || reason === 'unavailable') {
+        const piece = cart.find((item) => item.id === err.details.productId);
+        alert(`Cette pièce vient de trouver preneur${piece ? ` (${piece.name})` : ''}. Merci de la retirer de votre sélection.`);
+      } else {
+        alert('Le paiement n’a pas pu être préparé. Merci de réessayer.');
+      }
       setIsProcessing(false);
     }
   };
