@@ -6,23 +6,27 @@ service firebase.storage {
     // DOSSIER : produits/
     // Contient les photos uploadées depuis dashboard.html
     // ─────────────────────────────────────────────────────────
+    // ADMIN : même liste blanche que Firestore (autorisations/<email>, actif == true)
+    // Lecture croisée Firestore : le compte de service Storage doit y être autorisé
+    // (Firebase le propose au premier déploiement de ces règles).
+    function estAdmin() {
+      return request.auth != null
+          && request.auth.token.email != null
+          && request.auth.token.email_verified == true
+          && firestore.get(/databases/(default)/documents/autorisations/$(request.auth.token.email)).data.actif == true;
+    }
+
     match /produits/{allPaths=**} {
       // Lecture publique — le site vitrine affiche les photos
       allow read: if true;
 
-      // Écriture depuis le navigateur :
-      // → L'utilisateur doit être connecté (auth != null)
-      // → Son email doit être vérifié (email_verified)
-      // → Taille max 10 Mo par fichier
-      // → Uniquement des images
-      allow write: if request.auth != null
-                   && request.auth.token.email_verified == true
+      // Envoi : admin uniquement, images de 10 Mo maximum
+      allow create, update: if estAdmin()
                    && request.resource.size < 10 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
+                   && request.resource.contentType.matches('image/(jpeg|png|webp)');
 
-      // Suppressions depuis le dashboard
-      allow delete: if request.auth != null
-                    && request.auth.token.email_verified == true;
+      // Suppression : admin uniquement
+      allow delete: if estAdmin();
     }
 
     // ─────────────────────────────────────────────────────────
