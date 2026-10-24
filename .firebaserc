@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "jaellejc"
+    "default": "jaellejc-staging",
+    "staging": "jaellejc-staging",
+    "production": "jaellejc"
   }
 }
