@@ -26,7 +26,16 @@ export const functions = getFunctions(app, 'us-central1');
 // 2. Initialisation Stripe avec la variable d'environnement
 export const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
-export const analytics = typeof window !== "undefined" ? getAnalytics(app) : null;
+// RGPD : Analytics uniquement après « Tout accepter » (CookieBanner recharge la page après le choix).
+const hasAnalyticsConsent = () => {
+  try {
+    return localStorage.getItem('jaellejc-cookies') === 'all';
+  } catch {
+    return false;
+  }
+};
+
+export const analytics = typeof window !== "undefined" && hasAnalyticsConsent() ? getAnalytics(app) : null;
 
 export const trackEvent = (eventName: string, params?: object) => {
   if (analytics) {

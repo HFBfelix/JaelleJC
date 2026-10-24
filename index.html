@@ -13,14 +13,21 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
 
-    <script src="https://gateway.sumup.com/gateway/ecom/card/v2/sdk.js"></script>
-
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-BHFEM85RCJ"></script>
+    <!-- RGPD : Google Analytics chargé seulement après « Tout accepter » (voir CookieBanner) -->
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-BHFEM85RCJ');
+      (function () {
+        var consent = null;
+        try { consent = localStorage.getItem('jaellejc-cookies'); } catch (e) {}
+        if (consent !== 'all') return;
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtag/js?id=G-BHFEM85RCJ';
+        document.head.appendChild(s);
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function () { window.dataLayer.push(arguments); };
+        window.gtag('js', new Date());
+        window.gtag('config', 'G-BHFEM85RCJ');
+      })();
     </script>
 
     <meta property="og:title" content="Jaelle & JC - L'Artisanat Intemporel">
