@@ -46,7 +46,7 @@ const Contact = () => {
 
     setLoading(true);
     try {
-      await addDoc(collection(db, 'messages'), {
+      await addDoc(collection(db, 'contacts'), {
         name: formData.name.toUpperCase(),
         email: formData.email.toLowerCase(),
         subject: formData.subject,
