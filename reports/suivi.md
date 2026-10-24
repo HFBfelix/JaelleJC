@@ -20,6 +20,8 @@ Dernière mise à jour : 2026-10-24, fin de l'étape 0 (livraison A). Chaque lig
 - Connexion Firebase CLI retirée de l'ordinateur juste après (`firebase logout`).
 - Variable Vercel `ITE_FIREBASE_API_KEY` mal nommée, corrigée par Jaelle en `VITE_FIREBASE_API_KEY` ; `VITE_STRIPE_PUBLISHABLE_KEY` n'est plus utilisée (à supprimer).
 - Reste à vérifier par Jaelle : connexion à `/createur` avec son compte, envoi d'une photo (si refusé : autorisation « Storage → Firestore » à accorder dans la console Firebase, page Règles de Storage), panier jusqu'à la page Stripe (sans payer).
+- Connexion à `/createur` impossible en production (analyse du 2026-10-24, appels publics uniquement) : fournisseur **Google non activé** dans Firebase Authentication (`OPERATION_NOT_ALLOWED`) et **`www.jaellejc.com` absent des domaines autorisés** (le site sert `www`). À faire par Jaelle dans la console. Le Dashboard affiche désormais la cause de l'échec (commit b947ef5, sur `hotfix`, pas encore en ligne).
+- Mot de passe oublié : le formulaire « nouveau mot de passe » exigeait aussi l'e-mail (bouton sans effet s'il était vide) ; messages d'erreur imprécis ; réponse différente selon que le compte existe ou non. Corrigé sur `hotfix`, pas encore en ligne.
 - Recommandation : compte Google dédié à l'administration avec clé de sécurité (`SECURITE.md` §6) avant l'étape 10.
 
 ## À faire — sécurité
