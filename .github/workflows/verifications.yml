@@ -1,0 +1,68 @@
+# Vérifications obligatoires avant fusion (SECURITE.md §2).
+name: Vérifications
+
+on:
+  pull_request:
+  push:
+    branches: [refonte-next]
+
+permissions:
+  contents: read
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Types
+        run: npm run typecheck
+      - name: Tests unitaires
+        run: npm test
+      - name: Construction
+        run: npm run build
+      - name: Dépendances (aucune faille élevée ou critique)
+        run: npm audit --audit-level=high
+      - name: Parcours (Playwright)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+      # Les captures de référence sont prises sous Windows : la comparaison visuelle se lance en local
+      # (npm run test:visual), le rendu des polices différant sous Linux.
+
+  regles:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - name: Règles Firestore et Storage (émulateur)
+        run: npm run test:rules
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # Analyse des seuls nouveaux commits : l'historique contient d'anciennes clés Brevo déjà connues
+      # (reports/suivi.md, à révoquer dans Brevo), qui bloqueraient sinon chaque vérification.
+      - name: Détection de secrets (gitleaks)
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:v8.28.0 \
+            git /repo --redact --log-opts="${BASE}..HEAD"
