@@ -12,6 +12,8 @@ Dernière mise à jour : 2026-10-24, fin de l'étape 1 (socle Next.js). Chaque l
 - Étapes enchaînées sans validation intermédiaire du plan : à la fin de chaque étape, Claude indique quoi vérifier, Jaelle vérifie, puis l'étape suivante démarre.
 - Bandeau cookies conservé tel quel (plein écran), malgré « non bloquant » dans `CLAUDE.md` : décision de Jaelle.
 - Descriptions produits : à répartir dans les sous-parties de la fiche (accroche, description, composition, matières et entretien, dimensions et détails), via la migration de l'étape 1bis, validée par Jaelle.
+- Migration des vraies données (production) à la bascule (étape 10), pas à la fin de l'étape 1bis : l'ancien site lit encore l'ancien format. À l'étape 1bis, migration sur le projet de test uniquement.
+- Projet de test rempli avec le catalogue public (produits, catégories, réglages, articles) lu depuis cet ordinateur comme le ferait un visiteur ; commandes, messages, inscriptions et profils fictifs. Exception assumée à « aucune donnée de production sur l'ordinateur » (aucune donnée client).
 - E-mails : Brevo ne servira plus qu'à la newsletter (1 par mois). Les e-mails du parcours d'achat seront repensés (voir « E-mails »).
 
 ## Mise en production de l'étape 0, livraison A (2026-10-24)
