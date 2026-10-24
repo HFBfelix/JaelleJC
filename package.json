@@ -8,7 +8,10 @@
         "build": "vite build",
         "preview": "vite preview",
         "typecheck": "tsc --noEmit",
-        "test:rules": "firebase emulators:exec --only firestore,storage --project demo-jaellejc \"node --test tests/rules/\""
+        "dev:emulateurs": "vite --mode emulator",
+        "emulateurs": "firebase emulators:start --only auth,firestore,storage --project demo-jaellejc",
+        "seed:emulateur": "node scripts/seed-emulateur.mjs",
+        "test:rules": "firebase emulators:exec --only firestore,storage --project demo-jaellejc \"node --test tests/rules/rules.test.mjs\""
     },
     "dependencies": {
         "@stripe/stripe-js": "^8.9.0",
@@ -22,10 +25,12 @@
         "tailwindcss-animate": "^1.0.7"
     },
     "devDependencies": {
+        "@firebase/rules-unit-testing": "^3.0.4",
         "@types/react": "^18.2.15",
         "@types/react-dom": "^18.2.7",
         "@vitejs/plugin-react": "^4.0.3",
         "autoprefixer": "^10.4.16",
+        "firebase-tools": "^14.27.0",
         "postcss": "^8.4.31",
         "tailwindcss": "^3.3.3",
         "typescript": "^5.0.2",
