@@ -21,10 +21,12 @@
     "test:rules": "firebase emulators:exec --only firestore,storage --project demo-jaellejc \"node --test tests/rules/rules.test.mjs\""
   },
   "dependencies": {
+    "firebase-admin": "14.5.0",
     "lucide-react": "0.284.0",
     "next": "16.4.3",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^6.0.0",
