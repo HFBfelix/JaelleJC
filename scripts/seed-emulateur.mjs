@@ -20,6 +20,7 @@ await env.withSecurityRulesDisabled(async (ctx) => {
   await setDoc(doc(db, 'settings', 'delivery'), { freeThreshold: 150, flatRate: 6.9, zones: 'France' });
 
   await setDoc(doc(db, 'categories', 'Bébé'), { subs: ['Capes de bain', 'Couvertures'] });
+  await setDoc(doc(db, 'categories', 'Coffrets'), { subs: ['Coffrets naissance'] });
   await setDoc(doc(db, 'categories', 'Femmes'), { subs: ['Cabas'] });
 
   const produits = [
