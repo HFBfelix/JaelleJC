@@ -6,6 +6,7 @@ service cloud.firestore {
     function estAdmin() {
       return request.auth != null
           && request.auth.token.email != null
+          && request.auth.token.email_verified == true
           && get(/databases/$(database)/documents/autorisations/$(request.auth.token.email)).data.actif == true;
     }
 
@@ -44,15 +45,34 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // NEWSLETTER : Création publique, lecture admin
+    function texte(v, max) {
+      return v is string && v.size() <= max;
+    }
+    function emailValide(v) {
+      return texte(v, 254) && v.matches('^[^@\\s<>]+@[^@\\s<>]+\\.[^@\\s<>]+$');
+    }
+
+    // NEWSLETTER : création publique validée (champs des formulaires du site), lecture admin
     match /newsletter/{id} {
-      allow create: if true;
+      allow create: if request.resource.data.keys().hasOnly(['email', 'source', 'subscribedAt', 'createdAt'])
+                    && emailValide(request.resource.data.email)
+                    && request.resource.data.source in ['footer_site', 'email_redirect']
+                    && request.resource.data.get('subscribedAt', request.time) == request.time
+                    && request.resource.data.get('createdAt', request.time) == request.time;
       allow read, delete: if estAdmin();
     }
 
-    // CONTACTS : Création publique, lecture admin
+    // CONTACTS : création publique validée (champs de Contact.tsx), lecture admin
     match /contacts/{contactId} {
-      allow create: if true;
+      allow create: if request.resource.data.keys().hasOnly(['name', 'email', 'subject', 'message', 'createdAt', 'status'])
+                    && request.resource.data.keys().hasAll(['email', 'message', 'createdAt'])
+                    && texte(request.resource.data.get('name', ''), 100)
+                    && emailValide(request.resource.data.email)
+                    && texte(request.resource.data.get('subject', ''), 100)
+                    && texte(request.resource.data.message, 5000)
+                    && request.resource.data.message.size() >= 10
+                    && request.resource.data.createdAt == request.time
+                    && request.resource.data.get('status', 'unread') == 'unread';
       allow read, delete: if estAdmin();
     }
 

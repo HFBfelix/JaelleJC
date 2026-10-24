@@ -38,9 +38,13 @@ const Contact = () => {
       return;
     }
 
-    // 3. Vérification du message (min 10 caractères pour éviter le spam)
+    // 3. Vérification du message (min 10 caractères pour éviter le spam, 5000 max comme la règle Firestore)
     if (formData.message.trim().length < 10) {
       alert("Votre message est trop court.");
+      return;
+    }
+    if (formData.message.length > 5000 || formData.name.length > 100) {
+      alert("Votre message est trop long.");
       return;
     }
 

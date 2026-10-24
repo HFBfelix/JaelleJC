@@ -5,11 +5,12 @@ import { readFileSync } from 'node:fs';
 import {
   initializeTestEnvironment, assertSucceeds, assertFails,
 } from '@firebase/rules-unit-testing';
-import { doc, getDoc, setDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, setDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytes, deleteObject, getMetadata } from 'firebase/storage';
 
 const ADMIN_EMAIL = 'admin@exemple.test';
 const CLIENT_EMAIL = 'client@exemple.test';
+const INACTIF_EMAIL = 'ancienne-admin@exemple.test';
 const IMAGE = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
 
 let env;
@@ -30,6 +31,8 @@ beforeEach(async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
     await setDoc(doc(db, 'autorisations', ADMIN_EMAIL), { actif: true });
+    await setDoc(doc(db, 'autorisations', INACTIF_EMAIL), { actif: false });
+    await setDoc(doc(db, 'users', 'autre-uid'), { email: 'autre@exemple.test' });
     await setDoc(doc(db, 'produits', 'en-ligne'), { name: 'Cape', status: 'published', price: 89 });
     await setDoc(doc(db, 'produits', 'brouillon'), { name: 'Secret', status: 'draft', price: 50 });
     await uploadBytes(ref(ctx.storage(), 'produits/existante.jpg'), IMAGE, { contentType: 'image/jpeg' });
@@ -40,6 +43,7 @@ const anonyme = () => env.unauthenticatedContext();
 const client = () => env.authenticatedContext('client-uid', { email: CLIENT_EMAIL, email_verified: true });
 const admin = () => env.authenticatedContext('admin-uid', { email: ADMIN_EMAIL, email_verified: true });
 const adminNonVerifie = () => env.authenticatedContext('admin-uid', { email: ADMIN_EMAIL, email_verified: false });
+const adminInactive = () => env.authenticatedContext('inactif-uid', { email: INACTIF_EMAIL, email_verified: true });
 
 // --- Storage : photos produits ---
 
@@ -95,10 +99,84 @@ test('Firestore : l’admin modifie un produit', async () => {
   await assertSucceeds(setDoc(doc(admin().firestore(), 'produits', 'en-ligne'), { price: 90 }, { merge: true }));
 });
 
+test('Storage : autorisation désactivée (actif: false) refusée', async () => {
+  await assertFails(uploadBytes(ref(adminInactive().storage(), 'produits/x.jpg'), IMAGE, { contentType: 'image/jpeg' }));
+  await assertFails(deleteObject(ref(adminInactive().storage(), 'produits/existante.jpg')));
+});
+
+test('Firestore : un anonyme ne peut pas écrire dans produits', async () => {
+  await assertFails(setDoc(doc(anonyme().firestore(), 'produits', 'pirate'), { name: 'x', price: 1 }));
+});
+
+test('Firestore : admin à e-mail non vérifié ne peut pas écrire dans produits ni settings', async () => {
+  await assertFails(setDoc(doc(adminNonVerifie().firestore(), 'produits', 'en-ligne'), { price: 1 }, { merge: true }));
+  await assertFails(setDoc(doc(adminNonVerifie().firestore(), 'settings', 'delivery'), { flatRate: 0 }));
+});
+
+test('Firestore : autorisation désactivée ne peut pas écrire dans produits', async () => {
+  await assertFails(setDoc(doc(adminInactive().firestore(), 'produits', 'en-ligne'), { price: 1 }, { merge: true }));
+});
+
+test('Firestore : un client ne peut pas modifier les réglages de livraison', async () => {
+  await assertFails(setDoc(doc(client().firestore(), 'settings', 'delivery'), { flatRate: 0 }));
+});
+
+test('Firestore : un client ne lit ni ne modifie le profil d’un autre client', async () => {
+  await assertFails(getDoc(doc(client().firestore(), 'users', 'autre-uid')));
+  await assertFails(setDoc(doc(client().firestore(), 'users', 'autre-uid'), { email: 'x@y.fr' }));
+});
+
+test('Firestore : un client lit son propre profil', async () => {
+  await assertSucceeds(getDoc(doc(client().firestore(), 'users', 'client-uid')));
+});
+
 // --- Firestore : contact (le formulaire écrit maintenant dans `contacts`) ---
 
-test('Firestore : un anonyme crée un message de contact', async () => {
-  await assertSucceeds(addDoc(collection(anonyme().firestore(), 'contacts'), { name: 'A', email: 'a@b.fr', message: 'Bonjour à vous' }));
+const contactValide = () => ({
+  name: 'JEANNE', email: 'jeanne@exemple.fr', subject: "DEMANDE D'INFORMATION",
+  message: 'Bonjour, une question sur la cape.', createdAt: serverTimestamp(), status: 'unread',
+});
+
+test('Firestore : un anonyme crée un message de contact (champs du formulaire)', async () => {
+  await assertSucceeds(addDoc(collection(anonyme().firestore(), 'contacts'), contactValide()));
+});
+
+for (const [label, data] of [
+  ['champ en trop', { ...contactValide(), admin: true }],
+  ['message trop long', { ...contactValide(), message: 'x'.repeat(5001) }],
+  ['message trop court', { ...contactValide(), message: 'court' }],
+  ['message non textuel', { ...contactValide(), message: 12345678901 }],
+  ['e-mail invalide', { ...contactValide(), email: '<script>@x' }],
+  ['nom trop long', { ...contactValide(), name: 'N'.repeat(101) }],
+  ['date choisie par le client', { ...contactValide(), createdAt: new Date('2000-01-01') }],
+  ['statut forcé', { ...contactValide(), status: 'read' }],
+  ['message absent', (({ message, ...rest }) => rest)(contactValide())],
+]) {
+  test(`Firestore : contact refusé — ${label}`, async () => {
+    await assertFails(addDoc(collection(anonyme().firestore(), 'contacts'), data));
+  });
+}
+
+// --- Firestore : newsletter ---
+
+test('Firestore : inscription newsletter valide (pied de page et page dédiée)', async () => {
+  await assertSucceeds(addDoc(collection(anonyme().firestore(), 'newsletter'), { email: 'a@b.fr', subscribedAt: serverTimestamp(), source: 'footer_site' }));
+  await assertSucceeds(addDoc(collection(anonyme().firestore(), 'newsletter'), { email: 'a@b.fr', createdAt: serverTimestamp(), source: 'email_redirect' }));
+});
+
+for (const [label, data] of [
+  ['e-mail invalide', { email: 'pas-un-email', subscribedAt: serverTimestamp(), source: 'footer_site' }],
+  ['source inconnue', { email: 'a@b.fr', subscribedAt: serverTimestamp(), source: 'pirate' }],
+  ['champ en trop', { email: 'a@b.fr', subscribedAt: serverTimestamp(), source: 'footer_site', html: '<b>x</b>' }],
+  ['e-mail trop long', { email: `${'a'.repeat(250)}@b.fr`, subscribedAt: serverTimestamp(), source: 'footer_site' }],
+]) {
+  test(`Firestore : newsletter refusée — ${label}`, async () => {
+    await assertFails(addDoc(collection(anonyme().firestore(), 'newsletter'), data));
+  });
+}
+
+test('Firestore : un anonyme ne lit pas la newsletter', async () => {
+  await assertFails(getDoc(doc(anonyme().firestore(), 'newsletter', 'x')));
 });
 
 test('Firestore : un anonyme ne lit pas les messages de contact', async () => {
