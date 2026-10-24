@@ -71,6 +71,8 @@ Compte technique `scripts-test@jaellejc-staging.iam.gserviceaccount.com` : ident
 | P3 | Une seule clé, rangée dans `C:\Users\hfent\.secrets\`, hors du dossier du code et hors de OneDrive (synchronisé dans le cloud). | `scripts/lib/admin.ts` refuse de démarrer sinon (testé : clé absente, dans le code, dans OneDrive, introuvable) |
 | P4 | La clé n'est jamais ouverte, affichée, copiée dans la conversation, ni commitée. | `.gitignore` (motifs de fichiers de clé) + gitleaks à chaque envoi sur GitHub |
 | P5 | Les scripts refusent la production sans `--confirmation JE-MODIFIE-LA-PRODUCTION`, réservée à Jaelle à la bascule. | `scripts/lib/admin.ts` (testé) |
+| P7 | Fichier de clé lisible par le seul compte Windows de Jaelle (héritage des droits coupé), retiré du dossier Téléchargements dès sa création ; chemin donné commande par commande, jamais enregistré dans les réglages de Windows. | `icacls` sur le fichier (2026-10-24) |
+| P8 | Règles du test publiées avec le seul droit « Administrateur des règles Firebase » (`scripts/deploy-rules.ts`), sans ajouter de droit pour Firebase CLI ; aucun compte Google personnel connecté à Firebase CLI sur cet ordinateur. | `firebase login:list` : aucun compte |
 | P6 | Le test ne contient aucune donnée client : catalogue public et données fictives uniquement. | `scripts/copy-catalogue-to-staging.ts` (aucune lecture de commandes, profils ou messages réels) |
 
 **En cas de doute (clé perdue, ordinateur volé) :** console Google Cloud → IAM → Comptes de service → `scripts-test` → Clés → supprimer la clé. Puis vider la base de test et la remplir de nouveau avec les scripts. Aucun effet sur la boutique.
