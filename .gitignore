@@ -11,3 +11,10 @@ dist/
 **/.DS_Store
 .firebase/
 *-debug.log
+
+# Next.js et tests
+.next/
+next-env.d.ts
+*.tsbuildinfo
+test-results/
+playwright-report/

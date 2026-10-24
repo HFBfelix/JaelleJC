@@ -1,0 +1,49 @@
+{
+  "name": "jaelle-jc-boutique",
+  "private": true,
+  "version": "2.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:visual": "playwright test -c playwright.visual.config.ts",
+    "visual:reference": "playwright test -c playwright.visual.config.ts --update-snapshots",
+    "emulateurs": "firebase emulators:start --only auth,firestore,storage --project demo-jaellejc",
+    "seed:emulateur": "node scripts/seed-emulateur.mjs",
+    "test:rules": "firebase emulators:exec --only firestore,storage --project demo-jaellejc \"node --test tests/rules/rules.test.mjs\""
+  },
+  "dependencies": {
+    "lucide-react": "0.284.0",
+    "next": "16.4.3",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "@playwright/test": "1.64.1",
+    "@types/node": "^24.0.0",
+    "@types/react": "^18.3.0",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^9.39.0",
+    "eslint-config-next": "16.4.3",
+    "firebase": "^13.1.0",
+    "firebase-tools": "^15.34.1",
+    "postcss": "^8.5.6",
+    "tailwindcss": "3.4.19",
+    "tailwindcss-animate": "1.0.7",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.5"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.14.6"
+  }
+}
