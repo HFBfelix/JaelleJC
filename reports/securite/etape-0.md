@@ -96,6 +96,8 @@ Après `npm audit fix` (sans `--force`) et `overrides` `form-data` 2.5.6 :
 
 ## Décision
 
-**No-go pour la mise en production** tant que l'anomalie #1 (clés Brevo exposées) n'est pas traitée par Jaelle. Le code de la livraison A ne présente aucune anomalie Critique ou Élevée ouverte (relecture indépendante : Go).
+Code de la livraison A : aucune anomalie Critique ou Élevée ouverte dans le diff (relecture indépendante : Go).
 
-Restent avant toute mise en production de l'étape 0 : révocation des clés Brevo, livraison B, test sur le staging (projet `jaellejc-staging`, aperçus Vercel reliés au staging), correction de l'erreur de types de `ProductDetail.tsx` (livraison B).
+Recommandation : No-go tant que l'anomalie #1 (clés Brevo exposées, antérieure à la refonte) n'est pas traitée, et après un test sur le staging.
+
+**Décision de Jaelle (2026-10-24) : Go pour la mise en production de la livraison A**, avec l'anomalie #1 reportée (elle a constaté une clé SMTP désactivée ; l'onglet « Clés API » reste à vérifier) et sans passage par le staging. Les points restants sont suivis dans `reports/suivi.md`.
