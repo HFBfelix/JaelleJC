@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { auth, db } from '../lib/firebase';
 import { 
   createUserWithEmailAndPassword, 
@@ -111,7 +111,7 @@ const Auth = () => {
             onChange={(e) => setEmail(e.target.value)}
             required
           />
-          {mode !== 'forgot' && (
+          {(mode === 'login' || mode === 'register') && (
             <input
               type="password"
               placeholder="MOT DE PASSE"
