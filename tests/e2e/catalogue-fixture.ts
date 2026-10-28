@@ -11,9 +11,13 @@ export const FIXTURE = {
   archived: { id: 'e2e-archive', slug: 'archive-e2e' },
   invalid: { id: 'e2e-invalide', slug: 'invalide-e2e' },
   html: { id: 'e2e-html', slug: 'piege-e2e' },
+  // Panier (étape 3) : pièce en stock suffisant, et deux pièces modifiées en cours de test (prix, retrait de la vente).
+  cabas: { id: 'e2e-cabas', slug: 'cabas-e2e', name: 'Cabas E2E', priceCents: 4500 },
+  priced: { id: 'e2e-prix', slug: 'lange-e2e-prix', name: 'Lange E2E prix', priceCents: 3000 },
+  withdrawn: { id: 'e2e-retrait', slug: 'bavoir-e2e-retrait', name: 'Bavoir E2E retrait', priceCents: 2000 },
 };
 
-function db() {
+export function db() {
   if (!process.env.FIRESTORE_EMULATOR_HOST) throw new Error('Tests de parcours : émulateur Firestore requis (FIRESTORE_EMULATOR_HOST).');
   const app = getApps()[0] ?? initializeApp({ projectId: process.env.FIREBASE_PROJECT_ID ?? 'demo-jaellejc' });
   return getFirestore(app);
@@ -54,6 +58,8 @@ export async function seed() {
       accroche: '</script><script>window.__pirate = 1</script>',
       description: '<img src=x onerror="window.__pirate = 2">',
     }, 1],
+    ...[FIXTURE.cabas, FIXTURE.priced, FIXTURE.withdrawn].map((p): [string, Record<string, unknown>, number] =>
+      [p.id, base(p.slug, p.name, 'published', p.priceCents), 5]),
   ];
   for (const [id, data, stock] of products) {
     batch.set(d.doc(`produits/${id}`), data);
@@ -68,7 +74,13 @@ export async function clean() {
   const d = db();
   const batch = d.batch();
   batch.delete(d.doc(`categories/${FIXTURE.category.slug}`));
-  for (const { id } of [FIXTURE.published, FIXTURE.soldOut, FIXTURE.draft, FIXTURE.archived, FIXTURE.invalid, FIXTURE.html]) {
+  // Paniers des parcours : ceux qui contiennent une pièce « e2e- » ou que les tests ont vidés.
+  for (const c of (await d.collection('carts').get()).docs) {
+    const items = (c.get('items') ?? []) as { productId?: string }[];
+    if (!items.length || items.some((i) => i.productId?.startsWith('e2e-'))) batch.delete(c.ref);
+  }
+  for (const { id } of [FIXTURE.published, FIXTURE.soldOut, FIXTURE.draft, FIXTURE.archived, FIXTURE.invalid, FIXTURE.html,
+    FIXTURE.cabas, FIXTURE.priced, FIXTURE.withdrawn]) {
     for (const v of (await d.collection(`produits/${id}/variantes`).get()).docs) batch.delete(v.ref);
     batch.delete(d.doc(`produits/${id}`));
   }
