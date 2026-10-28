@@ -1,6 +1,6 @@
 # Suivi — ce qui reste à faire (mis à jour au fil des étapes)
 
-Dernière mise à jour : 2026-10-28, fin de l'étape 1bis (nouvelle base de données). Chaque ligne renvoie au rapport ou à la décision d'origine.
+Dernière mise à jour : 2026-10-28, fin de l'étape 2 (catalogue rendu côté serveur). Chaque ligne renvoie au rapport ou à la décision d'origine.
 
 ## Décisions de Jaelle (2026-10-24)
 
@@ -43,6 +43,8 @@ Dernière mise à jour : 2026-10-28, fin de l'étape 1bis (nouvelle base de donn
 | Moyenne | Lecture publique de `autorisations` | Permet de deviner les e-mails admin | PLAN #8 → étape 4 (custom claim) |
 | Moyenne | Brouillons lisibles et vendables | Livraison B de l'étape 0 : filtre `published`, règle `produits`, `REQUIRE_PUBLISHED = true` | rapport étape 0 → après publication des produits par Jaelle dans `/createur` |
 | Moyenne | Staging | Créer `jaellejc-staging` (forfait Blaze), `functions/.env.jaellejc-staging` (`ALLOWED_ORIGINS`), clés de test Stripe/Brevo, variables « Preview » de Vercel vers le staging, protection des aperçus | `SECURITE.md` §1 |
+| Faible | Cache court du catalogue | Chaque requête relit le catalogue | rapport étape 2 F4 → étape 7/9 |
+| Faible | Optimiseur d'images | Bucket du test accepté aussi en production | rapport étape 2 F6 → étape 10 |
 | Faible | App Check, limitation de débit | Contact, newsletter, connexion | étape 9 |
 
 ## À faire — fonctionnel
@@ -55,6 +57,20 @@ Dernière mise à jour : 2026-10-28, fin de l'étape 1bis (nouvelle base de donn
 | `src/lib/mail.ts` | Code mort | QA Q4 → suppression avec `legacy/` |
 | Émulateur des fonctions | Délai dépassé au chargement (10 s) en local ; utile seulement pour tester Stripe en local | étape 5 |
 | Fonction `onProductAdded` | Texte à trous et brouillon de blog automatiques à supprimer | `BACKOFFICE.md` §5 → étape 7 |
+
+## Étape 2 — catalogue rendu côté serveur (2026-10-28)
+
+- Accueil, collections, fiche `/produits/<slug>`, journal `/blog/<slug>` : rendus côté serveur, identiques à l'ancien site (24 comparaisons visuelles), SEO 100 en mode production (`reports/qa/etape-2.md`).
+- Fiche produit : accroche en citation ; rubriques Description, Matières & Entretien, Dimensions & détails, Livraison & Retours ; aussi sur mobile (ajout voulu). Rubriques vides masquées.
+- Anciennes adresses redirigées en 301 (`/product/<id>`, `/blog/1…4`).
+- Les 4 articles du journal sont dans le code (`src/server/content/articles.ts`), comme dans l'ancien site ; passage dans la base avec l'espace créatrice (étape 7).
+- Compte Google de Jaelle : vérification d'identité déclenchée le 2026-10-28 par des actions de console faites depuis le navigateur intégré de Claude. Désormais : console Google seulement depuis le Chrome habituel de Jaelle (Claude in Chrome) ou clic par clic par Jaelle.
+
+**Pour voir le catalogue sur l'aperçu Vercel (dès que Google débloque la console, environ 5 minutes) :**
+1. Créer un compte technique « site-apercu » sur `jaellejc-staging`, rôle « Lecteur Cloud Datastore » seulement (le site public ne fait que lire à ce stade).
+2. Créer sa clé, puis la coller dans Vercel → Settings → Environment Variables → `FIREBASE_SERVICE_ACCOUNT`, environnement **Preview uniquement** (jamais Production). Saisie faite par Jaelle (secret).
+3. Supprimer le fichier de clé de l'ordinateur juste après.
+Jusque-là, l'aperçu affiche « L'atelier est momentanément indisponible » sur les pages catalogue.
 
 ## Projet de test et compte technique `scripts-test` (étape 1bis, 2026-10-24)
 
