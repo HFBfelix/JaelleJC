@@ -5,13 +5,21 @@ import { test, expect, type Page } from '@playwright/test';
 
 const CONSENT_KEY = 'jaellejc-cookies';
 
+// Défile toute la page (images chargées au défilement), puis attend polices et images visibles.
+async function settle(page: Page) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    for (let y = 0; y < document.body.scrollHeight; y += 600) { window.scrollTo(0, y); await new Promise((r) => setTimeout(r, 120)); }
+    window.scrollTo(0, 0);
+    const deadline = Date.now() + 8000;
+    while (Date.now() < deadline && [...document.images].some((img) => !img.complete)) await new Promise((r) => setTimeout(r, 200));
+  });
+}
+
 async function ready(page: Page) {
   // Pas de « networkidle » : l'ancien site garde une connexion Firestore ouverte.
   await page.waitForLoadState('load');
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-    await Promise.all([...document.images].map((img) => img.decode().catch(() => undefined)));
-  });
+  await settle(page);
   await page.waitForTimeout(500);
 }
 

@@ -37,7 +37,9 @@ test('catégories de la barre secondaire', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('jaellejc-cookies', 'none'));
   await page.goto('/');
   const nav = page.locator('nav.fixed');
-  for (const name of ['Bébé', 'Coffrets', 'Femmes']) {
-    await expect(nav.getByRole('link', { name })).toHaveAttribute('href', `/collection?category=${encodeURIComponent(name)}`);
+  // Catégories lues en base (émulateur), adresses lisibles par slug.
+  await expect(nav.getByRole('link', { name: 'Naissance E2E' })).toHaveAttribute('href', '/collection?category=naissance-e2e');
+  for (const link of await nav.getByRole('link').all()) {
+    expect(await link.getAttribute('href')).toMatch(/^\/collection\?category=[a-z0-9-]+$/);
   }
 });
