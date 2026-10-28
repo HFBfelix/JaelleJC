@@ -1,9 +1,10 @@
 // Lecture du catalogue publié (Admin SDK, serveur uniquement). Une seule lecture par requête
 // grâce à `cache`. Le filtre `status == 'published'` est appliqué dans la requête ET vérifié au mappage.
+import 'server-only';
 import { cache } from 'react';
 import { FieldPath } from 'firebase-admin/firestore';
 import { adminDb } from '../firebase/admin';
-import { toCategoryView, toProductCard, toProductView } from './mapping';
+import { isValidSlug, toCategoryView, toProductCard, toProductView } from './mapping';
 import type { CategoryView, ProductCardView, ProductView } from './types';
 
 export const listCategories = cache(async (): Promise<CategoryView[]> => {
@@ -15,10 +16,8 @@ export const listCategories = cache(async (): Promise<CategoryView[]> => {
     .sort((a, b) => a.order - b.order);
 });
 
-type Listed = ProductCardView & { createdAtMs: number };
-
-// Ordre par défaut : identifiant du document (celui de l'ancien accueil).
-export const listPublishedProducts = cache(async (): Promise<Listed[]> => {
+// Lecture unique ; la date de création sert au tri côté serveur et n'est jamais transmise aux pages.
+const loadPublished = cache(async () => {
   const [snap, categories] = await Promise.all([
     adminDb().collection('produits').where('status', '==', 'published').orderBy(FieldPath.documentId()).get(),
     listCategories(),
@@ -26,11 +25,20 @@ export const listPublishedProducts = cache(async (): Promise<Listed[]> => {
   return snap.docs.flatMap((d) => {
     const card = toProductCard(d.id, d.data(), categories);
     const created = d.get('createdAt') as { toMillis?: () => number } | undefined;
-    return card ? [{ ...card, createdAtMs: created?.toMillis?.() ?? 0 }] : [];
+    return card ? [{ card, createdAtMs: created?.toMillis?.() ?? 0 }] : [];
   });
 });
 
+// Ordre de l'ancien accueil : identifiant du document.
+export const listPublishedProducts = cache(async (): Promise<ProductCardView[]> =>
+  (await loadPublished()).map((p) => p.card));
+
+// Ordre de l'ancienne page Collections : les plus récents d'abord.
+export const listPublishedProductsNewestFirst = cache(async (): Promise<ProductCardView[]> =>
+  [...(await loadPublished())].sort((a, b) => b.createdAtMs - a.createdAtMs).map((p) => p.card));
+
 export const getProductBySlug = cache(async (slug: string): Promise<ProductView | null> => {
+  if (!isValidSlug(slug)) return null; // adresse impossible : 404 sans interroger la base
   const snap = await adminDb().collection('produits')
     .where('slug', '==', slug).where('status', '==', 'published').limit(1).get();
   const doc = snap.docs[0];

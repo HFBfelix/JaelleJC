@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { formatEuros, toCategoryView, toProductCard, toProductView } from './mapping';
-import { productSections } from '@/components/products/ProductInfo';
+import { formatEuros, isValidSlug, productSections, toCategoryView, toProductCard, toProductView } from './mapping';
+
+const BUCKET = 'https://firebasestorage.googleapis.com/v0/b/jaellejc.firebasestorage.app/o/produits%2F';
 
 const categories = [
   { slug: 'coffrets', name: 'Coffrets', order: 0, subs: [{ slug: 'naissance', name: 'naissance' }] },
@@ -11,7 +12,7 @@ const produit = (over: Record<string, unknown> = {}) => ({
   accroche: 'Conçu pour accompagner les premiers moments de bébé.', histoire: '',
   description: 'Un coffret cousu main.', materials: ['coton'], entretien: 'Laver à 30°',
   details: ['Lange : 70 × 70 cm'], faq: [],
-  images: [{ path: 'b', url: 'https://x/b.jpg', alt: '', order: 1 }, { path: 'a', url: 'https://x/a.jpg', alt: 'Coffret plié', order: 0 }],
+  images: [{ path: 'b', url: `${BUCKET}b.jpg`, alt: '', order: 1 }, { path: 'a', url: `${BUCKET}a.jpg`, alt: 'Coffret plié', order: 0 }],
   priceCents: 5500, limitedEditionSize: null, giftWrap: true, tags: [], inStock: true,
   aiDraft: { generatedAt: null, reviewed: false }, ...over,
 });
@@ -24,7 +25,7 @@ describe('vue publique d’un produit', () => {
   it('produit publié : carte complète, photos dans l’ordre, noms de catégorie', () => {
     const card = toProductCard('id1', produit(), categories)!;
     expect(card).toMatchObject({ slug: 'coffret-blanc', priceCents: 5500, categoryName: 'Coffrets', subName: 'naissance' });
-    expect(card.images.map((i) => i.url)).toEqual(['https://x/a.jpg', 'https://x/b.jpg']);
+    expect(card.images.map((i) => i.url)).toEqual([`${BUCKET}a.jpg`, `${BUCKET}b.jpg`]);
     expect(card.summary).toBe('Conçu pour accompagner les premiers moments de bébé.');
   });
 
@@ -39,13 +40,28 @@ describe('vue publique d’un produit', () => {
     }
   });
 
-  it('stock : somme des seules variantes actives', () => {
-    const view = toProductView('id', produit(), [variante(2), variante(3), variante(9, false)], categories)!;
-    expect(view.stock).toBe(5);
+  it('disponibilité : seules les variantes actives comptent, le nombre exact n’est jamais transmis', () => {
+    const view = toProductView('id', produit(), [variante(2), variante(9, false)], categories)!;
     expect(view.inStock).toBe(true);
+    expect(view).not.toHaveProperty('stock');
+    expect(view).not.toHaveProperty('updatedAt');
     const empty = toProductView('id', produit(), [variante(0), variante(9, false), { stock: 'beaucoup' }], categories)!;
-    expect(empty.stock).toBe(0);
     expect(empty.inStock).toBe(false);
+  });
+
+  it('aucun champ interne transmis (legacy, aiDraft, tags, histoire, faq)', () => {
+    const view = toProductView('id', produit({ legacy: { price: 55 }, tags: ['interne'], histoire: 'brouillon' }), [variante(1)], categories)!;
+    for (const key of ['legacy', 'aiDraft', 'tags', 'histoire', 'faq', 'status']) expect(view).not.toHaveProperty(key);
+  });
+
+  it('photo hors des buckets de la boutique ignorée (la page ne doit pas échouer)', () => {
+    const card = toProductCard('id', produit({ images: [{ path: 'x', url: 'https://autre-site.example/x.jpg', alt: '', order: 0 }] }), categories)!;
+    expect(card.images).toEqual([]);
+  });
+
+  it('adresse de fiche : forme du slug vérifiée avant toute lecture', () => {
+    expect(isValidSlug('coffret-blanc')).toBe(true);
+    for (const bad of ['', 'A-Majuscule', 'x'.repeat(81), '<script>', 'a--b', '../settings', 'é']) expect(isValidSlug(bad)).toBe(false);
   });
 
   it('catégorie inconnue : affichée sans nom de catégorie', () => {

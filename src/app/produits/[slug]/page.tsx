@@ -7,7 +7,7 @@ import ProductCard from '@/components/products/ProductCard';
 import { BackButton, MobileGallery } from '@/components/products/ProductGallery';
 import { ProductAccordions, ProductQuote } from '@/components/products/ProductInfo';
 import JsonLd from '@/components/seo/JsonLd';
-import { formatEuros } from '@/server/catalog/mapping';
+import { formatEuros, productQuote, productSections } from '@/server/catalog/mapping';
 import { getProductBySlug, listRelated } from '@/server/catalog/repository';
 import { breadcrumbJsonLd, productJsonLd } from '@/server/seo/jsonld';
 
@@ -36,6 +36,9 @@ export default async function ProductPage({ params }: Props) {
   const similarProducts = await listRelated(product);
   const path = `/produits/${product.slug}`;
   const price = formatEuros(product.priceCents);
+  // Seuls les textes affichés partent vers les composants du navigateur.
+  const quote = productQuote(product);
+  const sections = productSections(product);
   const category = product.categorySlug ? { name: product.categoryName, path: `/collection?category=${product.categorySlug}` } : null;
 
   return (
@@ -66,8 +69,8 @@ export default async function ProductPage({ params }: Props) {
 
           {/* Ajout de la refonte : la fiche mobile affiche aussi l'accroche et les rubriques. */}
           <div className="mt-10">
-            <ProductQuote product={product} />
-            <ProductAccordions product={product} />
+            <ProductQuote quote={quote} />
+            <ProductAccordions sections={sections} />
           </div>
         </div>
       </div>
@@ -115,13 +118,13 @@ export default async function ProductPage({ params }: Props) {
               {price} €
             </p>
 
-            <ProductQuote product={product} />
+            <ProductQuote quote={quote} />
 
             <div className="mb-10">
               <BuyButton inStock={product.inStock} />
             </div>
 
-            <ProductAccordions product={product} />
+            <ProductAccordions sections={sections} />
           </div>
         </div>
       </div>

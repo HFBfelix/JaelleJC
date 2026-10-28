@@ -3,7 +3,7 @@ import { Suspense } from 'react';
 import { permanentRedirect } from 'next/navigation';
 import CollectionView from '@/components/products/CollectionView';
 import JsonLd from '@/components/seo/JsonLd';
-import { listCategories, listPublishedProducts } from '@/server/catalog/repository';
+import { listCategories, listPublishedProductsNewestFirst } from '@/server/catalog/repository';
 import { breadcrumbJsonLd } from '@/server/seo/jsonld';
 import { slugify } from '@/server/migration/text';
 
@@ -30,7 +30,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
 export default async function CollectionPage({ searchParams }: Props) {
   const params = await searchParams;
-  const [products, categories] = await Promise.all([listPublishedProducts(), listCategories()]);
+  const [products, categories] = await Promise.all([listPublishedProductsNewestFirst(), listCategories()]);
 
   // Anciennes adresses ?category=<nom> (« Bébé ») : redirection vers le slug (« bebe »).
   const requested = typeof params.category === 'string' ? params.category : null;
@@ -39,8 +39,6 @@ export default async function CollectionPage({ searchParams }: Props) {
     if (match) permanentRedirect(`/collection?category=${match.slug}`);
   }
 
-  // Ordre de l'ancienne page : les plus récents d'abord.
-  const sorted = [...products].sort((a, b) => b.createdAtMs - a.createdAtMs);
   const category = categories.find((c) => c.slug === requested);
 
   return (
@@ -51,7 +49,7 @@ export default async function CollectionPage({ searchParams }: Props) {
         ...(category ? [{ name: category.name, path: `/collection?category=${category.slug}` }] : []),
       ])} />
       <Suspense>
-        <CollectionView products={sorted} categories={categories} />
+        <CollectionView products={products} categories={categories} />
       </Suspense>
     </>
   );
