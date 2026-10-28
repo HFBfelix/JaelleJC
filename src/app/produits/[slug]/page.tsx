@@ -61,9 +61,9 @@ export default async function ProductPage({ params }: Props) {
       <div className="lg:hidden">
         <MobileGallery images={product.images} name={product.name} />
         <div className="px-6 py-8" data-zone="infos-produit">
-          <span className="text-[9px] uppercase tracking-[0.4em] text-neutral-500 mb-2 block">{product.categoryName}</span>
-          <h1 className="font-serif text-3xl italic mb-4">{product.name}</h1>
-          <p className="text-lg font-light mb-8">{price} €</p>
+          <span className="text-[11px] uppercase tracking-[0.12em] text-neutral-500 mb-2 block">{product.categoryName}</span>
+          <h1 className="font-serif text-3xl mb-4">{product.name}</h1>
+          <p className="text-lg mb-8">{price} €</p>
 
           <BuyButton inStock={product.inStock} />
 
@@ -95,7 +95,7 @@ export default async function ProductPage({ params }: Props) {
                 priority={i === 0}
                 className="w-full h-full object-cover"
               />
-              <div className="absolute bottom-8 left-8 text-[9px] uppercase tracking-[0.3em] text-white/60">
+              <div className="absolute bottom-8 left-8 text-[11px] uppercase tracking-[0.12em] text-white/60">
                 {String(i + 1).padStart(2, '0')} / {String(product.images.length).padStart(2, '0')}
               </div>
             </div>
@@ -107,14 +107,14 @@ export default async function ProductPage({ params }: Props) {
 
             <BackButton />
 
-            <span className="text-[9px] uppercase tracking-[0.5em] text-neutral-500 block mb-3">
+            <span className="text-[11px] uppercase tracking-[0.12em] text-neutral-500 block mb-3">
               {product.categoryName} {product.subName && `— ${product.subName}`}
             </span>
             {/* Une seule balise <h1> par page (vue mobile) ; ici, titre équivalent pour les lecteurs d'écran. */}
-            <p role="heading" aria-level={1} className="font-serif text-3xl xl:text-4xl italic leading-tight mb-4 lowercase">
+            <p role="heading" aria-level={1} className="font-serif text-3xl xl:text-4xl leading-tight mb-4">
               {product.name}
             </p>
-            <p className="text-sm font-light tracking-[0.2em] mb-10 text-neutral-800">
+            <p className="text-sm tracking-[0.12em] mb-10 text-neutral-800">
               {price} €
             </p>
 
@@ -134,9 +134,9 @@ export default async function ProductPage({ params }: Props) {
         <div className="px-6 md:px-16 py-32 border-t-[0.5px] border-neutral-100 bg-neutral-50/20">
           <div className="max-w-[1400px] mx-auto">
             <div className="flex flex-col items-center mb-20 text-center">
-              <span className="text-[9px] uppercase tracking-[0.6em] text-neutral-400 mb-4 italic">Poursuivre la découverte</span>
-              <h2 className="font-serif text-3xl italic text-black">Résonances Esthétiques</h2>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500 mt-2 italic">
+              <span className="text-[11px] uppercase tracking-[0.12em] text-neutral-400 mb-4">Poursuivre la découverte</span>
+              <h2 className="font-serif text-3xl text-black">Résonances Esthétiques</h2>
+              <p className="text-[11px] uppercase tracking-[0.12em] text-neutral-500 mt-2">
                 D&apos;autres créations de l&apos;univers {product.categoryName}
               </p>
             </div>
@@ -152,7 +152,7 @@ export default async function ProductPage({ params }: Props) {
             {category && (
               <div className="flex justify-center mt-20">
                 <Link href={category.path} className="group flex flex-col items-center gap-4">
-                  <span className="text-[10px] uppercase tracking-[0.5em] text-black group-hover:opacity-50 transition-opacity">
+                  <span className="text-[11px] uppercase tracking-[0.12em] text-black group-hover:opacity-50 transition-opacity">
                     Découvrir toute la collection {product.categoryName}
                   </span>
                   <div className="h-[0.5px] w-24 bg-black group-hover:w-40 transition-all duration-700 opacity-20" />

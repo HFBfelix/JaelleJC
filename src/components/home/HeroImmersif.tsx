@@ -88,15 +88,15 @@ const HeroImmersif = ({ slides }: { slides: HeroSlide[] }) => {
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 1.5, ease: 'easeOut' }}
           >
-            <span className="text-[10px] uppercase tracking-[0.6em] mb-4 block opacity-70 italic font-serif">
+            <span className="text-[11px] uppercase tracking-[0.12em] mb-4 block opacity-70">
               {slide.title}
             </span>
 
-            <h2 className="font-serif italic text-5xl md:text-8xl mb-8 lowercase leading-tight">
+            <h2 className="font-serif text-5xl md:text-8xl mb-8 leading-tight">
               {slide.subtitle}
             </h2>
 
-            <p className="text-[12px] md:text-sm font-light italic opacity-50 max-w-xs mb-12">
+            <p className="text-[12px] md:text-sm opacity-50 max-w-xs mb-12">
               {slide.description}
             </p>
 
@@ -104,7 +104,7 @@ const HeroImmersif = ({ slides }: { slides: HeroSlide[] }) => {
               onClick={() => router.push(slide.href)}
               className="group flex items-center gap-8 active:scale-95 transition-transform"
             >
-              <span className="text-[10px] uppercase tracking-[0.4em]">Découvrir la pièce</span>
+              <span className="text-[11px] uppercase tracking-[0.12em]">Découvrir la pièce</span>
               <div className="h-[0.5px] w-12 bg-white group-hover:w-24 transition-all duration-1000" />
             </button>
           </motion.div>
@@ -126,7 +126,7 @@ const HeroImmersif = ({ slides }: { slides: HeroSlide[] }) => {
             </div>
           ))}
         </div>
-        <span className="text-white/40 text-[9px] tracking-[0.4em] font-serif italic uppercase">
+        <span className="text-white/40 text-[11px] tracking-[0.12em] uppercase">
           0{index + 1} / 0{slides.length}
         </span>
       </div>

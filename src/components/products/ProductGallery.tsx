@@ -46,7 +46,7 @@ export const BackButton = () => {
       className="flex items-center gap-3 mb-12 hover:opacity-50 transition-opacity group"
     >
       <div className="h-[0.5px] w-6 bg-black group-hover:w-10 transition-all" />
-      <span className="text-[9px] uppercase tracking-[0.3em]">Retour</span>
+      <span className="text-[11px] uppercase tracking-[0.12em]">Retour</span>
     </button>
   );
 };

@@ -14,8 +14,8 @@ const Newsletter = () => {
   return (
     <section className="py-24 px-6 border-t border-neutral-100 bg-white">
       <div className="max-w-xl mx-auto text-center">
-        <span className="text-[9px] uppercase tracking-[0.5em] text-neutral-400 block mb-6">Le Journal</span>
-        <h2 className="font-serif text-3xl md:text-4xl italic mb-8">Restez informé de nos prochaines créations</h2>
+        <span className="text-[11px] uppercase tracking-[0.12em] text-neutral-400 block mb-6">Le Journal</span>
+        <h2 className="font-serif text-3xl md:text-4xl mb-8">Restez informé de nos prochaines créations</h2>
 
         <form onSubmit={handleSubmit} className="relative max-w-sm mx-auto">
           <div className="relative border-b border-neutral-200 focus-within:border-black transition-colors">
@@ -24,7 +24,7 @@ const Newsletter = () => {
               required
               aria-label="Votre adresse e-mail"
               placeholder="Votre adresse e-mail"
-              className="w-full bg-transparent py-3 pr-10 outline-none text-[13px] font-serif italic placeholder:text-neutral-300"
+              className="w-full bg-transparent py-3 pr-10 outline-none text-[14px] placeholder:text-neutral-300"
             />
             <button
               type="submit"
@@ -36,7 +36,7 @@ const Newsletter = () => {
           </div>
         </form>
 
-        <p className="text-[8px] uppercase tracking-[0.2em] text-neutral-500 mt-12 leading-relaxed max-w-xs mx-auto">
+        <p className="text-[11px] uppercase tracking-[0.12em] text-neutral-500 mt-12 leading-relaxed max-w-xs mx-auto">
           En vous inscrivant, vous acceptez de recevoir nos actualités.
           Désinscription possible à tout moment.
         </p>

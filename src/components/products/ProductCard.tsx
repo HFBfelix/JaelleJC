@@ -62,7 +62,7 @@ const ProductCard = ({ product, priority = false }: { product: ProductCardView; 
           )}
 
           <div className={`absolute top-3 left-3 z-10 flex flex-col gap-1.5 transition-opacity duration-500 ${isHovered || !isLoaded ? 'opacity-0' : 'opacity-100'}`}>
-            <span className="text-sans text-[8px] uppercase tracking-[0.2em] bg-white/90 backdrop-blur-sm px-2 py-1 border-[0.5px] border-neutral-100">
+            <span className="text-sans text-[11px] uppercase tracking-[0.12em] bg-white/90 backdrop-blur-sm px-2 py-1 border-[0.5px] border-neutral-100">
               Atelier France
             </span>
           </div>
@@ -74,19 +74,19 @@ const ProductCard = ({ product, priority = false }: { product: ProductCardView; 
           isHovered ? 'md:opacity-0 md:translate-y-2' : 'opacity-100 translate-y-0'
         }`}>
           <div className="flex flex-col gap-0.5 w-full overflow-hidden">
-            <h3 className="text-sans text-[11px] md:text-[13px] uppercase tracking-[0.1em] text-black truncate">
+            <h3 className="font-serif text-[18px] md:text-[20px] leading-tight text-black truncate">
               {product.name}
             </h3>
 
             <div className="flex flex-col overflow-hidden">
-              <p className="hidden md:block font-serif italic text-neutral-400 text-[12px] md:text-[14px] truncate">
+              <p className="hidden md:block text-neutral-400 text-[12px] md:text-[14px] truncate">
                 {displayCategory}
               </p>
             </div>
           </div>
 
           <div className="mt-1 md:mt-0">
-            <p className="text-sans text-[11px] md:text-[13px] font-light">
+            <p className="text-sans text-[11px] md:text-[14px]">
               {formatPrice(product.priceCents)}€
             </p>
           </div>

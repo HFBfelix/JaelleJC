@@ -10,7 +10,7 @@ export const ProductQuote = ({ quote }: { quote: string }) => {
   if (!quote) return null;
   return (
     <div className="border-l border-black pl-5 mb-10">
-      <p className="text-[13px] leading-relaxed text-neutral-700 font-light italic">
+      <p className="text-[14px] leading-relaxed text-neutral-700">
         &quot;{quote}&quot;
       </p>
     </div>
@@ -28,7 +28,7 @@ export const ProductAccordions = ({ sections }: { sections: ProductSection[] }) 
             aria-expanded={active === key}
             className="w-full py-4 flex justify-between items-center group"
           >
-            <span className="text-[9px] uppercase tracking-widest text-neutral-500 group-hover:text-black transition-colors">
+            <span className="text-[11px] uppercase tracking-widest text-neutral-500 group-hover:text-black transition-colors">
               {label}
             </span>
             <Plus
@@ -40,7 +40,7 @@ export const ProductAccordions = ({ sections }: { sections: ProductSection[] }) 
           {/* Contenu toujours présent dans le HTML (lisible par les moteurs), replié visuellement. */}
           <div className={`overflow-hidden transition-all duration-300 ${active === key ? 'max-h-96 pb-6' : 'max-h-0'}`}>
             {lines.map((line, i) => (
-              <p key={i} className="text-[11px] leading-relaxed text-neutral-500 font-light italic">
+              <p key={i} className="text-[11px] leading-relaxed text-neutral-500">
                 {line}
               </p>
             ))}

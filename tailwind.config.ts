@@ -12,12 +12,12 @@ const config: Config = {
     extend: {
       // --- TES POLICES DE LUXE ---
       fontFamily: {
-        serif: ["Cormorant Garamond", "serif"], // Pour les titres & l'élégance
-        sans: ["Inter", "sans-serif"],          // Pour la clarté technique
+        serif: ["Crimson Pro", "serif"],        // Titres, direction « Atelier »
+        sans: ["Source Sans 3", "sans-serif"],  // Texte, direction « Atelier »
       },
       // --- TAILLE DE TEXTE UX 2026 ---
       fontSize: {
-        base: ["13px", "1.8"], // Ton corps de texte standardisé
+        base: ["14px", "1.7"], // Ton corps de texte standardisé
       },
       colors: {
         // Palette sobre et chic

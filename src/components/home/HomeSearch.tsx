@@ -20,7 +20,7 @@ const HomeSearch = () => {
           type="text"
           aria-label="Chercher une pièce"
           placeholder="Chercher une pièce, un usage..."
-          className="w-full py-4 text-center text-xl md:text-2xl font-serif italic outline-none bg-transparent placeholder:text-neutral-500 border-b border-neutral-200 focus:border-black transition-all duration-700"
+          className="w-full py-4 text-center text-xl md:text-2xl font-serif outline-none bg-transparent placeholder:text-neutral-500 border-b border-neutral-200 focus:border-black transition-all duration-700"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -31,7 +31,7 @@ const HomeSearch = () => {
           <button
             key={tag}
             onClick={() => router.push(`/collection?search=${tag}`)}
-            className="text-[10px] uppercase tracking-[0.4em] text-neutral-400 hover:text-black transition-colors"
+            className="text-[11px] uppercase tracking-[0.12em] text-neutral-400 hover:text-black transition-colors"
           >
             {tag}
           </button>

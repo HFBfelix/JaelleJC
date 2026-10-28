@@ -11,7 +11,7 @@ const BuyButton = ({ inStock }: { inStock: boolean }) => {
     return (
       <button disabled className={baseClass}>
         <AlertCircle size={14} strokeWidth={1} />
-        <span className="text-[10px] uppercase tracking-[0.4em]">Épuisé</span>
+        <span className="text-[11px] uppercase tracking-[0.12em]">Épuisé</span>
       </button>
     );
   }
@@ -19,7 +19,7 @@ const BuyButton = ({ inStock }: { inStock: boolean }) => {
   return (
     <button className={baseClass}>
       <ShoppingBag size={14} strokeWidth={1} className="group-hover:scale-110 transition-transform duration-300" />
-      <span className="text-[10px] uppercase tracking-[0.4em]">Ajouter à la sélection</span>
+      <span className="text-[11px] uppercase tracking-[0.12em]">Ajouter à la sélection</span>
     </button>
   );
 };

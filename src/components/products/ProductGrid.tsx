@@ -15,7 +15,7 @@ const ProductGrid = ({ products }: { products: ProductCardView[] }) => (
 
     <div className="mt-32 text-center">
       <div className="w-12 h-[0.5px] bg-neutral-300 mx-auto mb-8"></div>
-      <p className="text-sans text-[11px] uppercase tracking-[0.3em] text-neutral-400 max-w-sm mx-auto leading-relaxed">
+      <p className="text-sans text-[11px] uppercase tracking-[0.12em] text-neutral-400 max-w-sm mx-auto leading-relaxed">
         Chaque création est une invitation à ralentir et à privilégier la qualité sur la quantité.
       </p>
     </div>

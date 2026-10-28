@@ -65,8 +65,8 @@ const CollectionView = ({ products, categories }: Props) => {
           ${isFocusedLayout ? 'items-center text-center' : 'md:flex-row md:items-end justify-between gap-12'}`}>
 
           <div className={`flex flex-col transition-all duration-700 ${isFocusedLayout ? 'opacity-0 h-0 overflow-hidden mb-0' : 'opacity-100 mb-0'}`}>
-            <span className="text-[9px] uppercase tracking-[0.6em] text-neutral-300 mb-4 italic">Artisanat Français</span>
-            <h1 className="font-serif text-5xl md:text-7xl italic text-black leading-none">
+            <span className="text-[11px] uppercase tracking-[0.12em] text-neutral-300 mb-4">Artisanat Français</span>
+            <h1 className="font-serif text-5xl md:text-7xl text-black leading-none">
               {activeCategory ? activeCategory.name : 'Les collections'}
             </h1>
           </div>
@@ -81,13 +81,13 @@ const CollectionView = ({ products, categories }: Props) => {
               onBlur={() => { if (!searchTerm) setIsFocusedLayout(false); }}
               className={`w-full outline-none bg-transparent transition-all duration-700 text-center
                 ${isFocusedLayout
-                  ? 'px-8 py-3.5 border border-black rounded-full font-serif italic text-[13px] focus:bg-neutral-50/50'
-                  : 'py-3 border-b border-neutral-200 text-sm font-serif italic'}`}
+                  ? 'px-8 py-3.5 border border-black rounded-full text-[14px] focus:bg-neutral-50/50'
+                  : 'py-3 border-b border-neutral-200 text-sm'}`}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
             {isFocusedLayout && (
-               <p className="mt-4 text-[9px] uppercase tracking-[0.5em] text-neutral-300 animate-pulse">Explorez l&apos;Atelier</p>
+               <p className="mt-4 text-[11px] uppercase tracking-[0.12em] text-neutral-300 animate-pulse">Explorez l&apos;Atelier</p>
             )}
           </div>
         </div>
@@ -102,7 +102,7 @@ const CollectionView = ({ products, categories }: Props) => {
               <div className="flex flex-wrap gap-8 border-b border-neutral-50 pb-8">
                 <button
                   onClick={() => setActiveSub(null)}
-                  className={`text-[10px] uppercase tracking-[0.3em] transition-colors ${!activeSub ? 'text-black font-bold' : 'text-neutral-300 hover:text-black'}`}
+                  className={`text-[11px] uppercase tracking-[0.12em] transition-colors ${!activeSub ? 'text-black font-bold' : 'text-neutral-300 hover:text-black'}`}
                 >
                   Tout voir
                 </button>
@@ -111,7 +111,7 @@ const CollectionView = ({ products, categories }: Props) => {
                   <button
                     key={sub.slug}
                     onClick={() => setActiveSub(sub.slug)}
-                    className={`text-[10px] uppercase tracking-[0.3em] transition-colors ${activeSub === sub.slug ? 'text-black font-bold' : 'text-neutral-300 hover:text-black'}`}
+                    className={`text-[11px] uppercase tracking-[0.12em] transition-colors ${activeSub === sub.slug ? 'text-black font-bold' : 'text-neutral-300 hover:text-black'}`}
                   >
                     {sub.name}
                   </button>
@@ -144,8 +144,8 @@ const CollectionView = ({ products, categories }: Props) => {
 
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16">
                   <div className="flex items-center gap-10">
-                    <span className="text-[10px] font-bold text-neutral-300">0{index + 1}</span>
-                    <h2 className="font-serif text-4xl md:text-5xl italic text-black">{cat.name}</h2>
+                    <span className="text-[11px] font-bold text-neutral-300">0{index + 1}</span>
+                    <h2 className="font-serif text-4xl md:text-5xl text-black">{cat.name}</h2>
                   </div>
 
                   <div className="flex flex-wrap gap-6 md:gap-10">
@@ -153,7 +153,7 @@ const CollectionView = ({ products, categories }: Props) => {
                       <button
                         key={sub.slug}
                         onClick={() => openSub(cat.slug, sub.slug)}
-                        className="text-[9px] uppercase tracking-[0.3em] text-neutral-400 hover:text-black transition-colors"
+                        className="text-[11px] uppercase tracking-[0.12em] text-neutral-400 hover:text-black transition-colors"
                       >
                         {sub.name}
                       </button>
