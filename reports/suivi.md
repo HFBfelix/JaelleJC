@@ -1,6 +1,6 @@
 # Suivi — ce qui reste à faire (mis à jour au fil des étapes)
 
-Dernière mise à jour : 2026-10-24, fin de l'étape 1 (socle Next.js). Chaque ligne renvoie au rapport ou à la décision d'origine.
+Dernière mise à jour : 2026-10-28, fin de l'étape 1bis (nouvelle base de données). Chaque ligne renvoie au rapport ou à la décision d'origine.
 
 ## Décisions de Jaelle (2026-10-24)
 
@@ -82,6 +82,9 @@ Compte technique `scripts-test@jaellejc-staging.iam.gserviceaccount.com` : ident
 2. Désactiver le compte `scripts-test` s'il ne sert plus au test.
 3. La migration de la production se lance avec un accès donné par Jaelle pour l'occasion et retiré juste après (comme la déconnexion de Firebase CLI à l'étape 0), jamais avec ce compte.
 4. Vérifier dans la console IAM de la production qu'aucun compte de service ni aucune clé inconnue n'existe.
+5. Boutique gelée pendant la migration de production (aucune vente, aucune modification dans l'ancien tableau de bord) ; le script refuse d'écraser un document modifié entre sa lecture et son écriture (rapport de sécurité 1bis, M1).
+6. Ne jamais lancer `firebase deploy` des règles vers la production depuis `refonte-next` avant la migration et la pose du droit admin : l'ancien site et son tableau de bord seraient bloqués (rapport 1bis, R2).
+7. Après validation de la migration : vider le champ `legacy` des commandes, qui recopie des données personnelles (rapport 1bis, F5).
 
 ## Étape 1 — socle Next.js (2026-10-24)
 

@@ -1,6 +1,6 @@
 # Rapport QA — Étape 1bis : nouvelle base de données
 
-Date : 2026-10-24 · Branche : `refonte-next` · Environnements : local (émulateurs, projet fictif `demo-jaellejc`) et test (`jaellejc-staging`, Firestore europe-west9).
+Date : 2026-10-24, mis à jour le 2026-10-28 · Branche : `refonte-next` · Environnements : local (émulateurs, projet fictif `demo-jaellejc`) et test (`jaellejc-staging`, Firestore europe-west9).
 
 ## Périmètre
 
@@ -15,8 +15,8 @@ Décisions de Jaelle appliquées : migration de la production à la bascule (ét
 
 | Suite | Résultat | Preuve |
 |---|---|---|
-| Règles Firestore et Storage (émulateur) : 5 appelants × chaque collection, cas positifs et négatifs | 74/74 | `npm run test:rules` (et job `regles` de la CI) |
-| Logique (Vitest) : consentement, prix en centimes, slugs, catégories, produits, commandes, livraison, messages, newsletter, profils, articles, découpage des descriptions | 50/50 | `npm test` |
+| Règles Firestore et Storage (émulateur) : 5 appelants × chaque collection, cas positifs et négatifs | 102/102 | `npm run test:rules` (et job `regles` de la CI) |
+| Logique (Vitest) : consentement, prix en centimes, slugs, catégories, produits, commandes, livraison, messages, newsletter, profils, articles, découpage des descriptions | 55/55 | `npm test` |
 | Types, lint | sans erreur | `npm run typecheck`, `npm run lint` |
 
 ## Découpage des descriptions (vrai catalogue, 8 produits)
@@ -41,6 +41,7 @@ Proposition vérifiée sur les vraies fiches (rapport `reports/migration/jaellej
 | Simulation : 8 produits, 0 erreur, rien d'écrit | OK | rapport de simulation du 2026-10-24 21:48 |
 | Écriture après sauvegarde | OK (sauvegarde `backups/jaellejc-staging-…`, ignorée par git) | rapport `jaellejc-staging-ecriture-2026-10-24T21-51-20.md` |
 | Second passage | 0 produit migré, 8 ignorés : aucune réécriture | sortie du second passage |
+| Migration du test refaite avec le script corrigé après relecture (2026-10-28) : anciens champs prix/stock supprimés, réglage interne refusé au public | OK | rapport `jaellejc-staging-ecriture-2026-10-28T08-15-37.md` ; `curl` anonyme |
 | Produit publié lisible par un visiteur, avec ses variantes | 200 | requête REST anonyme |
 | Liste du catalogue sans filtre de statut | 403 | idem |
 | Commande, profil, newsletter, contacts, journal d'audit, écriture produit (anonyme) | 403 | idem |
