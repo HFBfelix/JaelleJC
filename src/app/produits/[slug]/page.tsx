@@ -65,7 +65,7 @@ export default async function ProductPage({ params }: Props) {
           <h1 className="font-serif text-3xl mb-4">{product.name}</h1>
           <p className="text-lg mb-8">{price} €</p>
 
-          <BuyButton inStock={product.inStock} />
+          <BuyButton productId={product.id} variants={product.variants} />
 
           {/* Ajout de la refonte : la fiche mobile affiche aussi l'accroche et les rubriques. */}
           <div className="mt-10">
@@ -121,7 +121,7 @@ export default async function ProductPage({ params }: Props) {
             <ProductQuote quote={quote} />
 
             <div className="mb-10">
-              <BuyButton inStock={product.inStock} />
+              <BuyButton productId={product.id} variants={product.variants} />
             </div>
 
             <ProductAccordions sections={sections} />

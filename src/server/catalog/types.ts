@@ -24,7 +24,11 @@ export type ProductCardView = {
   summary: string; // accroche, sinon début de la description (texte pour lecteurs d'écran et métadonnées)
 };
 
+// Variante proposée au panier : identifiant, libellé (coloris · taille) et disponibilité, jamais le stock exact.
+export type VariantView = { id: string; label: string; inStock: boolean };
+
 export type ProductView = ProductCardView & {
+  variants: VariantView[];
   accroche: string;
   description: string;
   details: string[];

@@ -49,20 +49,23 @@ export function toProductCard(id: string, data: unknown, categories: CategoryVie
 export function toProductView(
   id: string,
   data: unknown,
-  variants: unknown[],
+  variants: { id: string; data: unknown }[],
   categories: CategoryView[],
 ): ProductView | null {
   const card = toProductCard(id, data, categories);
   if (!card) return null;
   const p = produit.parse(data);
-  // Disponibilité : au moins une variante active avec du stock (le nombre exact n'est pas transmis).
-  const inStock = variants.some((v) => {
-    const parsed = variante.safeParse(v);
-    return parsed.success && parsed.data.active && parsed.data.stock > 0;
-  });
+  // Variantes actives seulement ; disponibilité sans le nombre exact en stock.
+  const active = variants
+    .flatMap((v) => {
+      const parsed = variante.safeParse(v.data);
+      return parsed.success && parsed.data.active ? [{ id: v.id, ...parsed.data }] : [];
+    })
+    .sort((a, b) => a.order - b.order);
   return {
     ...card,
-    inStock,
+    inStock: active.some((v) => v.stock > 0),
+    variants: active.map((v) => ({ id: v.id, label: [v.color, v.size].filter(Boolean).join(' · '), inStock: v.stock > 0 })),
     accroche: p.accroche,
     description: p.description,
     details: p.details,

@@ -17,8 +17,9 @@ const produit = (over: Record<string, unknown> = {}) => ({
   aiDraft: { generatedAt: null, reviewed: false }, ...over,
 });
 
-const variante = (stock: number, active = true) => ({
-  sku: 'X', color: null, size: null, priceCents: null, stock, dimensions: null, active, order: 0,
+const variante = (stock: number, active = true, over: Record<string, unknown> = {}) => ({
+  id: `v-${stock}-${active}`,
+  data: { sku: 'X', color: null, size: null, priceCents: null, stock, dimensions: null, active, order: 0, ...over },
 });
 
 describe('vue publique d’un produit', () => {
@@ -45,8 +46,20 @@ describe('vue publique d’un produit', () => {
     expect(view.inStock).toBe(true);
     expect(view).not.toHaveProperty('stock');
     expect(view).not.toHaveProperty('updatedAt');
-    const empty = toProductView('id', produit(), [variante(0), variante(9, false), { stock: 'beaucoup' }], categories)!;
+    const empty = toProductView('id', produit(), [variante(0), variante(9, false), { id: 'x', data: { stock: 'beaucoup' } }], categories)!;
     expect(empty.inStock).toBe(false);
+  });
+
+  it('variantes proposées au panier : actives seulement, dans l’ordre, disponibilité sans stock exact', () => {
+    const view = toProductView('id', produit(), [
+      variante(0, true, { color: 'Bleu', order: 1 }),
+      variante(3, true, { color: 'Écru', size: '6 mois', order: 0 }),
+      variante(9, false),
+    ], categories)!;
+    expect(view.variants).toEqual([
+      { id: 'v-3-true', label: 'Écru · 6 mois', inStock: true },
+      { id: 'v-0-true', label: 'Bleu', inStock: false },
+    ]);
   });
 
   it('aucun champ interne transmis (legacy, aiDraft, tags, histoire, faq)', () => {

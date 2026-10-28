@@ -44,7 +44,7 @@ export const getProductBySlug = cache(async (slug: string): Promise<ProductView 
   const doc = snap.docs[0];
   if (!doc) return null;
   const [variants, categories] = await Promise.all([doc.ref.collection('variantes').get(), listCategories()]);
-  return toProductView(doc.id, doc.data(), variants.docs.map((v) => v.data()), categories);
+  return toProductView(doc.id, doc.data(), variants.docs.map((v) => ({ id: v.id, data: v.data() })), categories);
 });
 
 // Anciennes adresses /product/<identifiant> : slug du produit publié, sinon null (404).
