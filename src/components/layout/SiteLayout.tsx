@@ -91,11 +91,11 @@ const SiteLayout = ({ categories, children }: { categories: NavCategory[]; child
           border-b-[0.5px] border-neutral-100 flex items-center justify-center gap-10 md:gap-12 px-6">
           {categories.map((cat) => (
             <Link
-              key={cat.id}
-              href={`/collection?category=${encodeURIComponent(cat.id)}`}
+              key={cat.slug}
+              href={`/collection?category=${cat.slug}`}
               className="text-[10px] uppercase tracking-[0.3em] text-neutral-500 hover:text-black transition-colors"
             >
-              {cat.id}
+              {cat.name}
             </Link>
           ))}
         </nav>
@@ -127,11 +127,11 @@ const SiteLayout = ({ categories, children }: { categories: NavCategory[]; child
               <div className="grid grid-cols-2 gap-y-3 pl-4 md:pl-6 border-l border-neutral-100 ml-1">
                 {categories.map((cat) => (
                   <button
-                    key={cat.id}
-                    onClick={() => handleNavigation(`/collection?category=${encodeURIComponent(cat.id)}`)}
+                    key={cat.slug}
+                    onClick={() => handleNavigation(`/collection?category=${cat.slug}`)}
                     className="flex items-center gap-2 text-[10px] uppercase tracking-[0.3em] text-neutral-400 hover:text-black transition-colors"
                   >
-                    <span className="w-4 h-[0.5px] bg-neutral-200" /> {cat.id}
+                    <span className="w-4 h-[0.5px] bg-neutral-200" /> {cat.name}
                   </button>
                 ))}
               </div>
