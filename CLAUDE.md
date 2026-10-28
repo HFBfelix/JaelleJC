@@ -13,14 +13,15 @@ Périmètre : France, euros, petit catalogue, livraison à domicile, emballage c
 
 ## 2. DESIGN SYSTÈME : INTERDIT D'Y TOUCHER
 
-Le rendu visuel actuel est la référence. La refonte change l'architecture, pas l'apparence.
-- Polices : Cormorant Garamond (titres, italique) et Inter (texte). Corps de texte 13 px / interligne 1.8.
+Le rendu visuel actuel est la référence. La refonte change l'architecture, pas l'apparence, à une exception près : la typographie « Atelier » décidée par Jaelle le 28/10/2026.
+- Polices (direction « Atelier ») : Crimson Pro 400 droit (titres) et Source Sans 3 400/600 (texte), chargées par `next/font`. Corps de texte 14 px / interligne 1.7. Pas d'italique.
+- Règles de taille : aucun texte sous 11 px ; petites capitales espacées de 0,12 em au plus ; la police à empattements seulement à partir de 18 px (en dessous, Source Sans 3).
 - Couleurs : blanc, noir, gris galerie `#F7F7F7`, fond de confirmation `#F5F2EE`. Aucune couleur ajoutée.
 - Bordures 0,5 px, rayon d'arrondi 0 partout (sauf éléments déjà ronds aujourd'hui).
-- Petites capitales espacées (`uppercase tracking-[…]`), lignes fines, beaucoup d'espace.
+- Petites capitales (`uppercase tracking-[0.12em]`), lignes fines, beaucoup d'espace.
 - Logos et images : `public/assets/` tels quels. Ne jamais les redessiner, recolorer ni recadrer.
-- Le fichier `tailwind.config.ts` est repris à l'identique.
-- Chaque composant porté vers Next.js doit rendre le même résultat visuel. Avant/après vérifiés par captures d'écran (Playwright) sur mobile et desktop.
+- Le fichier `tailwind.config.ts` est repris à l'identique, sauf les polices et la taille du corps de texte (direction « Atelier »).
+- Chaque composant porté vers Next.js doit rendre le même résultat visuel, typographie « Atelier » mise à part. Avant/après vérifiés par captures d'écran (Playwright) sur mobile et desktop.
 - Seul le CONTENU TEXTUEL change, et uniquement selon `EDITORIAL.md`.
 
 ## 3. Stack cible (ne pas en changer sans accord)
