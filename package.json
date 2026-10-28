@@ -22,7 +22,8 @@
     "migration": "node scripts/migrate-v2.ts",
     "copie:test": "node scripts/copy-catalogue-to-staging.ts",
     "admin": "node scripts/set-admin.ts",
-    "regles:test": "node scripts/deploy-rules.ts --project jaellejc-staging"
+    "regles:test": "node scripts/deploy-rules.ts --project jaellejc-staging",
+    "typographie": "node scripts/corriger-typographie.ts"
   },
   "dependencies": {
     "firebase-admin": "14.5.0",

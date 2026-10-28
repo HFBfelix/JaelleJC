@@ -48,3 +48,36 @@ export const DIMENSION = /(\d+(?:[.,]\d+)?)\s*[*x×X]\s*(\d+(?:[.,]\d+)?)(?:\s*[
 export function formatDimension(match: RegExpMatchArray): string {
   return `${[match[1], match[2], match[3]].filter(Boolean).join(' × ')} cm`;
 }
+
+// Noms propres et sigles écrits tels quels dans un titre (EDITORIAL.md, typographie des titres).
+const PROPER_NOUNS = ['Jaelle', 'JC', 'France', 'Île-de-France', 'Paris', 'Liberty', 'Oeko-Tex'];
+
+const lower = (text: string) => text.toLocaleLowerCase('fr-FR');
+
+// Typographie française : une capitale en début de titre et après un point, les autres mots en minuscules,
+// sauf noms propres et sigles. « VESTE SHERPA KAKI » → « Veste sherpa kaki » ; « Cabas Bleu » → « Cabas bleu ».
+export function frenchTitle(text: string): string {
+  const clean = normalizeSpaces(text);
+  const allCaps = !/\p{Ll}/u.test(clean);
+  let sentenceStart = true;
+  return clean
+    .split(' ')
+    .map((word) => {
+      const core = word.replace(/^[^\p{L}]+|[^\p{L}]+$/gu, '');
+      const proper = PROPER_NOUNS.find((p) => lower(p) === lower(core));
+      let out: string;
+      if (proper) out = word.replace(core, proper);
+      // Sigle court (2 ou 3 lettres, « BIO ») au milieu d'un titre en minuscules : conservé.
+      else if (!allCaps && !sentenceStart && /^\p{Lu}{2,3}$/u.test(core)) out = word;
+      else out = sentenceStart ? capitalizeWord(lower(word)) : lower(word);
+      if (core) sentenceStart = /[.?!]$/.test(word);
+      return out;
+    })
+    .join(' ');
+}
+
+// Première lettre du mot en capitale, après une éventuelle élision ou ponctuation (« l'âme » → « L'âme »).
+function capitalizeWord(word: string): string {
+  const i = word.search(/\p{L}/u);
+  return i < 0 ? word : word.slice(0, i) + word.charAt(i).toLocaleUpperCase('fr-FR') + word.slice(i + 1);
+}

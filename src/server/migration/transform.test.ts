@@ -214,3 +214,30 @@ describe('autres collections', () => {
     expect(a).toMatchObject({ slug: 'brouillon-ia-cape', status: 'draft', productIds: ['p1'] });
   });
 });
+
+describe('typographie française des noms (EDITORIAL.md)', () => {
+  const map = () => migrateCategories(categories()).map;
+
+  it('nom tout en majuscules : corrigé, signalé dans le rapport, slug inchangé', () => {
+    const r = migrateProduct(ancienProduit(), map(), new Set());
+    expect(r.write.name).toBe('Cape de bain nuage');
+    expect(r.write.slug).toBe('cape-de-bain-nuage');
+    expect(r.issues.some((i) => i.level === 'alerte' && i.message.includes('« CAPE DE BAIN NUAGE » → « Cape de bain nuage »'))).toBe(true);
+  });
+
+  it('nom corrigé par Jaelle : prioritaire sur la règle automatique', () => {
+    const r = migrateProduct(ancienProduit({ name: 'Coffret bébé moutarde, imprimé fleurs' }), map(), new Set(), { name: 'Coffret bébé moutarde imprimé fleurs' });
+    expect(r.write.name).toBe('Coffret bébé moutarde imprimé fleurs');
+  });
+
+  it('nom déjà correct : aucune alerte de typographie', () => {
+    const r = migrateProduct(ancienProduit({ name: 'Cabas imprimé bleu' }), map(), new Set());
+    expect(r.write.name).toBe('Cabas imprimé bleu');
+    expect(r.issues.some((i) => i.message.includes('typographie'))).toBe(false);
+  });
+
+  it('familles : capitale initiale seule', () => {
+    const { writes } = migrateCategories([{ id: 'Bébé', data: { subs: ['linges de lit', 'Vestes'] } }]);
+    expect(writes[0]!.data.subs).toEqual([{ slug: 'linges-de-lit', name: 'Linges de lit' }, { slug: 'vestes', name: 'Vestes' }]);
+  });
+});

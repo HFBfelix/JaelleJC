@@ -2,7 +2,7 @@
 // si un document a déjà été migré, la source est son champ `legacy` (valeurs d'origine conservées).
 import { produit as produitSchema, variante as varianteSchema, categorie as categorieSchema } from '../db/schema.ts';
 import { splitDescription, type DescriptionProposal } from './description.ts';
-import { normalizeSpaces, slugify, uniqueSlug } from './text.ts';
+import { frenchTitle, normalizeSpaces, slugify, uniqueSlug } from './text.ts';
 
 export type Doc = { id: string; data: Record<string, unknown> };
 export type Issue = { level: 'erreur' | 'alerte'; message: string };
@@ -10,6 +10,8 @@ export type Issue = { level: 'erreur' | 'alerte'; message: string };
 export type ProductDecision = {
   status?: 'draft' | 'published' | 'archived';
   descriptionApproved?: boolean;
+  // Nom corrigé par Jaelle (sinon : typographie française appliquée au nom d'origine).
+  name?: string;
   // Corrections de Jaelle, prioritaires sur la proposition automatique.
   overrides?: Partial<Pick<DescriptionProposal, 'accroche' | 'description' | 'details' | 'materials' | 'entretien'>>;
 };
@@ -55,7 +57,7 @@ export function migrateCategories(docs: Doc[]): { writes: Doc[]; map: CategoryMa
     const slug = uniqueSlug(slugify(oldId), taken);
     const oldSubs = legacy.oldSubs !== undefined ? strList(legacy.oldSubs) : strList(doc.data.subs);
     const subTaken = new Set<string>();
-    const subs = oldSubs.map((s) => ({ slug: uniqueSlug(slugify(s), subTaken), name: normalizeSpaces(s) }));
+    const subs = oldSubs.map((s) => ({ slug: uniqueSlug(slugify(s), subTaken), name: frenchTitle(s) }));
     const data = {
       name,
       order: typeof doc.data.order === 'number' ? doc.data.order : index,
@@ -96,7 +98,9 @@ export function migrateProduct(doc: Doc, categories: CategoryMap, slugs: Set<str
   // Source : valeurs d'origine (premier passage) ou conservées dans `legacy` (passages suivants).
   const src = legacy ?? d;
   const issues: Issue[] = [];
-  const name = normalizeSpaces(str(d.name));
+  const rawName = normalizeSpaces(str(d.name));
+  const name = decision.name ? normalizeSpaces(decision.name) : frenchTitle(rawName);
+  if (name !== rawName) issues.push({ level: 'alerte', message: `nom corrigé (typographie, EDITORIAL.md) : « ${rawName} » → « ${name} »` });
   if (!name) issues.push({ level: 'erreur', message: 'nom absent' });
 
   const price = toCents(legacy ? legacy.price : d.price);
@@ -350,7 +354,7 @@ export const USER_FIELDS_TO_DELETE = ['uid', 'email', 'address', 'city', 'zipCod
 
 export function migrateArticle(doc: Doc, slugs: Set<string>): Record<string, unknown> {
   const d = doc.data;
-  const title = normalizeSpaces(str(d.title));
+  const title = frenchTitle(str(d.title));
   const content = str(d.content);
   const productId = str(d.productId);
   const existing = typeof d.slug === 'string' && d.slug && !slugs.has(d.slug) ? (slugs.add(d.slug), d.slug) : null;
