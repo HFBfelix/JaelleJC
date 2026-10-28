@@ -1,10 +1,14 @@
-// Catégories affichées dans la barre secondaire et le menu.
-// PROVISOIRE (étape 1) : liste fixe, identique aux catégories de production au 2026-10-24.
-// Remplacée à l'étape 2 par la lecture de la collection `categories` (Admin SDK).
-export type NavCategory = { id: string };
+// Catégories affichées dans la barre secondaire et le menu, lues dans la collection `categories`.
+import { listCategories } from './repository';
 
-const STEP1_CATEGORIES: readonly NavCategory[] = [{ id: 'Bébé' }, { id: 'Coffrets' }, { id: 'Femmes' }];
+export type NavCategory = { slug: string; name: string };
 
 export async function getNavCategories(): Promise<NavCategory[]> {
-  return [...STEP1_CATEGORIES];
+  try {
+    return (await listCategories()).map(({ slug, name }) => ({ slug, name }));
+  } catch {
+    // Base injoignable : le site reste navigable (menu sans catégories), l'erreur apparaît sur les pages catalogue.
+    console.error('Navigation : catégories indisponibles.');
+    return [];
+  }
 }
