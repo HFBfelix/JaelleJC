@@ -1,6 +1,6 @@
 # Suivi — ce qui reste à faire (mis à jour au fil des étapes)
 
-Dernière mise à jour : 2026-10-28, fin de l'étape 2 (catalogue rendu côté serveur). Chaque ligne renvoie au rapport ou à la décision d'origine.
+Dernière mise à jour : 2026-10-29, fin de l'étape 3 (panier persistant côté serveur). Chaque ligne renvoie au rapport ou à la décision d'origine.
 
 ## Décisions de Jaelle (2026-10-24)
 
@@ -49,6 +49,8 @@ Dernière mise à jour : 2026-10-28, fin de l'étape 2 (catalogue rendu côté s
 | Moyenne | Lecture publique de `autorisations` | Permet de deviner les e-mails admin | PLAN #8 → étape 4 (custom claim) |
 | Moyenne | Brouillons lisibles et vendables | Livraison B de l'étape 0 : filtre `published`, règle `produits`, `REQUIRE_PUBLISHED = true` | rapport étape 0 → après publication des produits par Jaelle dans `/createur` |
 | Moyenne | Staging | Créer `jaellejc-staging` (forfait Blaze), `functions/.env.jaellejc-staging` (`ALLOWED_ORIGINS`), clés de test Stripe/Brevo, variables « Preview » de Vercel vers le staging, protection des aperçus | `SECURITE.md` §1 |
+| Moyenne | Paniers créés en masse | Suppression automatique (TTL) sur `carts.expiresAt` à activer (test : maintenant ; production : bascule) ; limitation de débit sur l'ajout au panier | rapport étape 3 M1 → Jaelle (TTL), étape 9 (débit) |
+| Info | Jeton du panier à la connexion | Nouveau jeton et ancien panier supprimé lors de la fusion | rapport étape 3 I2 → étape 4 |
 | Faible | Cache court du catalogue | Chaque requête relit le catalogue | rapport étape 2 F4 → étape 7/9 |
 | Faible | Optimiseur d'images | Bucket du test accepté aussi en production | rapport étape 2 F6 → étape 10 |
 | Faible | App Check, limitation de débit | Contact, newsletter, connexion | étape 9 |
@@ -63,6 +65,14 @@ Dernière mise à jour : 2026-10-28, fin de l'étape 2 (catalogue rendu côté s
 | `src/lib/mail.ts` | Code mort | QA Q4 → suppression avec `legacy/` |
 | Émulateur des fonctions | Délai dépassé au chargement (10 s) en local ; utile seulement pour tester Stripe en local | étape 5 |
 | Fonction `onProductAdded` | Texte à trous et brouillon de blog automatiques à supprimer | `BACKOFFICE.md` §5 → étape 7 |
+
+## Étape 3 — panier persistant côté serveur (2026-10-29)
+
+- Panier gardé en base (`carts`), cookie `cart_token` de 7 jours renouvelé à chaque visite, empreinte seule en base ; prix, livraison et stock relus à chaque affichage ; quantités plafonnées au stock (`reports/qa/etape-3.md`, `reports/securite/etape-3.md`).
+- Bouton « Ajouter à la sélection » branché, tiroir porté de l'ancien site (typographie Atelier), badge lu côté serveur, page `/panier`. Paiement : bouton « Confirmer et payer » inactif jusqu'à l'étape 5.
+- Captures du tiroir et de la page panier : `reports/qa/etape-3/`.
+- À valider par Jaelle : libellés « Modèle » (choix de variante, visible seulement si un produit a plusieurs variantes) et « Paiement en ligne bientôt disponible » (provisoire).
+- À faire par Jaelle (console Google, depuis son Chrome) : politique TTL sur le champ `expiresAt` de la collection `carts` du projet de test.
 
 ## Étape 2 — catalogue rendu côté serveur (2026-10-28)
 
