@@ -87,7 +87,7 @@ export default function BlogPage() {
 
       <section className="px-6 md:px-16 py-20 border-t-[0.5px] border-neutral-100 bg-neutral-50">
         <div className="max-w-xl mx-auto text-center">
-          <span className="text-[11px] uppercase tracking-[0.12em] text-neutral-400 block mb-4">Carnets Privés</span>
+          <span className="text-[11px] uppercase tracking-[0.12em] text-neutral-400 block mb-4">Carnets privés</span>
           <h3 className="font-serif text-3xl mb-3">S&apos;inscrire aux Chroniques</h3>
           <p className="text-[11px] text-neutral-400 mb-10">Aucun spam. Désinscription en un clic.</p>
           <div className="flex gap-0 border-b border-black">

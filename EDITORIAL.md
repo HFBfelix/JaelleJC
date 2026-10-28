@@ -18,6 +18,8 @@ Signature conservée : *« De belles matières, l'amour de l'artisanat. »*
 
 Ton : vouvoiement, phrases courtes, concrètes, pas de point d'exclamation, pas d'adjectifs de luxe en série. On montre (la matière, les gestes, le chiffre de la série), on ne proclame pas.
 
+Typographie des titres et des noms (décision de Jaelle du 28/10/2026) : règles françaises, une seule capitale, en début de titre ; les autres mots en minuscules, sauf les noms propres et les sigles (Jaelle & JC, France, Île-de-France). On écrit « Cabas imprimé bleu », jamais « Cabas Imprimé Bleu » : la couleur et le motif décrivent la pièce, ce ne sont pas des noms. Jamais de nom saisi tout en majuscules (« VESTE SHERPA KAKI » → « Veste sherpa kaki ») : les petites capitales sont un effet de style (CSS), pas une saisie. Ponctuation régulière : pas de virgule au milieu d'un nom de produit.
+
 ## 2. Accueil
 
 **Titre (H1)** : *Le cadeau de naissance, cousu à la main en Île-de-France.*

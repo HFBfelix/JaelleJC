@@ -135,7 +135,7 @@ export default async function ProductPage({ params }: Props) {
           <div className="max-w-[1400px] mx-auto">
             <div className="flex flex-col items-center mb-20 text-center">
               <span className="text-[11px] uppercase tracking-[0.12em] text-neutral-400 mb-4">Poursuivre la découverte</span>
-              <h2 className="font-serif text-3xl text-black">Résonances Esthétiques</h2>
+              <h2 className="font-serif text-3xl text-black">Résonances esthétiques</h2>
               <p className="text-[11px] uppercase tracking-[0.12em] text-neutral-500 mt-2">
                 D&apos;autres créations de l&apos;univers {product.categoryName}
               </p>

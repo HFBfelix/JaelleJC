@@ -14,7 +14,7 @@ const Newsletter = () => {
   return (
     <section className="py-24 px-6 border-t border-neutral-100 bg-white">
       <div className="max-w-xl mx-auto text-center">
-        <span className="text-[11px] uppercase tracking-[0.12em] text-neutral-400 block mb-6">Le Journal</span>
+        <span className="text-[11px] uppercase tracking-[0.12em] text-neutral-400 block mb-6">Le journal</span>
         <h2 className="font-serif text-3xl md:text-4xl mb-8">Restez informé de nos prochaines créations</h2>
 
         <form onSubmit={handleSubmit} className="relative max-w-sm mx-auto">

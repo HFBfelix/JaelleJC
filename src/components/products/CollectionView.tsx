@@ -65,7 +65,7 @@ const CollectionView = ({ products, categories }: Props) => {
           ${isFocusedLayout ? 'items-center text-center' : 'md:flex-row md:items-end justify-between gap-12'}`}>
 
           <div className={`flex flex-col transition-all duration-700 ${isFocusedLayout ? 'opacity-0 h-0 overflow-hidden mb-0' : 'opacity-100 mb-0'}`}>
-            <span className="text-[11px] uppercase tracking-[0.12em] text-neutral-300 mb-4">Artisanat Français</span>
+            <span className="text-[11px] uppercase tracking-[0.12em] text-neutral-300 mb-4">Artisanat français</span>
             <h1 className="font-serif text-5xl md:text-7xl text-black leading-none">
               {activeCategory ? activeCategory.name : 'Les collections'}
             </h1>

@@ -53,7 +53,7 @@ export default async function BlogPostPage({ params }: Props) {
       <div className="max-w-2xl mx-auto px-6 py-16 md:py-24">
         <Link href="/blog" className="flex items-center gap-3 mb-16 hover:opacity-50 transition-opacity group">
           <div className="h-[0.5px] w-6 bg-black group-hover:w-10 transition-all" />
-          <span className="text-[11px] uppercase tracking-[0.12em]">Le Journal</span>
+          <span className="text-[11px] uppercase tracking-[0.12em]">Le journal</span>
         </Link>
 
         <div className="space-y-6">
