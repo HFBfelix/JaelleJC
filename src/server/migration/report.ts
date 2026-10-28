@@ -13,8 +13,12 @@ export type MigrationSummary = {
   globalIssues: Issue[];
 };
 
-const esc = (text: string) => text.replace(/\|/g, '\\|').replace(/\n/g, ' ');
-const list = (items: string[]) => (items.length ? items.map((i) => `- ${i}`).join('\n') : '- *(vide — à compléter)*');
+// Texte du catalogue inséré dans le Markdown : HTML neutralisé, ni titre ni liste parasite en début de ligne.
+export const esc = (text: string) => text
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/\|/g, '\\|').replace(/\s*\n\s*/g, ' ')
+  .replace(/^([#*+-]|\d+\.)/, '\\$1');
+const list = (items: string[]) => (items.length ? items.map((i) => `- ${esc(i)}`).join('\n') : '- *(vide — à compléter)*');
 
 export function buildReport(s: MigrationSummary): string {
   const errors = s.products.filter((p) => p.issues.some((i) => i.level === 'erreur'));
@@ -40,7 +44,7 @@ export function buildReport(s: MigrationSummary): string {
   ];
 
   if (s.globalIssues.length) {
-    lines.push('## Points généraux', '', ...s.globalIssues.map((i) => `- **${i.level}** : ${i.message}`), '');
+    lines.push('## Points généraux', '', ...s.globalIssues.map((i) => `- **${i.level}** : ${esc(i.message)}`), '');
   }
 
   lines.push('## Catégories', '', '| Ancien nom | Nouvel identifiant | Familles |', '|---|---|---|');
@@ -67,7 +71,7 @@ export function buildReport(s: MigrationSummary): string {
   for (const p of s.products) {
     const pr = p.proposal;
     lines.push(
-      `### ${p.name}`,
+      `### ${esc(p.name)}`,
       '',
       `Identifiant \`${p.id}\` · adresse \`/produits/${String(p.write.slug)}\` · ${(Number(p.write.priceCents) / 100).toFixed(2).replace('.', ',')} € · statut **${p.newStatus}**`,
       '',
@@ -75,9 +79,9 @@ export function buildReport(s: MigrationSummary): string {
       '',
       `> ${esc(p.original.description) || '*(aucun)*'}`,
       '',
-      `**Accroche** : ${pr.accroche || '*(à écrire)*'}`,
+      `**Accroche** : ${esc(pr.accroche) || '*(à écrire)*'}`,
       '',
-      `**Description** : ${pr.description || '*(à écrire)*'}`,
+      `**Description** : ${esc(pr.description) || '*(à écrire)*'}`,
       '',
       '**Dimensions & détails**',
       '',
@@ -87,22 +91,22 @@ export function buildReport(s: MigrationSummary): string {
       '',
       list(pr.materials),
       '',
-      `**Entretien** : ${pr.entretien || '*(à compléter — ne jamais écrire « lavable » sans l’avoir vérifié)*'}`,
+      `**Entretien** : ${esc(pr.entretien) || '*(à compléter — ne jamais écrire « lavable » sans l’avoir vérifié)*'}`,
       '',
     );
     if (pr.removed.length) {
       lines.push('**Phrases écartées (à confirmer ou à justifier)**', '');
-      for (const r of pr.removed) lines.push(`- « ${r.phrase} » — ${r.reason}`);
+      for (const r of pr.removed) lines.push(`- « ${esc(r.phrase)} » — ${r.reason}`);
       lines.push('');
     }
     if (pr.advice.length) {
       lines.push('**Conseils de formulation (phrases gardées)**', '');
-      for (const r of pr.advice) lines.push(`- « ${r.phrase} » — ${r.reason}`);
+      for (const r of pr.advice) lines.push(`- « ${esc(r.phrase)} » — ${r.reason}`);
       lines.push('');
     }
     if (p.issues.length) {
       lines.push('**Contrôles**', '');
-      for (const i of p.issues) lines.push(`- ${i.level} : ${i.message}`);
+      for (const i of p.issues) lines.push(`- ${i.level} : ${esc(i.message)}`);
       lines.push('');
     }
   }

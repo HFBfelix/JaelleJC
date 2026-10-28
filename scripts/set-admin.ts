@@ -14,4 +14,4 @@ if (flag('remove')) delete claims.admin;
 else claims.admin = true;
 await auth.setCustomUserClaims(user.uid, claims);
 await auth.revokeRefreshTokens(user.uid); // force une reconnexion
-console.log(`${flag('remove') ? 'Droit admin retiré' : 'Droit admin posé'} pour ${email}.`);
+console.log(`${flag('remove') ? 'Droit admin retiré' : 'Droit admin posé'} pour le compte ${user.uid}.`); // uid plutôt que l'e-mail : pas de donnée personnelle dans les journaux

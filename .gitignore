@@ -29,3 +29,6 @@ backups/
 jaellejc-staging-*.json
 jaellejc-[0-9a-f]*.json
 *-key.json
+*.p12
+*.pem
+credentials.json

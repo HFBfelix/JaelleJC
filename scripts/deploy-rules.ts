@@ -5,11 +5,11 @@
 import { readFileSync } from 'node:fs';
 import { getSecurityRules } from 'firebase-admin/security-rules';
 import { getApps } from 'firebase-admin/app';
-import { PRODUCTION, arg, connect } from './lib/admin.ts';
+import { EMULATOR, PRODUCTION, arg, connect } from './lib/admin.ts';
 
 const project = arg('project');
 if (project === PRODUCTION) throw new Error('Les règles de production sont déployées par Jaelle, à la bascule.');
-if (project?.startsWith('demo-')) throw new Error('L’émulateur lit firestore.rules directement : rien à publier.');
+if (project === EMULATOR) throw new Error('L’émulateur lit firestore.rules directement : rien à publier.');
 connect(project);
 
 const source = readFileSync('firestore.rules', 'utf8');
