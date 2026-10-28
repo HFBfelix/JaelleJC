@@ -29,8 +29,10 @@ service cloud.firestore {
       allow read: if resource.data.status == 'published' || estAdmin();
       allow write: if false;
 
+      // Variantes actives d'un produit publié (une requête publique doit filtrer active == true).
       match /variantes/{varianteId} {
-        allow read: if get(/databases/$(database)/documents/produits/$(produitId)).data.status == 'published'
+        allow read: if (resource.data.active == true
+                        && get(/databases/$(database)/documents/produits/$(produitId)).data.status == 'published')
                     || estAdmin();
         allow write: if false;
       }
@@ -46,9 +48,9 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    // Livraison et informations de la maison : non sensibles.
+    // Livraison et informations de la maison : non sensibles. Tout autre réglage (interne) reste fermé.
     match /settings/{settingId} {
-      allow read: if true;
+      allow read: if settingId in ['delivery', 'site'];
       allow write: if false;
     }
 
@@ -66,7 +68,9 @@ service cloud.firestore {
       function profilValide() {
         return request.resource.data.keys().hasOnly(['displayName', 'phone', 'createdAt', 'updatedAt'])
             && texte(request.resource.data.get('displayName', ''), 100)
-            && texte(request.resource.data.get('phone', ''), 30);
+            && texte(request.resource.data.get('phone', ''), 30)
+            && request.resource.data.get('createdAt', request.time) is timestamp
+            && request.resource.data.get('updatedAt', request.time) is timestamp;
       }
       allow read: if proprietaire() || estAdmin();
       allow create, update: if proprietaire() && profilValide();

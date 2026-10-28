@@ -7,9 +7,9 @@ import {
   initializeTestEnvironment, assertSucceeds, assertFails,
 } from '@firebase/rules-unit-testing';
 import {
-  doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, serverTimestamp,
+  doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, addDoc, collection, query, where, serverTimestamp, collectionGroup,
 } from 'firebase/firestore';
-import { ref, uploadBytes, deleteObject, getMetadata } from 'firebase/storage';
+import { ref, uploadBytes, deleteObject, getMetadata, updateMetadata } from 'firebase/storage';
 
 const IMAGE = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
 
@@ -31,12 +31,15 @@ beforeEach(async () => {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore();
     await setDoc(doc(db, 'produits', 'en-ligne'), { name: 'Cape', status: 'published', priceCents: 8900 });
-    await setDoc(doc(db, 'produits', 'en-ligne', 'variantes', 'unique'), { sku: 'CAPE-U', stock: 3 });
+    await setDoc(doc(db, 'produits', 'en-ligne', 'variantes', 'unique'), { sku: 'CAPE-U', stock: 3, active: true });
+    await setDoc(doc(db, 'produits', 'en-ligne', 'variantes', 'inactive'), { sku: 'CAPE-X', stock: 0, active: false });
     await setDoc(doc(db, 'produits', 'brouillon'), { name: 'Secret', status: 'draft', priceCents: 5000 });
-    await setDoc(doc(db, 'produits', 'brouillon', 'variantes', 'unique'), { sku: 'SEC-U', stock: 5 });
+    await setDoc(doc(db, 'produits', 'brouillon', 'variantes', 'unique'), { sku: 'SEC-U', stock: 5, active: true });
     await setDoc(doc(db, 'produits', 'archive'), { name: 'Ancien', status: 'archived', priceCents: 4000 });
+    await setDoc(doc(db, 'produits', 'archive', 'variantes', 'unique'), { sku: 'ANC-U', stock: 1, active: true });
     await setDoc(doc(db, 'categories', 'bebe'), { name: 'Bébé', order: 0, intro: '', subs: [] });
     await setDoc(doc(db, 'settings', 'delivery'), { freeThresholdCents: 15000, flatRateCents: 690 });
+    await setDoc(doc(db, 'settings', 'interne'), { note: 'réglage privé' });
     await setDoc(doc(db, 'articles_blog', 'publie'), { title: 'A', status: 'published' });
     await setDoc(doc(db, 'articles_blog', 'brouillon'), { title: 'B', status: 'draft' });
     await setDoc(doc(db, 'orders', 'commande-cliente'), { userId: 'cliente-uid', status: 'paid' });
@@ -293,4 +296,67 @@ test('Storage : l’admin ne peut envoyer ni SVG, ni HTML, ni fichier de plus de
   await assertFails(uploadBytes(ref(admin().storage(), 'produits/x.html'), IMAGE, { contentType: 'text/html' }));
   await assertFails(uploadBytes(ref(admin().storage(), 'produits/gros.jpg'), new Uint8Array(10 * 1024 * 1024 + 1), { contentType: 'image/jpeg' }));
   await assertFails(uploadBytes(ref(admin().storage(), 'ailleurs/x.jpg'), IMAGE, { contentType: 'image/jpeg' }));
+});
+
+// --- Compléments demandés par la relecture de sécurité (étape 1bis) ---
+
+for (const [nom, ctx] of Object.entries(nonAdmins)) {
+  test(`variantes : ${nom} ne lit ni variante inactive, ni variante d'un produit archivé`, async () => {
+    await assertFails(getDoc(doc(db(ctx), 'produits', 'en-ligne', 'variantes', 'inactive')));
+    await assertFails(getDoc(doc(db(ctx), 'produits', 'archive', 'variantes', 'unique')));
+  });
+
+  test(`variantes : ${nom} ne lit pas toutes les variantes d'un coup, ne crée ni ne supprime de variante`, async () => {
+    await assertFails(getDocs(collectionGroup(db(ctx), 'variantes')));
+    await assertFails(setDoc(doc(db(ctx), 'produits', 'en-ligne', 'variantes', 'nouvelle'), { sku: 'X', stock: 9, active: true }));
+    await assertFails(deleteDoc(doc(db(ctx), 'produits', 'en-ligne', 'variantes', 'unique')));
+  });
+
+  test(`réglages et catégories : ${nom} ne lit pas un réglage interne, ne supprime rien`, async () => {
+    await assertFails(getDoc(doc(db(ctx), 'settings', 'interne')));
+    await assertFails(deleteDoc(doc(db(ctx), 'settings', 'delivery')));
+    await assertFails(deleteDoc(doc(db(ctx), 'categories', 'bebe')));
+  });
+
+  test(`contact et newsletter : ${nom} ne modifie ni ne supprime`, async () => {
+    await assertFails(updateDoc(doc(db(ctx), 'contacts', 'message'), { status: 'read' }));
+    await assertFails(deleteDoc(doc(db(ctx), 'contacts', 'message')));
+    await assertFails(updateDoc(doc(db(ctx), 'newsletter', 'inscrit'), { email: 'x@y.fr' }));
+    await assertFails(deleteDoc(doc(db(ctx), 'newsletter', 'inscrit')));
+  });
+
+  test(`Storage : ${nom} ne modifie pas les informations d'une photo`, async () => {
+    await assertFails(updateMetadata(ref(ctx().storage(), 'produits/existante.jpg'), { contentType: 'text/html' }));
+  });
+}
+
+test('variantes : une requête publique filtrée sur les variantes actives passe', async () => {
+  await assertSucceeds(getDocs(query(collection(db(anonyme), 'produits', 'en-ligne', 'variantes'), where('active', '==', true))));
+});
+
+test('variantes : l’admin lit une variante inactive', async () => {
+  await assertSucceeds(getDoc(doc(db(admin), 'produits', 'en-ligne', 'variantes', 'inactive')));
+});
+
+for (const [nom, ctx] of Object.entries({ anonyme, autreCliente, fausseAdmin })) {
+  test(`commandes : ${nom} ne lit pas les commandes d'une autre, même avec le filtre userId`, async () => {
+    await assertFails(getDocs(query(collection(db(ctx), 'orders'), where('userId', '==', 'cliente-uid'))));
+  });
+}
+
+test('profil : création par sa propriétaire, valide puis invalide', async () => {
+  const nouvelle = () => env.authenticatedContext('nouvelle-uid', { email: 'n@exemple.test', email_verified: true });
+  const ref_ = doc(db(nouvelle), 'users', 'nouvelle-uid');
+  await assertFails(setDoc(ref_, { displayName: 'N', admin: true }));
+  await assertFails(setDoc(ref_, { displayName: 'N', createdAt: 'x'.repeat(5000) }));
+  await assertFails(setDoc(ref_, { displayName: 'N', updatedAt: 42 }));
+  await assertSucceeds(setDoc(ref_, { displayName: 'N', createdAt: serverTimestamp() }));
+});
+
+test('profil : une cliente ne liste pas tous les profils', async () => {
+  await assertFails(getDocs(collection(db(cliente), 'users')));
+});
+
+test('contact : sujet de plus de 100 caractères refusé', async () => {
+  await assertFails(addDoc(collection(db(anonyme), 'contacts'), { ...message(), subject: 'x'.repeat(101) }));
 });
