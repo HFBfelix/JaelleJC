@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   migrateArticle, migrateCategories, migrateDelivery, migrateMessage, migrateNewsletter, migrateOrder,
-  migrateProduct, migrateUser, toCents, type Doc,
+  migrateProduct, migrateUser, toCents, PRODUCT_FIELDS_TO_DELETE, type Doc,
 } from './transform';
 import { slugify, uniqueSlug } from './text';
 
@@ -96,11 +96,22 @@ describe('produits', () => {
     expect(run(ancienProduit({ status: undefined })).newStatus).toBe('draft');
   });
 
-  it('décision de Jaelle prioritaire (statut, texte corrigé, texte relu)', () => {
-    const r = run(ancienProduit({ status: 'draft' }), { status: 'published', descriptionApproved: true, overrides: { accroche: 'La cape des premiers bains.' } });
-    expect(r.newStatus).toBe('published');
+  it('décision de Jaelle prioritaire pour les textes et le retrait', () => {
+    const r = run(ancienProduit(), { status: 'archived', descriptionApproved: true, overrides: { accroche: 'La cape des premiers bains.' } });
+    expect(r.newStatus).toBe('archived');
     expect(r.write.accroche).toBe('La cape des premiers bains.');
     expect(r.write.aiDraft).toEqual({ generatedAt: null, reviewed: true });
+  });
+
+  it('une décision ne publie jamais un ancien brouillon (liste de contrôle de l’espace créatrice)', () => {
+    const r = run(ancienProduit({ status: 'draft' }), { status: 'published', descriptionApproved: true });
+    expect(r.newStatus).toBe('draft');
+    expect(r.issues.map((i) => i.message)).toContain('publication demandée : à faire dans l’espace créatrice, après la liste de contrôle');
+  });
+
+  it('aucun ancien champ supprimé n’est réécrit par la migration', () => {
+    const keys = Object.keys(run().write);
+    for (const field of PRODUCT_FIELDS_TO_DELETE) expect(keys).not.toContain(field);
   });
 
   it('prix invalide : erreur et remise en brouillon', () => {

@@ -133,9 +133,16 @@ export function migrateProduct(doc: Doc, categories: CategoryMap, slugs: Set<str
   const stock = typeof rawStock === 'number' && Number.isInteger(rawStock) && rawStock >= 0 ? rawStock : 0;
   if (stock !== rawStock) issues.push({ level: 'alerte', message: `stock invalide (${JSON.stringify(rawStock)}), mis à 0` });
 
-  // Statut : publié reste publié (choix déjà fait par Jaelle), le reste en brouillon, sauf décision contraire.
+  // Statut : publié reste publié (choix déjà fait par Jaelle), le reste en brouillon. Une décision peut
+  // retirer ou archiver, jamais publier un ancien brouillon : une nouvelle publication passe par la liste
+  // de contrôle de l'espace créatrice (photos avec texte alternatif, accroche, texte relu…, CLAUDE.md §4).
   const oldStatus = str(legacy ? legacy.status : d.status) || '(aucun)';
-  let newStatus: ProductResult['newStatus'] = decision.status ?? (oldStatus === 'published' ? 'published' : 'draft');
+  let newStatus: ProductResult['newStatus'] = oldStatus === 'published' ? 'published' : 'draft';
+  if (decision.status === 'published' && oldStatus !== 'published') {
+    issues.push({ level: 'alerte', message: 'publication demandée : à faire dans l’espace créatrice, après la liste de contrôle' });
+  } else if (decision.status) {
+    newStatus = decision.status;
+  }
   if (issues.some((i) => i.level === 'erreur') && newStatus === 'published') {
     newStatus = 'draft';
     issues.push({ level: 'erreur', message: 'remis en brouillon à cause des erreurs ci-dessus' });
@@ -210,6 +217,12 @@ export function migrateProduct(doc: Doc, categories: CategoryMap, slugs: Set<str
     issues,
   };
 }
+
+// Anciens champs retirés d'un produit migré (une seule source de vérité : `priceCents` et les variantes ;
+// valeurs d'origine conservées dans `legacy`).
+export const PRODUCT_FIELDS_TO_DELETE = [
+  'price', 'stock', 'category', 'matieres', 'dimensions', 'seo_tags', 'seo_metadata', 'agentProcessed',
+];
 
 // --- Réglages de livraison ---
 
