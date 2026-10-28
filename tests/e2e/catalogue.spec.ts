@@ -97,3 +97,18 @@ test('journal : article avec données structurées, adresse inconnue en 404', as
 test('page inconnue : 404', async ({ request }) => {
   expect((await request.get('/nimporte-quoi')).status()).toBe(404);
 });
+
+test('aucun champ interne dans le HTML envoyé (stock exact, dates, champs de migration)', async ({ request }) => {
+  for (const path of [`/produits/${FIXTURE.published.slug}`, '/', '/collection']) {
+    const html = await (await request.get(path)).text();
+    for (const leak of ['"stock":', '\\"stock\\":', 'updatedAt', 'createdAtMs', 'legacy', 'aiDraft']) {
+      expect(html, `${path} contient ${leak}`).not.toContain(leak);
+    }
+  }
+});
+
+test('adresse de fiche anormale (très longue, majuscules, script) : 404, jamais 500', async ({ request }) => {
+  for (const slug of ['a'.repeat(3000), 'Cape-E2E', '%3Cscript%3E', 'a--b']) {
+    expect((await request.get(`/produits/${slug}`)).status()).toBe(404);
+  }
+});
