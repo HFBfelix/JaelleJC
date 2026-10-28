@@ -71,7 +71,7 @@ export default async function BlogPostPage({ params }: Props) {
       </div>
 
       <div className="px-6 md:px-16 py-16 bg-neutral-50 text-center border-t-[0.5px] border-neutral-100">
-        <h3 className="font-serif text-2xl italic mb-8">Inspiré par cet article ?</h3>
+        <h2 className="font-serif text-2xl italic mb-8">Inspiré par cet article ?</h2>
         <Link
           href="/collection"
           className="inline-block bg-black text-white px-12 py-4 text-[9px] uppercase tracking-[0.4em] hover:bg-neutral-800 transition-all"
@@ -96,7 +96,7 @@ export default async function BlogPostPage({ params }: Props) {
                   />
                 </div>
                 <span className="text-[9px] uppercase tracking-[0.3em] text-neutral-400 block mb-2">{a.category} — {a.date}</span>
-                <h3 className="font-serif text-xl italic group-hover:text-neutral-500 transition-colors">{a.title}</h3>
+                <h2 className="font-serif text-xl italic group-hover:text-neutral-500 transition-colors">{a.title}</h2>
               </Link>
             ))}
           </div>
