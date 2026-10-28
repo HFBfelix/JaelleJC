@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import SiteLayout from '@/components/layout/SiteLayout';
 import Analytics from '@/components/layout/Analytics';
+import { CartProvider } from '@/components/cart/CartProvider';
 import { getNavCategories } from '@/server/catalog/navigation';
+import { getCartView } from '@/server/cart/service';
 import { sans, serif } from './fonts';
 import './globals.css';
 
@@ -20,12 +22,15 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
-  const categories = await getNavCategories();
+  // Panier lu côté serveur à chaque requête (badge juste dès le HTML initial).
+  const [categories, cart] = await Promise.all([getNavCategories(), getCartView()]);
 
   return (
     <html lang="fr" className={`${serif.variable} ${sans.variable}`}>
       <body>
-        <SiteLayout categories={categories}>{children}</SiteLayout>
+        <CartProvider initialCart={cart}>
+          <SiteLayout categories={categories}>{children}</SiteLayout>
+        </CartProvider>
         <Analytics />
       </body>
     </html>

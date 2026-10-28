@@ -6,22 +6,25 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { Menu, Search, User, ShoppingBag, X } from 'lucide-react';
 import type { NavCategory } from '@/server/catalog/navigation';
+import CartDrawer from '@/components/cart/CartDrawer';
+import { useCart } from '@/components/cart/CartProvider';
 import CookieBanner from './CookieBanner';
 import Newsletter from './Newsletter';
 
 // Rendu repris à l'identique de legacy/src/components/layout/Layout.tsx.
-// Branché plus tard : panier et tiroir (étape 3), compte et connexion (étape 4).
+// Panier : badge et tiroir lus depuis le serveur (étape 3). Compte et connexion : étape 4.
 const SiteLayout = ({ categories, children }: { categories: NavCategory[]; children: ReactNode }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { cart, setOpen: setCartOpen } = useCart();
 
   const isProductPage = pathname.startsWith('/produits/') || pathname.startsWith('/product/');
   const isNewsletterPage = pathname === '/newsletter';
 
-  // Étapes 3 et 4 : à remplacer par le compte (session serveur) et le badge lu depuis le serveur.
+  // Étape 4 : à remplacer par le compte (session serveur).
   const isSignedIn = false;
-  const itemCount = 0;
+  const itemCount = cart.count;
 
   const handleNavigation = (path: string) => {
     setIsMenuOpen(false);
@@ -71,7 +74,8 @@ const SiteLayout = ({ categories, children }: { categories: NavCategory[]; child
               {isSignedIn && <span className="absolute -top-1 -right-1 w-2 h-2 bg-black rounded-full" />}
             </button>
 
-            <button aria-label="Ma sélection" className="hover:opacity-50 transition-opacity relative">
+            <button onClick={() => setCartOpen(true)} aria-label={`Ma sélection (${itemCount})`} aria-haspopup="dialog"
+              className="hover:opacity-50 transition-opacity relative">
               <ShoppingBag size={20} strokeWidth={1} />
               {itemCount > 0 && (
                 <span className="absolute -top-1 -right-1 text-[11px] bg-black text-white w-3 h-3
@@ -177,6 +181,7 @@ const SiteLayout = ({ categories, children }: { categories: NavCategory[]; child
         </div>
       </footer>
 
+      <CartDrawer />
       <CookieBanner />
     </div>
   );
