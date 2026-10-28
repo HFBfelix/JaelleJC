@@ -14,6 +14,11 @@ Dernière mise à jour : 2026-10-28, fin de l'étape 2 (catalogue rendu côté s
 - Descriptions produits : à répartir dans les sous-parties de la fiche (accroche, description, composition, matières et entretien, dimensions et détails), via la migration de l'étape 1bis, validée par Jaelle.
 - Migration des vraies données (production) à la bascule (étape 10), pas à la fin de l'étape 1bis : l'ancien site lit encore l'ancien format. À l'étape 1bis, migration sur le projet de test uniquement.
 - Projet de test rempli avec le catalogue public (produits, catégories, réglages, articles) lu depuis cet ordinateur comme le ferait un visiteur ; commandes, messages, inscriptions et profils fictifs. Exception assumée à « aucune donnée de production sur l'ordinateur » (aucune donnée client).
+
+## Décision de Jaelle (2026-10-28) : typographie « Atelier »
+
+- Polices Crimson Pro (titres, droit) et Source Sans 3 (texte, 14 px) à la place de Cormorant Garamond italique et Inter. Aucun texte sous 11 px, petites capitales à 0,12 em au plus, police à empattements à partir de 18 px. `CLAUDE.md` §2 mis à jour. Bandeau cookies : code inchangé, seule la police change (elle vaut pour tout le site).
+- Vérifié : `npm run typecheck`, `npm run lint`, `npm test` (69/69), parcours `npx playwright test --project=mobile --project=ordinateur` (44/44, site construit, port 3100). Comparaison visuelle `npm run test:visual` : 20 écarts sur 24, attendus (police) ; captures de référence à remplacer après validation de Jaelle.
 - E-mails : Brevo ne servira plus qu'à la newsletter (1 par mois). Les e-mails du parcours d'achat seront repensés (voir « E-mails »).
 
 ## Mise en production de l'étape 0, livraison A (2026-10-24)
