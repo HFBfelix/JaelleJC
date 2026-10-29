@@ -1,6 +1,6 @@
 # Suivi — ce qui reste à faire (mis à jour au fil des étapes)
 
-Dernière mise à jour : 2026-10-29, fin de l'étape 3 (panier persistant côté serveur). Chaque ligne renvoie au rapport ou à la décision d'origine.
+Dernière mise à jour : 2026-10-29, fin de l'étape 4 (authentification double). Chaque ligne renvoie au rapport ou à la décision d'origine.
 
 ## Décisions de Jaelle (2026-10-24)
 
@@ -46,11 +46,12 @@ Dernière mise à jour : 2026-10-29, fin de l'étape 3 (panier persistant côté
 | Moyenne | Retrait du consentement cookies | Lien « Gérer les cookies », choix daté et redemandé après 6 mois | rapport étape 1 #2 → étape 8/9 |
 | Faible | CSP complète | Seule `frame-ancestors` est posée | rapport étape 1 #4 → étape 9 |
 | Moyenne | Commandes écrites par le navigateur | Fausses commandes « payées », e-mails de confirmation déclenchables vers n'importe qui | PLAN #2 → étape 5 (webhook) |
-| Moyenne | Lecture publique de `autorisations` | Permet de deviner les e-mails admin | PLAN #8 → étape 4 (custom claim) |
+| Moyenne | Lecture publique de `autorisations` | Permet de deviner les e-mails admin. Code prêt (revendication `admin`, étape 4) ; disparaît en production avec les nouvelles règles, après pose du droit admin | PLAN #8 → étape 10 |
+| Moyenne | Réglages Authentication (console) | Protection contre l'énumération des e-mails, mots de passe de 10 caractères au moins, domaine de l'aperçu autorisé : projet de test maintenant, production à la bascule | rapport étape 4 M2 → Jaelle |
+| Moyenne | Envoi de liens sans limite | App Check (reCAPTCHA) appliqué à Authentication : quota d'e-mails Firebase protégé | rapport étape 4 M3 → étape 9 |
 | Moyenne | Brouillons lisibles et vendables | Livraison B de l'étape 0 : filtre `published`, règle `produits`, `REQUIRE_PUBLISHED = true` | rapport étape 0 → après publication des produits par Jaelle dans `/createur` |
 | Moyenne | Staging | Créer `jaellejc-staging` (forfait Blaze), `functions/.env.jaellejc-staging` (`ALLOWED_ORIGINS`), clés de test Stripe/Brevo, variables « Preview » de Vercel vers le staging, protection des aperçus | `SECURITE.md` §1 |
 | Moyenne | Paniers créés en masse | Suppression automatique (TTL) sur `carts.expiresAt` à activer (test : maintenant ; production : bascule) ; limitation de débit sur l'ajout au panier | rapport étape 3 M1 → Jaelle (TTL), étape 9 (débit) |
-| Info | Jeton du panier à la connexion | Nouveau jeton et ancien panier supprimé lors de la fusion | rapport étape 3 I2 → étape 4 |
 | Faible | Cache court du catalogue | Chaque requête relit le catalogue | rapport étape 2 F4 → étape 7/9 |
 | Faible | Optimiseur d'images | Bucket du test accepté aussi en production | rapport étape 2 F6 → étape 10 |
 | Faible | App Check, limitation de débit | Contact, newsletter, connexion | étape 9 |
@@ -65,6 +66,16 @@ Dernière mise à jour : 2026-10-29, fin de l'étape 3 (panier persistant côté
 | `src/lib/mail.ts` | Code mort | QA Q4 → suppression avec `legacy/` |
 | Émulateur des fonctions | Délai dépassé au chargement (10 s) en local ; utile seulement pour tester Stripe en local | étape 5 |
 | Fonction `onProductAdded` | Texte à trous et brouillon de blog automatiques à supprimer | `BACKOFFICE.md` §5 → étape 7 |
+
+## Étape 4 — authentification double (2026-10-29)
+
+- Décisions de Jaelle (2026-10-29) : administratrices = contact@jaellejc.com, hfentreprises@gmail.com, felixhamilton@ymail.com ; création de compte par le lien seulement (le mot de passe se choisit ensuite dans « Mon compte ») ; connexion Google retirée (deux méthodes, `CLAUDE.md` §4).
+- Connexion par lien ou mot de passe, session serveur (cookie `__session`, 5 jours), « Confirmer et payer » sans compte → connexion → retour au panier, panier fusionné ; espace créatrice protégé par la revendication `admin` relue à chaque requête (`reports/qa/etape-4.md`, `reports/securite/etape-4.md`).
+- Une adresse non vérifiée n'ouvre pas de session : les clientes de l'ancien site qui avaient un mot de passe sans avoir vérifié leur adresse se connectent une fois par lien.
+- La déconnexion et le changement de mot de passe ferment les sessions de tous les appareils.
+- À faire par Jaelle (console Firebase du projet de test, depuis son Chrome, guidage pas à pas) : protection contre l'énumération des e-mails ; politique de mot de passe (10 caractères) ; domaine de l'aperçu Vercel dans les domaines autorisés.
+- Droit admin : à poser sur le projet de test (`npm run admin -- --project jaellejc-staging --email …`) quand chaque compte s'y sera connecté une fois ; en production à la bascule, avant le déploiement des nouvelles règles.
+- Variables Vercel (aperçu) à saisir par Jaelle quand l'aperçu fonctionnera : `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID` du projet de test (valeurs publiques).
 
 ## Étape 3 — panier persistant côté serveur (2026-10-29)
 
