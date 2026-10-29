@@ -1,0 +1,4 @@
+# Faux positifs connus (valeurs fictives des tests de l'étape 4, retirées du code au commit suivant) :
+# jeton non signé inventé pour vérifier qu'il est refusé, et mot de passe d'un compte de l'émulateur local.
+de97553eac1b93d2fc0227f38661aba8cf27082f:tests/e2e/connexion.spec.ts:jwt:224
+de97553eac1b93d2fc0227f38661aba8cf27082f:tests/e2e/auth-helpers.ts:generic-api-key:7

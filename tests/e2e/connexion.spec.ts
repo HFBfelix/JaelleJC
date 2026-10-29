@@ -221,7 +221,10 @@ test.describe('pages protégées', () => {
 
   test('cookie de session inventé : anonyme', async ({ browser, baseURL }) => {
     const context = await browser.newContext();
-    await context.addCookies([{ name: '__session', value: 'eyJhbGciOiJub25lIn0.eyJhZG1pbiI6dHJ1ZX0.', url: baseURL! }]);
+    // Jeton non signé qui se prétend administrateur, fabriqué ici (aucune valeur figée dans le dépôt).
+    const part = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url');
+    const forged = `${part({ alg: 'none' })}.${part({ admin: true, email_verified: true })}.`;
+    await context.addCookies([{ name: '__session', value: forged, url: baseURL! }]);
     const page = await context.newPage();
     await page.goto('/createur');
     await expect(page).toHaveURL(/\/createur\/connexion$/);

@@ -4,7 +4,8 @@ import { getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 
 const PROJECT = process.env.FIREBASE_PROJECT_ID ?? 'demo-jaellejc';
-export const PASSWORD = 'Motdepasse-e2e-42';
+// Mot de passe tiré au hasard à chaque lancement (aucune valeur fixe dans le dépôt).
+export const PASSWORD = `e2e-${randomUUID()}`;
 
 function auth() {
   if (!process.env.FIREBASE_AUTH_EMULATOR_HOST) throw new Error('Parcours de connexion : émulateur Authentication requis (FIREBASE_AUTH_EMULATOR_HOST).');
