@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import type { CartLineView, CartView } from '@/server/cart/types';
+import { useSignedIn } from '@/components/auth/SessionProvider';
 import { useCart } from './CartProvider';
 
 // Lignes et totaux du panier, communs au tiroir et à la page /panier.
@@ -97,18 +98,31 @@ export const CartTotals = ({ cart }: { cart: CartView }) => (
   </dl>
 );
 
-// Paiement branché à l'étape 5 (session Stripe créée par le serveur) : bouton inactif d'ici là.
-export const PayButton = () => (
-  <>
-    <button disabled aria-describedby="paiement-bientot"
-      className="w-full bg-black text-white py-6 flex items-center justify-center gap-4 disabled:bg-neutral-200 disabled:cursor-not-allowed">
-      <span className="text-[11px] uppercase tracking-[0.12em]">Confirmer et payer</span>
-    </button>
-    <p id="paiement-bientot" className="text-[11px] uppercase tracking-[0.12em] text-neutral-400 mt-6 text-center">
-      Paiement en ligne bientôt disponible
-    </p>
-  </>
-);
+// Sans compte : « e-mail d'abord » (page de connexion, retour au panier, panier conservé).
+// Connectée : paiement branché à l'étape 5 (session Stripe créée par le serveur), bouton inactif d'ici là.
+export const PayButton = ({ onNavigate }: { onNavigate?: () => void }) => {
+  const signedIn = useSignedIn();
+  const label = <span className="text-[11px] uppercase tracking-[0.12em]">Confirmer et payer</span>;
+  if (!signedIn) {
+    return (
+      <Link href="/connexion?retour=/panier" onClick={onNavigate}
+        className="w-full bg-black text-white py-6 flex items-center justify-center gap-4 hover:bg-neutral-800 transition-colors">
+        {label}
+      </Link>
+    );
+  }
+  return (
+    <>
+      <button disabled aria-describedby="paiement-bientot"
+        className="w-full bg-black text-white py-6 flex items-center justify-center gap-4 disabled:bg-neutral-200 disabled:cursor-not-allowed">
+        {label}
+      </button>
+      <p id="paiement-bientot" className="text-[11px] uppercase tracking-[0.12em] text-neutral-400 mt-6 text-center">
+        Paiement en ligne bientôt disponible
+      </p>
+    </>
+  );
+};
 
 export const EmptyCart = ({ onNavigate }: { onNavigate?: () => void }) => (
   <div className="h-full flex flex-col items-center justify-center text-center py-16">

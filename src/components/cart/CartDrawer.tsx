@@ -57,7 +57,7 @@ const CartDrawer = () => {
           {cart.lines.length > 0 && (
             <div className="p-8 border-t-[0.5px] border-neutral-100">
               <CartTotals cart={cart} />
-              <PayButton />
+              <PayButton onNavigate={close} />
               <Link href="/panier" onClick={close}
                 className="block text-center text-[11px] uppercase tracking-[0.12em] text-neutral-500 hover:text-black mt-4">
                 Voir le détail

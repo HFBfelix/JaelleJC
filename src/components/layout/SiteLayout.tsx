@@ -8,11 +8,12 @@ import { Menu, Search, User, ShoppingBag, X } from 'lucide-react';
 import type { NavCategory } from '@/server/catalog/navigation';
 import CartDrawer from '@/components/cart/CartDrawer';
 import { useCart } from '@/components/cart/CartProvider';
+import { useSignedIn } from '@/components/auth/SessionProvider';
 import CookieBanner from './CookieBanner';
 import Newsletter from './Newsletter';
 
 // Rendu repris à l'identique de legacy/src/components/layout/Layout.tsx.
-// Panier : badge et tiroir lus depuis le serveur (étape 3). Compte et connexion : étape 4.
+// Panier : badge et tiroir lus depuis le serveur (étape 3). Compte : session serveur (étape 4).
 const SiteLayout = ({ categories, children }: { categories: NavCategory[]; children: ReactNode }) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -22,8 +23,7 @@ const SiteLayout = ({ categories, children }: { categories: NavCategory[]; child
   const isProductPage = pathname.startsWith('/produits/') || pathname.startsWith('/product/');
   const isNewsletterPage = pathname === '/newsletter';
 
-  // Étape 4 : à remplacer par le compte (session serveur).
-  const isSignedIn = false;
+  const isSignedIn = useSignedIn();
   const itemCount = cart.count;
 
   const handleNavigation = (path: string) => {
@@ -69,10 +69,11 @@ const SiteLayout = ({ categories, children }: { categories: NavCategory[]; child
           </div>
 
           <div className="w-1/3 flex items-center justify-end gap-6">
-            <button aria-label="Mon compte" className="hover:opacity-50 transition-opacity relative">
+            <Link href={isSignedIn ? '/compte' : '/connexion'} aria-label={isSignedIn ? 'Mon compte (connectée)' : 'Mon compte'}
+              className="hover:opacity-50 transition-opacity relative">
               <User size={20} strokeWidth={1} />
               {isSignedIn && <span className="absolute -top-1 -right-1 w-2 h-2 bg-black rounded-full" />}
-            </button>
+            </Link>
 
             <button onClick={() => setCartOpen(true)} aria-label={`Ma sélection (${itemCount})`} aria-haspopup="dialog"
               className="hover:opacity-50 transition-opacity relative">
