@@ -1,8 +1,9 @@
+import { cleanUsers } from './auth-helpers';
 import { clean, seed } from './catalogue-fixture';
 
 // Jeu de données des parcours : ajouté avant, retiré après (retour de la fonction = nettoyage).
 export default async function globalSetup() {
-  await clean();
+  await Promise.all([clean(), cleanUsers()]);
   await seed();
-  return async () => { await clean(); };
+  return async () => { await Promise.all([clean(), cleanUsers()]); };
 }
