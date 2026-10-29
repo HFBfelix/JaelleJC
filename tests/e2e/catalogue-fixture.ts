@@ -5,6 +5,8 @@ import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 
 export const FIXTURE = {
   category: { slug: 'naissance-e2e', name: 'Naissance E2E' },
+  // Catégorie à part pour les pièces du paiement : la page Collections n'affiche que 6 pièces par catégorie.
+  paymentCategory: { slug: 'paiement-e2e', name: 'Paiement E2E' },
   published: { id: 'e2e-publie', slug: 'cape-e2e', name: 'Cape E2E', priceCents: 8900 },
   soldOut: { id: 'e2e-epuise', slug: 'couverture-e2e-epuisee', name: 'Couverture E2E épuisée' },
   draft: { id: 'e2e-brouillon', slug: 'brouillon-e2e' },
@@ -15,7 +17,13 @@ export const FIXTURE = {
   cabas: { id: 'e2e-cabas', slug: 'cabas-e2e', name: 'Cabas E2E', priceCents: 4500 },
   priced: { id: 'e2e-prix', slug: 'lange-e2e-prix', name: 'Lange E2E prix', priceCents: 3000 },
   withdrawn: { id: 'e2e-retrait', slug: 'bavoir-e2e-retrait', name: 'Bavoir E2E retrait', priceCents: 2000 },
+  // Paiement (étape 5) : pièce achetée par les parcours, et dernière pièce disputée par deux clientes.
+  buy: { id: 'e2e-zpaiement', slug: 'coffret-e2e-paiement', name: 'Coffret E2E paiement', priceCents: 6000, stock: 50 },
+  last: { id: 'e2e-zderniere', slug: 'veste-e2e-derniere', name: 'Veste E2E dernière', priceCents: 7000, stock: 1 },
 };
+
+// Réglage de livraison des parcours, créé seulement s'il manque (jamais écrasé sur la base locale de Jaelle).
+export const DELIVERY = { freeThresholdCents: 15000, flatRateCents: 690, zones: ['France'], estimatedDays: '' };
 
 export function db() {
   if (!process.env.FIRESTORE_EMULATOR_HOST) throw new Error('Tests de parcours : émulateur Firestore requis (FIRESTORE_EMULATOR_HOST).');
@@ -47,6 +55,9 @@ export async function seed() {
   batch.set(d.doc(`categories/${FIXTURE.category.slug}`), {
     name: FIXTURE.category.name, order: 99, intro: '', subs: [{ slug: 'capes', name: 'Capes' }],
   });
+  batch.set(d.doc(`categories/${FIXTURE.paymentCategory.slug}`), {
+    name: FIXTURE.paymentCategory.name, order: 100, intro: '', subs: [{ slug: 'capes', name: 'Capes' }],
+  });
   const products: [string, Record<string, unknown>, number][] = [
     [FIXTURE.published.id, base(FIXTURE.published.slug, FIXTURE.published.name, 'published', FIXTURE.published.priceCents), 2],
     [FIXTURE.soldOut.id, { ...base(FIXTURE.soldOut.slug, FIXTURE.soldOut.name, 'published'), inStock: false }, 0],
@@ -60,7 +71,10 @@ export async function seed() {
     }, 1],
     ...[FIXTURE.cabas, FIXTURE.priced, FIXTURE.withdrawn].map((p): [string, Record<string, unknown>, number] =>
       [p.id, base(p.slug, p.name, 'published', p.priceCents), 5]),
+    ...[FIXTURE.buy, FIXTURE.last].map((p): [string, Record<string, unknown>, number] =>
+      [p.id, { ...base(p.slug, p.name, 'published', p.priceCents), categoryId: FIXTURE.paymentCategory.slug }, p.stock]),
   ];
+  await d.doc('settings/delivery').create(DELIVERY).catch(() => { /* déjà présent : conservé */ });
   for (const [id, data, stock] of products) {
     batch.set(d.doc(`produits/${id}`), data);
     batch.set(d.doc(`produits/${id}/variantes/unique`), variant(stock));
@@ -74,13 +88,23 @@ export async function clean() {
   const d = db();
   const batch = d.batch();
   batch.delete(d.doc(`categories/${FIXTURE.category.slug}`));
+  batch.delete(d.doc(`categories/${FIXTURE.paymentCategory.slug}`));
   // Paniers des parcours : ceux qui contiennent une pièce « e2e- » ou que les tests ont vidés.
   for (const c of (await d.collection('carts').get()).docs) {
     const items = (c.get('items') ?? []) as { productId?: string }[];
     if (!items.length || items.some((i) => i.productId?.startsWith('e2e-'))) batch.delete(c.ref);
   }
+  // Commandes, paiements en cours et événements Stripe des parcours (pièces « e2e- » seulement).
+  for (const col of ['orders', 'checkouts']) {
+    for (const o of (await d.collection(col).get()).docs) {
+      const items = (o.get(col === 'orders' ? 'items' : 'lines') ?? []) as { productId?: string }[];
+      if (!items.some((i) => i.productId?.startsWith('e2e-'))) continue;
+      batch.delete(o.ref);
+      for (const e of (await d.collection('stripeEvents').where('orderId', '==', o.id).get()).docs) batch.delete(e.ref);
+    }
+  }
   for (const { id } of [FIXTURE.published, FIXTURE.soldOut, FIXTURE.draft, FIXTURE.archived, FIXTURE.invalid, FIXTURE.html,
-    FIXTURE.cabas, FIXTURE.priced, FIXTURE.withdrawn]) {
+    FIXTURE.cabas, FIXTURE.priced, FIXTURE.withdrawn, FIXTURE.buy, FIXTURE.last]) {
     for (const v of (await d.collection(`produits/${id}/variantes`).get()).docs) batch.delete(v.ref);
     batch.delete(d.doc(`produits/${id}`));
   }

@@ -126,7 +126,8 @@ test('« Confirmer et payer » sans compte : e-mail d’abord, panier conservé 
   await main(page).getByRole('button', { name: 'Se connecter' }).click();
   await expect(page).toHaveURL(/\/panier$/);
   await expect(badge(page)).toHaveAccessibleName('Ma sélection (2)'); // 1 du compte + 1 du visiteur
-  await expect(main(page).getByRole('button', { name: 'Confirmer et payer' })).toBeDisabled(); // paiement : étape 5
+  await expect(main(page).getByRole('button', { name: 'Confirmer et payer' })).toBeEnabled(); // paiement (étape 5)
+  await expect(main(page).getByLabel('Emballage cadeau')).toBeVisible();
 
   // Le panier visiteur n'existe plus, son cookie non plus (un jeton imposé par un tiers n'ouvre plus rien).
   expect((await context.cookies()).find((c) => c.name === 'cart_token')).toBeUndefined();

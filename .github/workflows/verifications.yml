@@ -37,6 +37,11 @@ jobs:
       - name: Parcours (Playwright)
         run: |
           npx playwright install --with-deps chromium webkit firefox
+          # Paiement : faux serveur Stripe des tests (tests/e2e/fake-stripe.ts), clés de test tirées au hasard
+          # à chaque lancement (aucune vraie clé, rien n'est envoyé chez Stripe).
+          export STRIPE_SECRET_KEY="sk_test_$(openssl rand -hex 16)"
+          export STRIPE_WEBHOOK_SECRET="whsec_$(openssl rand -hex 24)"
+          export STRIPE_API_HOST="127.0.0.1:12111"
           npx firebase emulators:exec --only firestore,auth --project demo-jaellejc "npm run test:e2e"
       # Les captures de référence sont prises sous Windows : la comparaison visuelle se lance en local
       # (npm run test:visual), le rendu des polices différant sous Linux.
