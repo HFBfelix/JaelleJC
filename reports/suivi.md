@@ -1,6 +1,6 @@
 # Suivi — ce qui reste à faire (mis à jour au fil des étapes)
 
-Dernière mise à jour : 2026-10-29, fin de l'étape 4 (authentification double). Chaque ligne renvoie au rapport ou à la décision d'origine.
+Dernière mise à jour : 2026-10-29, fin de l'étape 5 (checkout, Stripe, commandes). Chaque ligne renvoie au rapport ou à la décision d'origine.
 
 ## Décisions de Jaelle (2026-10-24)
 
@@ -45,7 +45,8 @@ Dernière mise à jour : 2026-10-29, fin de l'étape 4 (authentification double)
 | Moyenne | Outils de dev : 8 vulnérabilités moyennes | `postcss-selector-parser` (Tailwind 3), `uuid`, `gaxios`, `@opentelemetry/core` (firebase-tools) ; absentes du site publié | `reports/securite/etape-1.md` #3 |
 | Moyenne | Retrait du consentement cookies | Lien « Gérer les cookies », choix daté et redemandé après 6 mois | rapport étape 1 #2 → étape 8/9 |
 | Faible | CSP complète | Seule `frame-ancestors` est posée | rapport étape 1 #4 → étape 9 |
-| Moyenne | Commandes écrites par le navigateur | Fausses commandes « payées », e-mails de confirmation déclenchables vers n'importe qui | PLAN #2 → étape 5 (webhook) |
+| Moyenne | Commandes écrites par le navigateur (ancien site) | Fausses commandes « payées », e-mails de confirmation déclenchables vers n'importe qui. Corrigé dans la refonte (webhook signé, étape 5) ; reste en production jusqu'à la bascule | PLAN #2 → étape 10 |
+| Moyenne | E-mails de commande non envoyés | Confirmation, excuses et alerte boutique préparées mais pas envoyées (expéditeur à choisir) ; avant de brancher : réserver chaque envoi en transaction | rapport étape 5 I2 → Jaelle |
 | Moyenne | Lecture publique de `autorisations` | Permet de deviner les e-mails admin. Code prêt (revendication `admin`, étape 4) ; disparaît en production avec les nouvelles règles, après pose du droit admin | PLAN #8 → étape 10 |
 | Moyenne | Réglages Authentication (console) | Protection contre l'énumération des e-mails, mots de passe de 10 caractères au moins, domaine de l'aperçu autorisé : projet de test maintenant, production à la bascule | rapport étape 4 M2 → Jaelle |
 | Moyenne | Envoi de liens sans limite | App Check (reCAPTCHA) appliqué à Authentication : quota d'e-mails Firebase protégé | rapport étape 4 M3 → étape 9 |
@@ -66,6 +67,14 @@ Dernière mise à jour : 2026-10-29, fin de l'étape 4 (authentification double)
 | `src/lib/mail.ts` | Code mort | QA Q4 → suppression avec `legacy/` |
 | Émulateur des fonctions | Délai dépassé au chargement (10 s) en local ; utile seulement pour tester Stripe en local | étape 5 |
 | Fonction `onProductAdded` | Texte à trous et brouillon de blog automatiques à supprimer | `BACKOFFICE.md` §5 → étape 7 |
+
+## Étape 5 — checkout, Stripe, commandes (2026-10-29)
+
+- Décisions de Jaelle (2026-10-29) : emballage cadeau gratuit ; alerte « nouvelle commande » à contact@jaellejc.com ; e-mails préparés, expéditeur choisi plus tard.
+- Paiement par carte sur la page Stripe (mode test), prix et stock relus par le serveur, commande créée seulement par le webhook signé, stock décompté en transaction, remboursement automatique si la pièce est partie entre-temps ; page de confirmation (`reports/qa/etape-5.md`, `reports/securite/etape-5.md`).
+- Testé avec un faux serveur Stripe local et des événements signés. Paiement réel par carte de test Stripe : quand l'aperçu Vercel fonctionnera (ou avec l'outil Stripe CLI).
+- À faire par Jaelle : clés Stripe de **test** (et secret du webhook de test) dans Vercel, environnement Preview seulement ; webhook de test Stripe vers l'adresse de l'aperçu (`/api/stripe/webhook`, événements `checkout.session.completed`, `checkout.session.async_payment_succeeded`, `checkout.session.expired`) ; politique TTL sur `checkouts.expiresAt` ; choix de l'expéditeur des e-mails.
+- Ancien paiement (fonction `createStripeCheckout`, commande écrite par le navigateur) : en production jusqu'à la bascule (étape 10), où le webhook de production sera créé.
 
 ## Étape 4 — authentification double (2026-10-29)
 
@@ -137,7 +146,7 @@ Compte technique `scripts-test@jaellejc-staging.iam.gserviceaccount.com` : ident
 - Boutons panier, compte, recherche et formulaire newsletter visibles mais inactifs jusqu'aux étapes 1bis à 4.
 - Rapports : `reports/securite/etape-1.md`, `reports/qa/etape-1.md`.
 
-## E-mails du parcours d'achat (à concevoir, étape 5)
+## E-mails du parcours d'achat (préparés à l'étape 5, expéditeur à choisir)
 
 Souhait de Jaelle : 4 à 5 e-mails — création de compte, paiement validé, commande validée avec date de livraison, retard éventuel, satisfaction.
 
