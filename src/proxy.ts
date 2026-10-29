@@ -14,5 +14,5 @@ export function proxy(request: NextRequest) {
 
 // Pages seulement : ni fichiers statiques, ni images, ni optimiseur d'images.
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|assets/|favicon|robots.txt|sitemap.xml).*)'],
+  matcher: ['/((?!_next/static|_next/image|api/|assets/|favicon|robots.txt|sitemap.xml).*)'],
 };
