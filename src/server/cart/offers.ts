@@ -26,6 +26,7 @@ export function toOffer(
     variantLabel: variantLabel(v.data),
     categoryName: card.categoryName,
     image: card.images[0] ?? null,
+    sku: v.data.sku,
     unitPriceCents: v.data.priceCents ?? card.priceCents,
     stock: v.data.stock,
   };

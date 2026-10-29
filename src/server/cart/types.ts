@@ -12,6 +12,7 @@ export type Offer = {
   variantLabel: string;
   categoryName: string;
   image: { url: string; alt: string } | null;
+  sku: string;
   unitPriceCents: number;
   stock: number;
 };

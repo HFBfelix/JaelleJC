@@ -7,7 +7,7 @@ import type { CartItem, Offer } from './types';
 
 const offer = (productId: string, stock: number, unitPriceCents = 4500, variantId = 'unique'): Offer => ({
   productId, variantId, slug: productId, name: `Pièce ${productId}`, variantLabel: '', categoryName: 'Bébé',
-  image: null, unitPriceCents, stock,
+  image: null, sku: `SKU-${productId}`, unitPriceCents, stock,
 });
 const offersOf = (...list: Offer[]) => new Map(list.map((o) => [lineKey(o.productId, o.variantId), o]));
 const target = (productId: string, variantId = 'unique') => ({ productId, variantId });

@@ -16,6 +16,7 @@ export const COLLECTIONS = {
   articles: 'articles_blog',
   auditLog: 'auditLog',
   stripeEvents: 'stripeEvents', // événements Stripe déjà traités (idempotence du webhook)
+  checkouts: 'checkouts', // paiements en cours : instantané du panier relu par le webhook
 } as const;
 
 const slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80);
@@ -114,7 +115,34 @@ export const order = z.object({
   stripe: z.object({ sessionId: z.string(), paymentIntentId: z.string(), eventId: z.string() }),
   status: orderStatus,
   tracking: z.object({ carrier: z.string(), number: z.string(), url: z.string() }).nullable(),
+  // Commandes de la refonte (absent des commandes migrées de l'ancien site).
+  reference: z.string().optional(),
+  // Remboursement automatique (stock insuffisant ou montant inattendu) : `id` null tant que Stripe n'a pas confirmé.
+  refund: z.object({ reason: z.enum(['stock', 'montant']), id: z.string().nullable() }).nullable().optional(),
+  // E-mails : « en_attente » tant que l'expéditeur n'est pas branché ou si l'envoi a échoué (renvoi possible).
+  emails: z.object({ cliente: z.enum(['en_attente', 'envoye']), boutique: z.enum(['en_attente', 'envoye']) }).optional(),
 });
+
+// Paiement en cours : instantané du panier au moment de créer la session Stripe (`checkouts/{sessionId}`),
+// relu par le webhook. Serveur uniquement (règles : tout refusé). Supprimé automatiquement (TTL `expiresAt`).
+export const checkoutSnapshot = z.object({
+  uid: z.string().min(1).max(128),
+  email: z.string().email(),
+  cartId: z.string().min(1).max(160),
+  lines: z.array(z.object({
+    productId: z.string(),
+    variantId: z.string(),
+    sku: z.string(),
+    name: z.string(),
+    variantLabel: z.string(),
+    image: z.string(),
+    unitPriceCents: cents.min(1),
+    quantity: z.number().int().min(1).max(99),
+  })).min(1).max(30),
+  amounts: z.object({ subtotalCents: cents, deliveryCents: cents, totalCents: cents }),
+  gift: z.object({ wrap: z.boolean(), message: shortText(300) }),
+});
+export type CheckoutSnapshot = z.infer<typeof checkoutSnapshot>;
 
 export const deliverySettings = z.object({
   freeThresholdCents: cents,
