@@ -1,13 +1,16 @@
-// Accès Firestore côté serveur (Admin SDK). Jamais importé par un composant client (`server-only`).
-// - Local : émulateur si FIRESTORE_EMULATOR_HOST est défini (projet fictif demo-jaellejc).
+// Accès Firestore et Authentication côté serveur (Admin SDK). Jamais importé par un composant client (`server-only`).
+// - Local : émulateurs si FIRESTORE_EMULATOR_HOST est défini (projet fictif demo-jaellejc) ; l'émulateur
+//   Authentication est utilisé si FIREBASE_AUTH_EMULATOR_HOST est défini (lu directement par l'Admin SDK).
 // - Aperçus Vercel et production : FIREBASE_SERVICE_ACCOUNT (JSON du compte de service, variable secrète
 //   limitée à son environnement Vercel : test pour « Preview », production pour « Production »).
 import 'server-only';
 import { cert, getApps, initializeApp, type App } from 'firebase-admin/app';
+import { getAuth, type Auth } from 'firebase-admin/auth';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { z } from 'zod';
 
 let db: Firestore | null = null;
+let auth: Auth | null = null;
 
 const serviceAccount = z.object({
   project_id: z.string().min(1),
@@ -48,4 +51,13 @@ function app(): App {
 export function adminDb(): Firestore {
   db ??= getFirestore(app());
   return db;
+}
+
+export function adminAuth(): Auth {
+  // L'émulateur accepte des jetons non signés : jamais en dehors de l'ordinateur de développement.
+  if (process.env.FIREBASE_AUTH_EMULATOR_HOST && (process.env.VERCEL_ENV || !process.env.FIRESTORE_EMULATOR_HOST)) {
+    throw new Error('FIREBASE_AUTH_EMULATOR_HOST réservé aux émulateurs locaux.');
+  }
+  auth ??= getAuth(app());
+  return auth;
 }
