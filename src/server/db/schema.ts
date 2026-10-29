@@ -82,10 +82,11 @@ export const cartItem = z.object({
   quantity: z.number().int().min(1).max(99),
 });
 
-// Document `carts/{tokenHash}` : l'identifiant est l'empreinte du jeton du cookie, jamais le jeton lui-même.
-// `expiresAt` porte la politique TTL de Firestore (suppression automatique) et est vérifié à chaque lecture.
+// Visiteur : `carts/{tokenHash}`, l'identifiant est l'empreinte du jeton du cookie, jamais le jeton lui-même.
+// Compte : `carts/u_{uid}`, `tokenHash` à null. `expiresAt` porte la politique TTL de Firestore
+// (suppression automatique) et est vérifié à chaque lecture.
 export const cart = z.object({
-  tokenHash: z.string().regex(/^[a-f0-9]{64}$/),
+  tokenHash: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
   userId: z.string().max(128).nullable(),
   items: z.array(cartItem).max(30),
   expiresAt: timestamp,

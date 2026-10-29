@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   CART_TTL_DAYS, MAX_LINES, MAX_QUANTITY, addQuantity, deliveryFor, expiryFrom, isExpired, lineKey,
-  normalize, priceCart, setQuantity, shouldRenew, updateExisting,
+  mergeItems, normalize, priceCart, setQuantity, shouldRenew, updateExisting,
 } from './logic';
 import type { CartItem, Offer } from './types';
 
@@ -61,6 +61,26 @@ describe('ajout et quantités', () => {
     const full = Array.from({ length: MAX_LINES }, (_, i) => ({ productId: `p${i}`, variantId: 'unique', quantity: 1 }));
     expect(addQuantity(full, target('nouveau'), 1, offer('nouveau', 5)).status).toBe('full');
     expect(addQuantity(full, target('p0'), 1, offer('p0', 5)).status).toBe('added'); // ligne existante : permis
+  });
+});
+
+describe('fusion à la connexion', () => {
+  it('quantités additionnées, plafonnées au stock ; nouvelles lignes ajoutées ; pièces indisponibles ignorées', () => {
+    const account: CartItem[] = [{ productId: 'a', variantId: 'unique', quantity: 2 }];
+    const guest: CartItem[] = [
+      { productId: 'a', variantId: 'unique', quantity: 2 },
+      { productId: 'b', variantId: 'unique', quantity: 1 },
+      { productId: 'c', variantId: 'unique', quantity: 1 },
+    ];
+    expect(mergeItems(account, guest, offersOf(offer('a', 3), offer('b', 5)))).toEqual([
+      { productId: 'a', variantId: 'unique', quantity: 3 },
+      { productId: 'b', variantId: 'unique', quantity: 1 },
+    ]);
+  });
+
+  it('compte vide : panier visiteur repris', () => {
+    const guest: CartItem[] = [{ productId: 'a', variantId: 'unique', quantity: 1 }];
+    expect(mergeItems([], guest, offersOf(offer('a', 3)))).toEqual(guest);
   });
 });
 

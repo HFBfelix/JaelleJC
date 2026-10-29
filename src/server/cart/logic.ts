@@ -65,6 +65,14 @@ export function addQuantity(
   return { ...result, status: result.status === 'updated' ? ('added' as const) : result.status };
 }
 
+// Connexion : le panier visiteur s'ajoute à celui du compte (quantités additionnées, plafonnées au stock).
+export function mergeItems(accountItems: CartItem[], guestItems: CartItem[], offers: Map<string, Offer>): CartItem[] {
+  return guestItems.reduce(
+    (items, g) => addQuantity(items, g, g.quantity, offers.get(lineKey(g.productId, g.variantId))).items,
+    normalize(accountItems, offers).items,
+  );
+}
+
 // Remet le panier en accord avec la base : lignes indisponibles retirées, quantités ramenées au stock.
 export function normalize(items: CartItem[], offers: Map<string, Offer>) {
   const kept: CartItem[] = [];

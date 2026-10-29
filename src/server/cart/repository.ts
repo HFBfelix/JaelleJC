@@ -6,14 +6,19 @@ import { Timestamp, type DocumentReference } from 'firebase-admin/firestore';
 import { listCategories } from '../catalog/repository';
 import { cart as cartSchema, COLLECTIONS, deliverySettings } from '../db/schema';
 import { adminDb } from '../firebase/admin';
-import { expiryFrom, isExpired, lineKey, normalize, shouldRenew, type DeliveryRule } from './logic';
+import { expiryFrom, isExpired, lineKey, mergeItems, normalize, shouldRenew, type DeliveryRule } from './logic';
 import { toOffer } from './offers';
 import type { CartItem, CartStatus, Offer } from './types';
 
 type Target = { productId: string; variantId: string };
-type StoredCart = { items: CartItem[]; updatedAt: Date; userId: string | null };
+type StoredCart = { items: CartItem[]; updatedAt: Date };
 
-const cartRef = (hash: string) => adminDb().collection(COLLECTIONS.carts).doc(hash);
+// Panier visiteur (`carts/{empreinte du jeton}`) ou panier d'un compte (`carts/u_{uid}`).
+export type CartKey = { id: string; tokenHash: string | null; userId: string | null };
+export const guestKey = (tokenHash: string): CartKey => ({ id: tokenHash, tokenHash, userId: null });
+export const accountKey = (uid: string): CartKey => ({ id: `u_${uid}`, tokenHash: null, userId: uid });
+
+const cartRef = (key: CartKey) => adminDb().collection(COLLECTIONS.carts).doc(key.id);
 
 // Identifiants venus du navigateur : validés par l'action (Zod) avant d'arriver ici.
 // Lecture hors transaction : les documents de stock ne sont jamais verrouillés par un panier (le paiement, lui,
@@ -42,13 +47,13 @@ async function readOffers(targets: Target[]): Promise<Map<string, Offer>> {
 function parseCart(data: unknown, now: Date): StoredCart | null {
   const parsed = cartSchema.safeParse(data);
   if (!parsed.success || isExpired(parsed.data.expiresAt.toDate(), now)) return null;
-  return { items: parsed.data.items, updatedAt: parsed.data.updatedAt.toDate(), userId: parsed.data.userId };
+  return { items: parsed.data.items, updatedAt: parsed.data.updatedAt.toDate() };
 }
 
-function stored(hash: string, items: CartItem[], userId: string | null, now: Date, isNew: boolean) {
+function stored(key: CartKey, items: CartItem[], now: Date, isNew: boolean) {
   return {
-    tokenHash: hash,
-    userId,
+    tokenHash: key.tokenHash,
+    userId: key.userId,
     items,
     expiresAt: Timestamp.fromDate(expiryFrom(now)),
     updatedAt: Timestamp.fromDate(now),
@@ -64,8 +69,8 @@ export async function readDeliveryRule(): Promise<DeliveryRule | null> {
 
 // Lecture pour l'affichage. Une visite compte comme une activité : expiration renouvelée (au plus une fois par heure)
 // et panier remis en accord avec la base (pièce retirée de la vente, stock réduit).
-export async function loadCart(hash: string, now = new Date()) {
-  const ref = cartRef(hash);
+export async function loadCart(key: CartKey, now = new Date()) {
+  const ref = cartRef(key);
   const current = parseCart((await ref.get()).data(), now);
   if (!current) return { items: [] as CartItem[], offers: new Map<string, Offer>(), adjusted: false };
   const offers = await readOffers(current.items);
@@ -74,7 +79,7 @@ export async function loadCart(hash: string, now = new Date()) {
     // Correction écrite en transaction, sur le contenu relu : un ajout fait entre-temps n'est jamais écrasé.
     await adminDb().runTransaction(async (tx) => {
       const latest = parseCart((await tx.get(ref)).data(), now);
-      if (latest) tx.set(ref, stored(hash, normalize(latest.items, offers).items, latest.userId, now, false), { merge: true });
+      if (latest) tx.set(ref, stored(key, normalize(latest.items, offers).items, now, false), { merge: true });
     });
   } else if (shouldRenew(current.updatedAt, now)) {
     // Simple renouvellement : seules les dates changent, jamais le contenu.
@@ -86,21 +91,39 @@ export async function loadCart(hash: string, now = new Date()) {
 // Modification en transaction : `apply` reçoit le panier remis à jour et l'offre de la ligne visée.
 // Un panier n'est créé en base que lorsqu'il contient au moins une pièce.
 export async function changeCart(
-  hash: string,
+  key: CartKey,
   target: Target,
   apply: (items: CartItem[], offer: Offer | undefined) => { items: CartItem[]; status: CartStatus },
 ) {
   const now = new Date();
   return adminDb().runTransaction(async (tx) => {
-    const ref = cartRef(hash);
+    const ref = cartRef(key);
     const snap = await tx.get(ref);
     const current = parseCart(snap.data(), now);
     const offers = await readOffers([...(current?.items ?? []), target]);
     const before = normalize(current?.items ?? [], offers);
     const result = apply(before.items, offers.get(lineKey(target.productId, target.variantId)));
     if (snap.exists || result.items.length) {
-      tx.set(ref, stored(hash, result.items, current?.userId ?? null, now, !snap.exists), { merge: true });
+      tx.set(ref, stored(key, result.items, now, !snap.exists), { merge: true });
     }
     return { items: result.items, offers, status: result.status, adjusted: before.changed };
+  });
+}
+
+// Connexion : le panier visiteur rejoint celui du compte, puis le document visiteur est supprimé
+// (le jeton du cookie n'ouvre plus rien, même s'il avait été imposé par un tiers).
+export async function mergeGuestCart(guest: CartKey, account: CartKey) {
+  const now = new Date();
+  await adminDb().runTransaction(async (tx) => {
+    const guestRef = cartRef(guest);
+    const accountRef = cartRef(account);
+    const [guestSnap, accountSnap] = await Promise.all([tx.get(guestRef), tx.get(accountRef)]);
+    const guestCart = parseCart(guestSnap.data(), now);
+    const accountCart = parseCart(accountSnap.data(), now);
+    if (guestSnap.exists) tx.delete(guestRef);
+    if (!guestCart?.items.length) return;
+    const offers = await readOffers([...(accountCart?.items ?? []), ...guestCart.items]);
+    const items = mergeItems(accountCart?.items ?? [], guestCart.items, offers);
+    tx.set(accountRef, stored(account, items, now, !accountSnap.exists), { merge: true });
   });
 }
