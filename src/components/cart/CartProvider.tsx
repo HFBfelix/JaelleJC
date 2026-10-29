@@ -12,6 +12,8 @@ type CartContextValue = {
   setOpen: (open: boolean) => void;
   pending: boolean;
   notice: string | null;
+  // Message affiché avec le panier (reste visible quand le serveur le corrige, ex. pièce vendue au clic « Payer »).
+  announceStock: () => void;
   add: (productId: string, variantId: string) => Promise<void>;
   update: (line: CartLineView, quantity: number) => Promise<void>;
 };
@@ -90,7 +92,9 @@ export function CartProvider({ initialCart, children }: { initialCart: CartView;
   }, []);
 
   return (
-    <CartContext.Provider value={{ cart, isOpen, setOpen: setOpenAndClear, pending, notice, add, update }}>
+    <CartContext.Provider value={{
+      cart, isOpen, setOpen: setOpenAndClear, pending, notice, announceStock: () => setNotice(STOCK_NOTICE), add, update,
+    }}>
       {children}
     </CartContext.Provider>
   );

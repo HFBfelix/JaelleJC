@@ -1,6 +1,7 @@
 'use client';
 
-import { CartLines, CartTotals, DeliveryProgress, EmptyCart, PayButton } from './CartLines';
+import { CartLines, CartTotals, DeliveryProgress, EmptyCart } from './CartLines';
+import CheckoutForm from './CheckoutForm';
 import { useCart } from './CartProvider';
 
 // Page /panier : mêmes lignes et totaux que le tiroir, sur toute la largeur.
@@ -19,7 +20,7 @@ const CartPageView = () => {
             <DeliveryProgress cart={cart} />
             <div className="p-8">
               <CartTotals cart={cart} />
-              <PayButton />
+              <CheckoutForm />
             </div>
           </div>
         </div>

@@ -98,29 +98,15 @@ export const CartTotals = ({ cart }: { cart: CartView }) => (
   </dl>
 );
 
-// Sans compte : « e-mail d'abord » (page de connexion, retour au panier, panier conservé).
-// Connectée : paiement branché à l'étape 5 (session Stripe créée par le serveur), bouton inactif d'ici là.
+// Tiroir : sans compte, « e-mail d'abord » (connexion, puis retour au panier) ; connectée, page panier
+// (option cadeau, puis paiement). Le paiement lui-même part de la page panier (CheckoutForm).
 export const PayButton = ({ onNavigate }: { onNavigate?: () => void }) => {
   const signedIn = useSignedIn();
-  const label = <span className="text-[11px] uppercase tracking-[0.12em]">Confirmer et payer</span>;
-  if (!signedIn) {
-    return (
-      <Link href="/connexion?retour=/panier" onClick={onNavigate}
-        className="w-full bg-black text-white py-6 flex items-center justify-center gap-4 hover:bg-neutral-800 transition-colors">
-        {label}
-      </Link>
-    );
-  }
   return (
-    <>
-      <button disabled aria-describedby="paiement-bientot"
-        className="w-full bg-black text-white py-6 flex items-center justify-center gap-4 disabled:bg-neutral-200 disabled:cursor-not-allowed">
-        {label}
-      </button>
-      <p id="paiement-bientot" className="text-[11px] uppercase tracking-[0.12em] text-neutral-400 mt-6 text-center">
-        Paiement en ligne bientôt disponible
-      </p>
-    </>
+    <Link href={signedIn ? '/panier' : '/connexion?retour=/panier'} onClick={onNavigate}
+      className="w-full bg-black text-white py-6 flex items-center justify-center gap-4 hover:bg-neutral-800 transition-colors">
+      <span className="text-[11px] uppercase tracking-[0.12em]">Confirmer et payer</span>
+    </Link>
   );
 };
 
