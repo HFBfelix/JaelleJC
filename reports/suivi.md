@@ -1,6 +1,6 @@
 # Suivi — ce qui reste à faire (mis à jour au fil des étapes)
 
-Dernière mise à jour : 2026-10-30, fin de l'étape 6 (espace client). Chaque ligne renvoie au rapport ou à la décision d'origine.
+Dernière mise à jour : 2026-10-30, fin de l'étape 7 (espace créatrice). Chaque ligne renvoie au rapport ou à la décision d'origine.
 
 ## Décisions de Jaelle (2026-10-24)
 
@@ -77,6 +77,18 @@ Dernière mise à jour : 2026-10-30, fin de l'étape 6 (espace client). Chaque l
 - « Fiche relation » par client ou prospect (occasion, recherches, panier, commandes, préférences, retours), avec consentement dédié au profilage, filtre des données délicates, durée de 3 ans après le dernier contact, incluse dans l'export et la suppression du compte.
 - Recherche par **cas d'usage** (sémantique, pas par mots-clés) : barre du milieu de l'accueil (« Chercher une pièce, un usage… ») ; ex. « cadeau pour le baptême de mon neveu » → coffrets de naissance seulement, « je pars en vacances » → cabas. Existant : fonction `analyzeIntent` (OpenAI `gpt-4o-mini`, `functions/src/index.ts`) et `legacy/src/pages/SmartSearchPOC.tsx`. Les recherches d'une cliente connectée et consentante enrichissent sa fiche relation.
 - OpenAI reste utilisé pour les brouillons de fiches produit (étape 7).
+
+## Étape 7 — espace créatrice (2026-10-30)
+
+- Décisions de Jaelle (2026-10-30) : expédition sans lien avec La Poste (numéro de suivi recopié) ; remboursement et annulation depuis Stripe ; photos réduites dans le navigateur ; trois livraisons (7a produits, 7b commandes et stocks, 7c le reste).
+- Fiche guidée en 6 étapes avec aperçu en direct et aperçu privé, brouillon IA relu, stock protégé contre l'écrasement d'une vente, commandes (préparation, expédition, livraison), stocks, catégories, réglages journalisés, messages et export CSV (`reports/qa/etape-7.md`, `reports/securite/etape-7.md`).
+- À faire par Jaelle :
+  1. Activer le stockage Firebase du projet de test (forfait Blaze), pour les photos.
+  2. Clé OpenAI dans Vercel, environnement Preview seulement.
+  3. Politique TTL sur `aiQuota.expiresAt` (projet de test).
+  4. **Critère de fin** : créer et mettre en ligne une pièce seule, sur le projet de test, dès que l'aperçu Vercel est branché.
+  5. Relire les textes de l'espace créatrice.
+- À la bascule (étape 10) : déploiement des fonctions (supprime `onProductAdded` en production), TTL `aiQuota` en production, `legacy/` (et `dashboard.html`) supprimé.
 
 ## Étape 6 — espace client (2026-10-30)
 
