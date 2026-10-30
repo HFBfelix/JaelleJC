@@ -52,6 +52,8 @@ beforeEach(async () => {
     await setDoc(doc(db, 'autorisations', 'admin@exemple.test'), { actif: true });
     await setDoc(doc(db, 'auditLog', 'log'), { action: 'x' });
     await setDoc(doc(db, 'stripeEvents', 'evt'), { at: 1 });
+    await setDoc(doc(db, 'checkouts', 'cs_test_x'), { uid: 'cliente-uid', cartId: 'u_cliente-uid' });
+    await setDoc(doc(db, 'stripeCustomers', 'cliente-uid'), { customerId: 'cus_test123' });
     await uploadBytes(ref(ctx.storage(), 'produits/existante.jpg'), IMAGE, { contentType: 'image/jpeg' });
     await uploadBytes(ref(ctx.storage(), 'prive/fichier.jpg'), IMAGE, { contentType: 'image/jpeg' });
   });
@@ -260,8 +262,8 @@ test('newsletter : inscriptions invalides refusées', async () => {
 // --- Collections réservées au serveur ---
 
 for (const [nom, ctx] of Object.entries(tous)) {
-  test(`serveur seul : ${nom} n'accède ni aux paniers, ni aux journaux, ni aux anciens droits`, async () => {
-    for (const [col, id] of [['carts', 'panier'], ['auditLog', 'log'], ['stripeEvents', 'evt'], ['autorisations', 'admin@exemple.test'], ['messages', 'x']]) {
+  test(`serveur seul : ${nom} n'accède ni aux paniers, ni aux journaux, ni aux paiements en cours, ni aux clients Stripe, ni aux anciens droits`, async () => {
+    for (const [col, id] of [['carts', 'panier'], ['auditLog', 'log'], ['stripeEvents', 'evt'], ['checkouts', 'cs_test_x'], ['stripeCustomers', 'cliente-uid'], ['autorisations', 'admin@exemple.test'], ['messages', 'x']]) {
       await assertFails(getDoc(doc(db(ctx), col, id)));
       await assertFails(setDoc(doc(db(ctx), col, id), { x: 1 }));
     }

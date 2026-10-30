@@ -25,6 +25,9 @@ export async function createUser({ admin = false, password = PASSWORD, emailVeri
 // Retrait du droit admin sans révocation des sessions (comme une modification faite dans la console).
 export const removeAdminClaim = (uid: string) => auth().setCustomUserClaims(uid, {});
 
+// Suppression du compte : le compte existe-t-il encore dans l'émulateur ?
+export const userExists = (uid: string) => auth().getUser(uid).then(() => true, () => false);
+
 // Lien de connexion envoyé par l'émulateur : reconstruit sur la page du site (comme le ferait le lien de l'e-mail).
 export async function signInLinkFor(email: string, baseURL: string, retour = '/compte') {
   const res = await fetch(`http://${process.env.FIREBASE_AUTH_EMULATOR_HOST}/emulator/v1/projects/${PROJECT}/oobCodes`);

@@ -9,6 +9,9 @@ const id = (prefix: string) => `${prefix}_${randomBytes(12).toString('hex')}`;
 
 const sessions = new Map<string, Record<string, string>>();
 const refunds: Record<string, string>[] = [];
+// Clients Stripe (adresse préremplie) : `deleted` passe à vrai à la suppression du compte.
+const customers = new Map<string, { params: Record<string, string>; deleted: boolean }>();
+const CUSTOMER_PATH = /^\/v1\/customers\/(cus_[A-Za-z0-9]+)$/;
 
 function readBody(req: import('node:http').IncomingMessage): Promise<string> {
   return new Promise((resolve) => {
@@ -47,6 +50,29 @@ export function startFakeStripe(): Promise<Server> {
       const params = Object.fromEntries(new URLSearchParams(await readBody(req)));
       refunds.push({ ...params, idempotencyKey: String(req.headers['idempotency-key'] ?? '') });
       return json(200, { id: id('re'), object: 'refund', status: 'succeeded', payment_intent: params.payment_intent });
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/customers') {
+      const params = Object.fromEntries(new URLSearchParams(await readBody(req)));
+      const customerId = id('cus');
+      customers.set(customerId, { params, deleted: false });
+      return json(200, { id: customerId, object: 'customer', email: params.email ?? null });
+    }
+    const customerPath = CUSTOMER_PATH.exec(url.pathname);
+    if (customerPath && (req.method === 'POST' || req.method === 'DELETE')) {
+      const customer = customers.get(customerPath[1]!);
+      if (!customer || customer.deleted) {
+        return json(404, { error: { type: 'invalid_request_error', code: 'resource_missing', message: 'No such customer' } });
+      }
+      if (req.method === 'DELETE') {
+        customer.deleted = true;
+        return json(200, { id: customerPath[1], object: 'customer', deleted: true });
+      }
+      customer.params = { ...customer.params, ...Object.fromEntries(new URLSearchParams(await readBody(req))) };
+      return json(200, { id: customerPath[1], object: 'customer', email: customer.params.email ?? null });
+    }
+    if (req.method === 'GET' && url.pathname.startsWith('/__test/customers/')) {
+      const customer = customers.get(url.pathname.split('/').pop()!);
+      return customer ? json(200, customer) : json(404, {});
     }
     if (req.method === 'GET' && url.pathname.startsWith('/pay/')) {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
