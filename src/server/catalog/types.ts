@@ -22,6 +22,7 @@ export type ProductCardView = {
   images: ProductImageView[];
   inStock: boolean;
   summary: string; // accroche, sinon début de la description (texte pour lecteurs d'écran et métadonnées)
+  usages: string[]; // cas d'usage (« baptême », « vacances ») : utilisés par la recherche de la collection
 };
 
 // Variante proposée au panier : identifiant, libellé (coloris · taille) et disponibilité, jamais le stock exact.

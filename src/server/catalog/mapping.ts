@@ -43,6 +43,7 @@ export function toProductCard(id: string, data: unknown, categories: CategoryVie
       .map((img) => ({ url: img.url, alt: img.alt })),
     inStock: p.inStock,
     summary: summaryOf(p.accroche, p.description),
+    usages: p.usages,
   };
 }
 

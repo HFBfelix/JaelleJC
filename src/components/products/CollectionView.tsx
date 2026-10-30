@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import ProductCard from './ProductCard';
+import { matchesSearch } from '@/server/catalog/search';
 import type { CategoryView, ProductCardView } from '@/server/catalog/types';
 
 // Rendu et filtres repris de legacy/src/pages/Collection.tsx. Les données arrivent du serveur
@@ -39,14 +40,10 @@ const CollectionView = ({ products, categories }: Props) => {
   }, [activeCategoryUrl, searchParams]);
 
   const filteredProducts = useMemo(() => {
-    const term = searchTerm.toLowerCase();
     return products.filter((product) => {
-      const matchesSearch = term
-        ? product.name.toLowerCase().includes(term) || product.subName.toLowerCase().includes(term)
-        : true;
       const matchesUrlCat = activeCategoryUrl ? product.categorySlug === activeCategoryUrl : true;
       const matchesSub = activeSub ? product.subSlug === activeSub : true;
-      return matchesSearch && matchesUrlCat && matchesSub;
+      return matchesSearch(product, searchTerm) && matchesUrlCat && matchesSub;
     });
   }, [searchTerm, products, activeCategoryUrl, activeSub]);
 
