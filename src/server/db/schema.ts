@@ -18,6 +18,7 @@ export const COLLECTIONS = {
   stripeEvents: 'stripeEvents', // événements Stripe déjà traités (idempotence du webhook)
   checkouts: 'checkouts', // paiements en cours : instantané du panier relu par le webhook
   stripeCustomers: 'stripeCustomers', // client Stripe de chaque compte (préremplissage de l'adresse) : serveur uniquement
+  aiQuota: 'aiQuota', // appels au brouillon IA par heure (espace créatrice) : serveur uniquement, TTL `expiresAt`
 } as const;
 
 const slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80);
@@ -53,6 +54,8 @@ export const produit = z.object({
   limitedEditionSize: z.number().int().positive().nullable(),
   giftWrap: z.boolean(),
   tags: z.array(shortText(40)).max(20),
+  // Cas d'usage (« baptême », « naissance », « vacances ») : base de la recherche par usage (étape 7bis).
+  usages: z.array(shortText(40)).max(20).default([]),
   inStock: z.boolean(),
   aiDraft: z.object({ generatedAt: timestamp.nullable(), reviewed: z.boolean() }),
 });
