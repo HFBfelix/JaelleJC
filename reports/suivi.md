@@ -69,6 +69,15 @@ Dernière mise à jour : 2026-10-30, fin de l'étape 6 (espace client). Chaque l
 | Émulateur des fonctions | Délai dépassé au chargement (10 s) en local ; utile seulement pour tester Stripe en local | étape 5 |
 | Fonction `onProductAdded` | Texte à trous et brouillon de blog automatiques à supprimer | `BACKOFFICE.md` §5 → étape 7 |
 
+## Décisions de Jaelle (2026-10-30) : relation client et e-mails → étape 7bis (après l'étape 7)
+
+- E-mails envoyés par le site (Resend ou API Brevo, à trancher à la 7bis), réglés dans `/createur` ; Brevo garde seulement la newsletter mensuelle (contacts consentants synchronisés). Clés Brevo exposées révoquées avant tout branchement.
+- Messages : bienvenue (création de compte), inscription newsletter, confirmation de commande, relances panier non payé J+1, J+3, J+5 (« retirée dans 2 jours », panier de 7 jours), commande prête, colis parti, colis arrivé (suivi transporteur, sinon J+1 de la date prévue), J+14 « comment se passe l'expérience ».
+- IA des e-mails : **Mistral** (données en Europe) ; texte fixe validé + un paragraphe personnalisé, sans fait inventé, texte fixe seul en cas d'échec.
+- « Fiche relation » par client ou prospect (occasion, recherches, panier, commandes, préférences, retours), avec consentement dédié au profilage, filtre des données délicates, durée de 3 ans après le dernier contact, incluse dans l'export et la suppression du compte.
+- Recherche par **cas d'usage** (sémantique, pas par mots-clés) : barre du milieu de l'accueil (« Chercher une pièce, un usage… ») ; ex. « cadeau pour le baptême de mon neveu » → coffrets de naissance seulement, « je pars en vacances » → cabas. Existant : fonction `analyzeIntent` (OpenAI `gpt-4o-mini`, `functions/src/index.ts`) et `legacy/src/pages/SmartSearchPOC.tsx`. Les recherches d'une cliente connectée et consentante enrichissent sa fiche relation.
+- OpenAI reste utilisé pour les brouillons de fiches produit (étape 7).
+
 ## Étape 6 — espace client (2026-10-30)
 
 - Décisions de Jaelle (2026-10-30) : à la suppression du compte, commandes gardées (obligation comptable) mais détachées du compte ; adresses enregistrées seulement à la demande de la cliente ; préremplissage du paiement par un client Stripe.
