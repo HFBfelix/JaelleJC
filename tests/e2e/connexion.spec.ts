@@ -248,7 +248,7 @@ test.describe('pages protégées', () => {
     await signInWithPassword(page, admin.email, admin.password, '/createur/connexion');
     await expect(page).toHaveURL(/\/createur$/);
     await expect(main(page).getByRole('heading', { level: 1, name: 'Espace créatrice' })).toBeVisible();
-    await expect(main(page).getByText('Vous êtes connectée.')).toBeVisible();
+    await expect(main(page).getByRole('heading', { level: 2, name: 'À faire' })).toBeVisible(); // tableau de bord de l'espace créatrice (étape 7)
 
     // Droit retiré sans révocation (console) : refus immédiat, le cookie ne suffit plus.
     await removeAdminClaim(admin.uid);
