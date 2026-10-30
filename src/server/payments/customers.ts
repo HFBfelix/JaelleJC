@@ -20,6 +20,7 @@ export function customerFields(email: string, a: Adresse): Stripe.CustomerUpdate
   return {
     email,
     name: a.name,
+    phone: a.phone || undefined,
     shipping: {
       name: a.name,
       phone: a.phone || undefined,

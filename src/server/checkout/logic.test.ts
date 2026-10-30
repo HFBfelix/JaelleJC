@@ -3,7 +3,7 @@ import { lineKey } from '../cart/logic';
 import type { CartItem, Offer } from '../cart/types';
 import type { CheckoutSnapshot } from '../db/schema';
 import {
-  allocate, amountsOf, buildOrder, checkoutInput, matchesSnapshot, normalizeGift, orderReference, paidSession,
+  allocate, amountsOf, buildOrder, checkoutInput, frenchPhone, matchesSnapshot, normalizeGift, orderReference, paidSession,
   prepareLines, shippingOption, stripeLineItems, withoutPurchased, type CheckoutLine,
 } from './logic';
 
@@ -19,9 +19,16 @@ const line = (productId: string, quantity: number, unitPriceCents = 4500): Check
 });
 
 describe('entrée du navigateur au clic « Payer »', () => {
-  it('option cadeau seulement', () => {
-    expect(checkoutInput.safeParse({ gift: { wrap: true, message: 'Bienvenue' } }).success).toBe(true);
+  const shipping = { name: 'C', line1: '1 rue A', line2: '', zipCode: '75001', city: 'Paris', phone: '0612345678' };
+  it('option cadeau, adresse de livraison et choix de l’enregistrer', () => {
+    expect(checkoutInput.safeParse({ gift: { wrap: true, message: 'Bienvenue' }, shipping, saveAddress: false }).success).toBe(true);
   });
+
+  it.each([
+    ['06 12 34 56 78', '+33612345678'], ['+33 6 12 34 56 78', '+33612345678'], ['0033612345678', '+33612345678'], ['01.23.45.67.89', '+33123456789'],
+  ])('téléphone « %s » → %s', (raw, e164) => expect(frenchPhone.parse(raw)).toBe(e164));
+  it.each(['', '0012345678', '061234567', '+44 20 7946 0000', '06 12 34 56 78 90', '<script>'])('téléphone « %s » : refusé', (raw) =>
+    expect(frenchPhone.safeParse(raw).success).toBe(false));
 
   it.each([
     ['prix envoyé', { gift: { wrap: false, message: '' }, totalCents: 1 }],

@@ -10,13 +10,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Adresses enregistrées et complètes de la cliente connectée : proposées pour préremplir le paiement.
+// Adresses enregistrées et complètes de la cliente connectée : préremplissent l'étape « Livraison ».
 export default async function PanierPage() {
   const user = await getSessionUser();
-  const addresses = user
-    ? (await listAddresses(user.uid))
-      .filter(isComplete)
-      .map((a) => ({ id: a.id, summary: `${a.label ? `${a.label} — ` : ''}${a.name}, ${a.line1}, ${a.zipCode} ${a.city}` }))
-    : [];
+  const addresses = user ? (await listAddresses(user.uid)).filter(isComplete) : [];
   return <CartPageView addresses={addresses} />;
 }

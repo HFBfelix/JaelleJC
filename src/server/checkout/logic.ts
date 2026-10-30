@@ -8,11 +8,29 @@ export const GIFT_MESSAGE_MAX = 300;
 // La session de paiement Stripe expire au bout de 30 minutes (minimum accepté par Stripe).
 export const CHECKOUT_EXPIRES_SECONDS = 30 * 60;
 
-// Seules entrées du navigateur au clic « Payer » : l'option cadeau et, au choix, l'identifiant d'une adresse
-// enregistrée (relue en base chez cette cliente). Aucun prix, aucune ligne.
+// Téléphone français (transporteur) : « 06 12 34 56 78 », « +33 6… » ou « 0033 6… » → « +33612345678 ».
+export const frenchPhone = z.string().trim().max(30)
+  .transform((v) => v.replace(/[\s.\-()]/g, ''))
+  .refine((v) => /^(?:\+33|0033|0)[1-9]\d{8}$/.test(v))
+  .transform((v) => `+33${v.replace(/^(?:\+33|0033|0)/, '')}`);
+
+// Livraison confirmée sur la page panier, avant Stripe (France seulement, téléphone obligatoire).
+export const shippingInput = z.strictObject({
+  name: z.string().trim().min(1).max(100),
+  line1: z.string().trim().min(1).max(200),
+  line2: z.string().trim().max(200),
+  zipCode: z.string().trim().regex(/^[0-9]{5}$/),
+  city: z.string().trim().min(1).max(100),
+  phone: frenchPhone,
+});
+export type ShippingInput = z.infer<typeof shippingInput>;
+
+// Seules entrées du navigateur au clic « Payer » : l'option cadeau, l'adresse de livraison et le choix de
+// l'enregistrer dans le compte. Aucun prix, aucune ligne.
 export const checkoutInput = z.strictObject({
   gift: z.strictObject({ wrap: z.boolean(), message: z.string().max(GIFT_MESSAGE_MAX) }),
-  addressId: z.string().regex(/^[A-Za-z0-9_-]{1,100}$/).optional(),
+  shipping: shippingInput,
+  saveAddress: z.boolean(),
 });
 
 export const normalizeGift = (gift: { wrap: boolean; message: string }) =>
