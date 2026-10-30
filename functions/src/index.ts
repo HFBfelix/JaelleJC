@@ -3,7 +3,7 @@
 import {onDocumentCreated} from "firebase-functions/v2/firestore";
 import {onCall, HttpsError} from "firebase-functions/v2/https";
 import {initializeApp} from "firebase-admin/app";
-import {getFirestore, FieldValue} from "firebase-admin/firestore";
+import {getFirestore} from "firebase-admin/firestore";
 import axios from "axios";
 import {defineSecret, defineString} from "firebase-functions/params";
 import Stripe from "stripe";
@@ -163,59 +163,9 @@ export const onNewsletterSignup = onDocumentCreated({
   }
 });
 
-// 4. AGENT IA STRATÉGIQUE
-export const onProductAdded = onDocumentCreated({
-  document: "produits/{productId}",
-  secrets: [BREVO_API_KEY, STRIPE_SECRET_KEY],
-}, async (event) => {
-  const snapshot = event.data;
-  if (!snapshot) {
-    return;
-  }
-  const data = snapshot.data();
-  if (!data || data.agentProcessed) {
-    return;
-  }
-  try {
-    const {name, matieres, dimensions, category} = data;
-    const seoTags = data.seo_tags || "";
-    // On utilise bien 'dimensions' ici pour satisfaire le Lint
-    const generatedDescription = `Cette pièce unique baptisée ${name} incarne l'essence de l'Atelier. Façonnée à la main en ${matieres || "matières nobles"}, elle présente des dimensions de ${dimensions || "proportions équilibrées"}.`;
-
-    await snapshot.ref.update({
-      description: generatedDescription,
-      status: "draft",
-      agentProcessed: true,
-      seo_metadata: {
-        intents: [`Cadeau naissance luxe made in France pour ${category}`, "Accessoire artisanal chic"],
-        alt_text: `${name} Jaelle & JC - Artisanat français.`,
-        geo_context: "Paris, Neuilly-sur-Seine",
-        invisible_tags: seoTags,
-      },
-      lastUpdate: FieldValue.serverTimestamp(),
-    });
-
-    await db.collection("articles_blog").add({
-      title: `L'âme du ${name} : Entre héritage et modernité`,
-      excerpt: `Découvrez l'histoire du ${name}...`,
-      content: "Brouillon généré par l'IA...",
-      productId: event.params.productId,
-      image: data.images?.[0] || "",
-      status: "draft",
-      tags: ["Made in France", category],
-      createdAt: FieldValue.serverTimestamp(),
-    });
-
-    await axios.post("https://api.brevo.com/v3/smtp/email", {
-      sender: {name: "Atelier Jaelle & JC", email: "contact@jaellejc.com"},
-      to: [{email: "contact@jaellejc.com"}],
-      subject: `IA : Brouillons prêts pour ${name}`,
-      htmlContent: getEmailLayout(`<p>Le travail de l'IA est terminé pour <strong>${escapeHtml(name)}</strong>. Dimensions prises en compte : ${escapeHtml(dimensions || "Standard")}.</p>`),
-    }, {headers: {"api-key": BREVO_API_KEY.value()}});
-  } catch (error) {
-    console.error("Erreur IA :", error);
-  }
-});
+// 4. (retiré à l'étape 7 de la refonte) « onProductAdded » écrivait un texte à trous dans chaque nouveau produit
+// et créait un brouillon de blog vide : remplacé par le brouillon IA déclenché à la main dans l'espace créatrice
+// (BACKOFFICE.md §5). Supprimé en production au déploiement des fonctions de la bascule (étape 10).
 
 // 5. CONFIRMATION DE COMMANDE + CRM
 export const onOrderCreated = onDocumentCreated({
