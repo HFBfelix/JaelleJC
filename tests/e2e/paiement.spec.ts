@@ -41,9 +41,20 @@ async function addToCart(page: Page, slug: string) {
   await expect(page.getByRole('dialog', { name: 'Votre sélection' }).getByRole('status')).toHaveText('Ajouté à votre sélection');
 }
 
+// Étape « Livraison » de la page panier (avant Stripe) : adresse et téléphone obligatoires.
+async function fillShipping(page: Page) {
+  const form = main(page).getByRole('group', { name: 'Livraison' });
+  await form.getByLabel('Nom et prénom').fill('Camille Test');
+  await form.getByLabel('Adresse', { exact: true }).fill('1 rue de la Paix');
+  await form.getByLabel('Code postal').fill('75002');
+  await form.getByLabel('Ville').fill('Paris');
+  await form.getByLabel('Téléphone').fill('06 00 00 00 00');
+}
+
 // Clic « Confirmer et payer » depuis la page panier : renvoie l'identifiant de la session créée chez (le faux) Stripe.
 async function pay(page: Page, gift?: string) {
   await page.goto('/panier');
+  await fillShipping(page);
   if (gift !== undefined) {
     await main(page).getByLabel('Emballage cadeau').check();
     await main(page).getByLabel('Un mot pour la naissance (optionnel)').fill(gift);
@@ -66,7 +77,7 @@ function event(sessionId: string, params: Record<string, string>, over: Record<s
     data: { object: {
       id: sessionId, object: 'checkout.session', payment_status: 'paid', amount_total: amount, currency: 'eur',
       client_reference_id: params.client_reference_id, payment_intent: rand('pi'),
-      customer_details: { email: params.customer_email, name: 'Camille Test', phone: '+33600000000' },
+      customer_details: { email: params.customer_email ?? null, name: 'Camille Test', phone: '+33600000000' },
       collected_information: { shipping_details: { name: 'Camille Test', address: { line1: '1 rue de la Paix', line2: null, postal_code: '75002', city: 'Paris', country: 'FR' } } },
       ...over,
     } },
@@ -89,7 +100,7 @@ test('paiement réussi : prix lus en base, commande créée par le webhook, stoc
 
   const params = await sessionParams(sessionId);
   expect(params).toMatchObject({
-    mode: 'payment', customer_email: user.email, client_reference_id: user.uid, 'metadata[cartId]': `u_${user.uid}`,
+    mode: 'payment', customer: expect.stringMatching(/^cus_/), client_reference_id: user.uid, 'metadata[cartId]': `u_${user.uid}`,
     'line_items[0][price_data][unit_amount]': String(FIXTURE.buy.priceCents), 'line_items[0][price_data][currency]': 'eur',
     'line_items[0][quantity]': '1', 'line_items[0][price_data][product_data][metadata][productId]': FIXTURE.buy.id,
     'shipping_address_collection[allowed_countries][0]': 'FR', 'phone_number_collection[enabled]': 'true',
@@ -243,6 +254,7 @@ test('stock vérifié au clic « Payer » : pièce partie entre-temps, pas de pa
   await page.goto('/panier');
   // Pièce vendue pendant que la page est ouverte (au rechargement, le panier serait déjà corrigé).
   await setStock(FIXTURE.last.id, 0);
+  await fillShipping(page);
   const sessionsBefore = ((await (await fetch(`${FAKE}/__test/count`)).json()) as { sessions: number }).sessions;
   await main(page).getByRole('button', { name: 'Confirmer et payer' }).click();
   await expect(main(page).getByRole('status')).toHaveText('Cette pièce vient de trouver preneur. Elle a été retirée de votre sélection.');

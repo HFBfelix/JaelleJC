@@ -218,15 +218,13 @@ test.describe('préremplissage du paiement (faux Stripe)', () => {
   const customer = async (id: string) =>
     (await (await fetch(`${FAKE}/__test/customers/${id}`)).json()) as { params: Record<string, string>; deleted: boolean };
 
-  async function pay(page: Page, choice?: RegExp) {
-    await page.goto('/panier');
-    if (choice) await main(page).getByRole('radio', { name: choice }).check();
+  async function pay(page: Page) {
     await main(page).getByRole('button', { name: 'Confirmer et payer' }).click();
     await page.waitForURL(/\/pay\/cs_test_/);
     return sessionParams(page.url().split('/pay/')[1]!);
   }
 
-  test('adresse choisie : client Stripe prérempli ; autre adresse : rien de prérempli ; suppression : client effacé', async ({ page }) => {
+  test('livraison confirmée avant Stripe : adresse du compte préremplie, téléphone exigé, nouvelle adresse enregistrée à la demande ; suppression : client effacé', async ({ page }) => {
     const user = await signIn(page);
     await addAddress(page, { label: 'Grands-parents', name: 'Dominique Test', line1: '9 place du Marché', zipCode: '78000', city: 'Versailles' });
     await page.goto(`/produits/${FIXTURE.buy.slug}`);
@@ -234,25 +232,43 @@ test.describe('préremplissage du paiement (faux Stripe)', () => {
     await expect(page.getByRole('dialog', { name: 'Votre sélection' }).getByRole('status')).toHaveText('Ajouté à votre sélection');
 
     await page.goto('/panier');
-    await expect(main(page).getByRole('radio', { name: /Grands-parents/ })).toBeChecked(); // première adresse par défaut
+    const form = main(page).getByRole('group', { name: 'Livraison' });
+    await expect(form.getByLabel('Nom et prénom')).toHaveValue('Dominique Test'); // première adresse du compte
+    await expect(form.getByLabel('Code postal')).toHaveValue('78000');
+    // Téléphone vide : le navigateur bloque l'envoi, aucune session Stripe.
+    const count = async () => ((await (await fetch(`${FAKE}/__test/count`)).json()) as { sessions: number }).sessions;
+    const before = await count();
+    await main(page).getByRole('button', { name: 'Confirmer et payer' }).click();
+    expect(await count()).toBe(before);
+    await form.getByLabel('Téléphone').fill('06 11 22 33 44');
+
     const withAddress = await pay(page);
     expect(withAddress.customer).toMatch(/^cus_/);
     expect(withAddress.customer_email).toBeUndefined();
     expect(withAddress['line_items[0][price_data][unit_amount]']).toBe(String(FIXTURE.buy.priceCents));
     const c = await customer(withAddress.customer!);
     expect(c.params).toMatchObject({
-      email: user.email, 'shipping[name]': 'Dominique Test', 'shipping[address][line1]': '9 place du Marché',
+      email: user.email, phone: '+33611223344', 'shipping[name]': 'Dominique Test', 'shipping[address][line1]': '9 place du Marché',
       'shipping[address][postal_code]': '78000', 'shipping[address][city]': 'Versailles', 'shipping[address][country]': 'FR',
-      'metadata[uid]': user.uid,
+      'shipping[phone]': '+33611223344', 'metadata[uid]': user.uid,
     });
     expect((await db().doc(`stripeCustomers/${user.uid}`).get()).get('customerId')).toBe(withAddress.customer);
+    expect((await db().collection(`users/${user.uid}/adresses`).get()).size).toBe(1); // non enregistrée sans demande
 
+    // Nouvelle adresse, enregistrée à la demande ; même client Stripe, mis à jour.
+    await page.goto('/panier');
+    await form.getByLabel('Mes adresses').selectOption({ label: 'Nouvelle adresse' });
+    await form.getByLabel('Nom et prénom').fill('Lou Test');
+    await form.getByLabel('Adresse', { exact: true }).fill('3 rue Neuve');
+    await form.getByLabel('Code postal').fill('69001');
+    await form.getByLabel('Ville').fill('Lyon');
+    await form.getByLabel('Téléphone').fill('+33 7 00 00 00 01');
+    await form.getByLabel('Enregistrer cette adresse dans mon compte').check();
     const again = await pay(page);
-    expect(again.customer).toBe(withAddress.customer); // même client, mis à jour
-
-    const other = await pay(page, /Une autre adresse/);
-    expect(other.customer).toBeUndefined();
-    expect(other.customer_email).toBe(user.email);
+    expect(again.customer).toBe(withAddress.customer);
+    expect((await customer(again.customer!)).params['shipping[address][city]']).toBe('Lyon');
+    const saved = (await db().collection(`users/${user.uid}/adresses`).get()).docs.map((d) => d.data());
+    expect(saved).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'Lou Test', city: 'Lyon', phone: '+33700000001' })]));
 
     // Suppression du compte (paiements ouverts depuis moins de 30 minutes : refusée d'abord).
     await page.goto('/compte');

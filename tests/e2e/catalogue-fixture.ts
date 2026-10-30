@@ -7,6 +7,8 @@ export const FIXTURE = {
   category: { slug: 'naissance-e2e', name: 'Naissance E2E' },
   // Catégorie à part pour les pièces du paiement : la page Collections n'affiche que 6 pièces par catégorie.
   paymentCategory: { slug: 'paiement-e2e', name: 'Paiement E2E' },
+  // Catégorie des pièces mises en ligne par les parcours de l'espace créatrice (n'écarte aucune pièce du catalogue).
+  createurCategory: { slug: 'createur-e2e', name: 'Créatrice E2E' },
   published: { id: 'e2e-publie', slug: 'cape-e2e', name: 'Cape E2E', priceCents: 8900 },
   soldOut: { id: 'e2e-epuise', slug: 'couverture-e2e-epuisee', name: 'Couverture E2E épuisée' },
   draft: { id: 'e2e-brouillon', slug: 'brouillon-e2e' },
@@ -58,6 +60,9 @@ export async function seed() {
   batch.set(d.doc(`categories/${FIXTURE.paymentCategory.slug}`), {
     name: FIXTURE.paymentCategory.name, order: 100, intro: '', subs: [{ slug: 'capes', name: 'Capes' }],
   });
+  batch.set(d.doc(`categories/${FIXTURE.createurCategory.slug}`), {
+    name: FIXTURE.createurCategory.name, order: 101, intro: '', subs: [{ slug: 'capes', name: 'Capes' }],
+  });
   const products: [string, Record<string, unknown>, number][] = [
     [FIXTURE.published.id, base(FIXTURE.published.slug, FIXTURE.published.name, 'published', FIXTURE.published.priceCents), 2],
     [FIXTURE.soldOut.id, { ...base(FIXTURE.soldOut.slug, FIXTURE.soldOut.name, 'published'), inStock: false }, 0],
@@ -89,6 +94,7 @@ export async function clean() {
   const batch = d.batch();
   batch.delete(d.doc(`categories/${FIXTURE.category.slug}`));
   batch.delete(d.doc(`categories/${FIXTURE.paymentCategory.slug}`));
+  batch.delete(d.doc(`categories/${FIXTURE.createurCategory.slug}`));
   // Paniers des parcours : ceux qui contiennent une pièce « e2e- » ou que les tests ont vidés.
   for (const c of (await d.collection('carts').get()).docs) {
     const items = (c.get('items') ?? []) as { productId?: string }[];

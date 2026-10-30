@@ -64,6 +64,7 @@ test('anonyme et cliente ordinaire : l’espace créatrice et l’aperçu renvoi
 });
 
 test('fiche guidée : photo, essentiel, détails, variantes, brouillon IA relu, mise en ligne, archivage', async ({ page }) => {
+  test.setTimeout(90_000); // parcours complet : plus long quand toute la suite tourne en parallèle
   await signInAdmin(page);
   const { name, id } = await newProduct(page);
 
@@ -79,7 +80,7 @@ test('fiche guidée : photo, essentiel, détails, variantes, brouillon IA relu, 
 
   // 2. L'essentiel.
   await step(page, /L’essentiel/).click();
-  await main(page).getByLabel('Univers').selectOption(FIXTURE.category.slug);
+  await main(page).getByLabel('Univers').selectOption(FIXTURE.createurCategory.slug);
   await main(page).getByLabel('Famille').selectOption('capes');
   await main(page).getByLabel('Prix TTC (€)').fill('45,50');
   await main(page).getByRole('button', { name: 'Enregistrer', exact: true }).click();
