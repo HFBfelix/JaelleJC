@@ -9,7 +9,7 @@ Date : 2026-10-30 · Branche : `refonte-next` · Environnement testé : local (`
 - `src/server/payments/customers.ts` : client Stripe du compte (adresse préremplie), suppression chez Stripe.
 - `src/server/checkout/` : nouvelle entrée `addressId` (identifiant seulement, adresse relue en base chez la cliente).
 - Pages `/compte`, `/compte/commandes/[id]`, `/compte/supprime` (noindex) ; `/panier` (choix de l'adresse) ; `/connexion?info=reconnexion` (correction de l'étape 4).
-- Nouvelle collection serveur `stripeCustomers/{uid}` (identifiant du client Stripe). Aucune nouvelle dépendance. `firestore.rules` **inchangé** (voir M1).
+- Nouvelle collection serveur `stripeCustomers/{uid}` (identifiant du client Stripe). Aucune nouvelle dépendance. `firestore.rules` : adresses en lecture seule pour le navigateur (M1).
 
 ## Contrôles effectués
 
@@ -26,7 +26,7 @@ Date : 2026-10-30 · Branche : `refonte-next` · Environnement testé : local (`
 | 6. Échappement | Textes affichés par React ; lien de suivi : `https:` seulement (`javascript:` et `http:` retirés), `rel="noopener noreferrer"` | OK | `orders/view.test.ts` |
 | 7. Prix | Avec une adresse choisie, Stripe reçoit toujours le prix de la base ; aucun prix venant du navigateur | OK | `compte.spec.ts` « préremplissage » |
 | 7. Paiement et suppression | Suppression refusée si une commande est payée, en préparation ou expédiée, ou si un paiement a moins de 30 minutes ; instantanés non traités gardés (webhook tardif) | OK | `account/logic.test.ts` ; `compte.spec.ts` « suppression refusée », « préremplissage » |
-| 8. Abus | 10 adresses au plus (transaction) ; client Stripe unique par compte (doublon supprimé aussitôt) | OK (voir M1) | `addresses.ts`, `customers.ts` (relecture) |
+| 8. Abus | 5 adresses au plus (transaction ; écriture du navigateur fermée par les règles) ; client Stripe unique par compte (doublon supprimé aussitôt) | OK | `compte.spec.ts` « 5 au plus » ; `rules.test.mjs` ; `customers.ts` (relecture) |
 | 9. Sessions | Suppression : connexion de moins de 10 minutes ; cookie retiré ; compte supprimé → toutes les sessions refusées (`verifySessionCookie` avec révocation) | OK | `account/actions.test.ts` ; `compte.spec.ts` « suppression » (retour à la connexion) |
 | 9. Reconnexion | `info=reconnexion` n'affiche qu'un message fixe ; retour toujours filtré par la liste fermée `safeReturn` (pas de redirection ouverte) | OK | `compte.spec.ts` « reconnexion » ; `auth/policy.test.ts` |
 | 9. Journaux | Messages fixes, sans e-mail ni adresse | OK | `grep console.` |
@@ -40,13 +40,16 @@ Date : 2026-10-30 · Branche : `refonte-next` · Environnement testé : local (`
 |---|---|---|---|---|
 | `stripeCustomers` | anonyme, cliente propriétaire, autre cliente, fausse admin, admin | lecture, écriture | refusé | refusé |
 | `checkouts` | idem | lecture, écriture | refusé | refusé |
-| `orders`, `users`, `users/{uid}/adresses` | tests existants (étape 1bis) | — | inchangé | 102/102 |
+| `users/{uid}/adresses` | cliente propriétaire | lecture | permis | permis |
+| `users/{uid}/adresses` | anonyme, autre cliente, fausse admin | lecture | refusé | refusé |
+| `users/{uid}/adresses` | tous, propriétaire et admin compris | création, modification, suppression | refusé | refusé |
+| `orders`, `users` | tests existants (étape 1bis) | — | inchangé | OK |
 
 ## Anomalies
 
 | # | Gravité | Description | Comment la reproduire | Correction | Statut |
 |---|---|---|---|---|---|
-| M1 | Moyenne | Les règles laissent la propriétaire écrire directement dans `users/{uid}/adresses` (SDK client ou API REST avec son jeton) : plafond de 10 et validation Zod contournés ; pendant ~1 h après la suppression du compte, le jeton encore valable permet de recréer des adresses orphelines | Écrire 600 adresses avec le SDK client | Code : suppression par lots successifs, sans limite de nombre (`bulkWriter`), compte supprimé seulement si tout a réussi. Règles : fermer l'écriture client sur `adresses` (tout passe déjà par le serveur) et adapter les tests — **modification des règles : feu vert de Jaelle requis** (`CLAUDE.md` §6.3) | Ouvert (code corrigé, règles en attente) |
+| M1 | Moyenne | Les règles laissent la propriétaire écrire directement dans `users/{uid}/adresses` (SDK client ou API REST avec son jeton) : plafond et validation Zod contournés ; pendant ~1 h après la suppression du compte, le jeton encore valable permet de recréer des adresses orphelines | Écrire 600 adresses avec le SDK client | Code : suppression par lots successifs, sans limite de nombre (`bulkWriter`), compte supprimé seulement si tout a réussi. Règles : fermer l'écriture client sur `adresses` (tout passe déjà par le serveur) et adapter les tests — règles : adresses lues par la propriétaire, `allow write: if false` (feu vert de Jaelle, 2026-10-30), publiées sur le projet de test | Corrigé, testé (`rules.test.mjs` 109/109) |
 | F1 | Faible | Webhook en retard (> 30 min) : l'instantané effacé à la suppression du compte → paiement remboursé sans explication | Paiement à la 29e minute, webhook en échec, suppression | Seuls les instantanés `traite` ou `expire` sont effacés ; les autres disparaissent par TTL (7 jours) | Corrigé |
 | F2 | Faible | Deux « Payer » simultanés : deux clients Stripe, le premier resterait chez Stripe après la suppression du compte | Double clic dans deux onglets | Réservation en transaction : le doublon est supprimé chez Stripe aussitôt | Corrigé |
 | F3 | Faible | Paiement lancé pendant la suppression (même cliente) : client Stripe recréé après | Suppression et paiement dans deux onglets | Client Stripe purgé de nouveau après la suppression du compte | Corrigé |
@@ -62,4 +65,4 @@ Date : 2026-10-30 · Branche : `refonte-next` · Environnement testé : local (`
 
 ## Décision
 
-**Go en local et sur le projet de test.** Aucune anomalie Critique ou Élevée propre à l'étape. Reste ouvert : M1 (fermeture de l'écriture des adresses dans les règles, à faire sur feu vert de Jaelle, avant la bascule), I2 (choix pour les contacts et la newsletter). Vérifié après corrections : `npm run typecheck`, `npm run lint`, `npm test` (239), règles 102/102, parcours 169 réussis / 41 ignorés / 0 échec (mobile, ordinateur, Safari iPhone), `npm run test:visual` 24/24.
+**Go en local et sur le projet de test.** Aucune anomalie Critique ou Élevée propre à l'étape. Reste ouvert : I2 (choix pour les contacts et la newsletter). Vérifié après corrections : `npm run typecheck`, `npm run lint`, `npm test` (239), règles 109/109, parcours 169 réussis / 41 ignorés / 0 échec (mobile, ordinateur, Safari iPhone), `npm run test:visual` 24/24.

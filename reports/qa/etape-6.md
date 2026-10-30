@@ -6,7 +6,7 @@ Date : 2026-10-30 · Branche : `refonte-next` · Environnement : local (Windows 
 
 - **Mes commandes** (`/compte`) : liste de la plus récente à la plus ancienne (référence, statut, première pièce +N, date, total) ; anciennes commandes migrées affichées avec les 8 premiers caractères de leur identifiant, comme sur l'ancien site.
 - **Détail d'une commande** (`/compte/commandes/[id]`) : pièces, montants, emballage cadeau, adresse, suivi du colis (lien https seulement). Commande d'une autre cliente ou inconnue : page introuvable (404).
-- **Mes adresses** : ajout, modification, suppression (France, code postal à 5 chiffres, 10 adresses au plus). Enregistrées seulement à la demande de la cliente, jamais après un paiement (décision de Jaelle, 2026-10-30).
+- **Mes adresses** : ajout, modification, suppression (France, code postal à 5 chiffres, 5 adresses au plus, décision de Jaelle du 2026-10-30). Enregistrées seulement à la demande de la cliente, jamais après un paiement (décision de Jaelle, 2026-10-30).
 - **Préremplissage du paiement** : sur `/panier`, « Livrer à » propose les adresses complètes (la première par défaut) et « Une autre adresse (saisie au paiement) ». L'adresse choisie est portée par un client Stripe du compte, que la page Stripe préremplit (toujours modifiable).
 - **Mes données** : « Télécharger mes données » (fichier JSON : compte, profil, adresses, commandes, messages de contact et newsletter liés à l'e-mail) ; « Supprimer mon compte » (case de confirmation, connexion de moins de 10 minutes).
 - **Suppression du compte** : client Stripe, adresses, profil, panier et compte supprimés ; commandes gardées (obligation comptable de 10 ans) mais détachées du compte (décision de Jaelle, 2026-10-30). Refusée si une commande est payée, en préparation ou expédiée, ou si un paiement a été ouvert il y a moins de 30 minutes. Page `/compte/supprime`.
@@ -31,6 +31,7 @@ Pages existantes : `npm run test:visual` **24/24** (aucun changement visuel). Ty
 | Anonyme : `/compte` et le détail d'une commande renvoient à la connexion | OK | « anonyme » |
 | La cliente voit ses commandes (ancienne comprise), la plus récente d'abord, jamais celle d'une autre ; détail avec lignes et lien de suivi ; commande d'une autre, inconnue ou identifiant piégé (`../..`) → 404 | OK | « commandes » |
 | Adresse ajoutée, modifiée, supprimée ; rangée sous `users/{uid}/adresses` avec exactement les champs prévus (`country: 'FR'` imposé par le serveur) | OK | « adresses » |
+| 5 adresses au plus : la sixième est refusée par le serveur, avec un message | OK | « adresses : 5 au plus » |
 | `/connexion?info=reconnexion` s'affiche avec une session ouverte ; sans ce mode, retour direct au compte | OK | « reconnexion » |
 | Export : fichier `mes-donnees-jaelle-jc.json` avec le compte, les adresses et les seules commandes de la cliente | OK | « export » |
 | Suppression refusée avec une commande en préparation ; le compte existe toujours | OK | « suppression refusée » |
@@ -43,7 +44,7 @@ Commandes : `npx playwright test tests/e2e/compte.spec.ts --project=ordinateur -
 
 `npm test` : **239** tests, tous verts, dont `src/server/account/logic.test.ts` (adresses invalides : code postal, champ inconnu, pays imposé, identifiant de chemin, uid fourni ; conditions de suppression), `src/server/account/actions.test.ts` (anonyme refusé partout ; entrée trafiquée refusée avant la base ; uid lu dans la session ; reconnexion exigée ; cookie retiré après suppression) et `src/server/orders/view.test.ts` (ancienne commande, statut inconnu, montants non entiers, liens de suivi `javascript:`/`http:` retirés). `npm run typecheck` et `npm run lint` : propres.
 
-Règles : `tests/rules/rules.test.mjs` **102/102** (nouveaux cas : `checkouts` et `stripeCustomers` inaccessibles à tous les appelants, propriétaire comprise), lancé sur un projet d'émulateur distinct pour ne pas vider les données locales.
+Règles : `tests/rules/rules.test.mjs` **109/109** (nouveaux cas : `checkouts` et `stripeCustomers` inaccessibles à tous les appelants, propriétaire comprise ; adresses lues par la seule propriétaire, aucune écriture depuis le navigateur), lancé sur un projet d'émulateur distinct pour ne pas vider les données locales.
 
 ## Textes à relire par Jaelle
 
