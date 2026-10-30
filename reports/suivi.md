@@ -78,6 +78,12 @@ Dernière mise à jour : 2026-10-30, fin de l'étape 7 (espace créatrice). Chaq
 - Recherche par **cas d'usage** (sémantique, pas par mots-clés) : barre du milieu de l'accueil (« Chercher une pièce, un usage… ») ; ex. « cadeau pour le baptême de mon neveu » → coffrets de naissance seulement, « je pars en vacances » → cabas. Existant : fonction `analyzeIntent` (OpenAI `gpt-4o-mini`, `functions/src/index.ts`) et `legacy/src/pages/SmartSearchPOC.tsx`. Les recherches d'une cliente connectée et consentante enrichissent sa fiche relation.
 - OpenAI reste utilisé pour les brouillons de fiches produit (étape 7).
 
+## Décision de Jaelle (2026-10-30) : connexion à l'espace créatrice
+
+- Constat : la page `/createur/connexion` envoie un lien à toute adresse (Firebase, depuis le navigateur) ; une non-admin voit ensuite « pas d'accès ». Aucun accès n'est donné (droit relu par le serveur à chaque page et action) et rien n'est révélé à qui ne possède pas la boîte mail ; mais envoi de liens vers des adresses au hasard possible, et lien seul trop faible pour l'administration.
+- Décision : **étape 7bis** — lien envoyé par le serveur aux seules administratrices, même réponse pour toutes les adresses (« Si cette adresse est autorisée, un lien vient de lui être envoyé ») ; **étape 9** — mot de passe + double authentification (TOTP) pour l'espace créatrice, App Check sur la connexion.
+- Projet de test : droit admin posé le 2026-10-30 sur hfentreprises@gmail.com (`scripts/set-admin.ts`) ; contact@jaellejc.com et felixhamilton@ymail.com après leur première connexion à l'aperçu.
+
 ## Étape 7 — espace créatrice (2026-10-30)
 
 - Décisions de Jaelle (2026-10-30) : expédition sans lien avec La Poste (numéro de suivi recopié) ; remboursement et annulation depuis Stripe ; photos réduites dans le navigateur ; trois livraisons (7a produits, 7b commandes et stocks, 7c le reste).
