@@ -4,10 +4,11 @@ import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { deleteAddressAction, saveAddressAction, type AddressResult } from '@/server/account/actions';
 import type { AddressView } from '@/server/account/logic';
+import { ADDRESSES_MAX } from '@/server/db/schema';
 import { Field, Notice, PrimaryButton, TextButton } from '@/components/auth/ui';
 
 const MESSAGES: Partial<Record<AddressResult, string>> = {
-  plein: 'Vous avez déjà 10 adresses. Supprimez-en une pour en ajouter une nouvelle.',
+  plein: `Vous avez déjà ${ADDRESSES_MAX} adresses. Supprimez-en une pour en ajouter une nouvelle.`,
   introuvable: 'Cette adresse n’existe plus. Rechargez la page.',
   invalide: 'Vérifiez l’adresse : nom, rue, code postal à 5 chiffres et ville sont nécessaires.',
   connexion: 'Votre session a expiré. Reconnectez-vous.',

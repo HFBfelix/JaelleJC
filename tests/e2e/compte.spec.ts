@@ -124,6 +124,22 @@ test('adresses : ajout, modification, suppression ; rangées sous le compte', as
   expect((await db().collection(`users/${user.uid}/adresses`).get()).size).toBe(0);
 });
 
+test('adresses : 5 au plus, la sixième est refusée par le serveur', async ({ page }) => {
+  const user = await signIn(page);
+  const a = { label: '', name: 'Camille Test', line1: '1 rue A', line2: '', zipCode: '75001', city: 'Paris', country: 'FR', phone: '' };
+  await Promise.all([1, 2, 3, 4, 5].map((n) => db().doc(`users/${user.uid}/adresses/a${n}`).set({ ...a, label: `Adresse ${n}` })));
+  await page.reload();
+  await main(page).getByRole('button', { name: 'Ajouter une adresse' }).click();
+  const form = main(page).getByRole('form', { name: 'Nouvelle adresse' });
+  await form.getByLabel('Nom et prénom').fill('Sixième');
+  await form.getByLabel('Adresse', { exact: true }).fill('6 rue F');
+  await form.getByLabel('Code postal').fill('75006');
+  await form.getByLabel('Ville').fill('Paris');
+  await form.getByRole('button', { name: 'Enregistrer l’adresse' }).click();
+  await expect(main(page).getByText('Vous avez déjà 5 adresses. Supprimez-en une pour en ajouter une nouvelle.')).toBeVisible();
+  expect((await db().collection(`users/${user.uid}/adresses`).get()).size).toBe(5);
+});
+
 test('reconnexion demandée : la page de connexion s’affiche même avec une session ouverte', async ({ page }) => {
   await signIn(page);
   await page.goto('/connexion?retour=/compte&info=reconnexion');

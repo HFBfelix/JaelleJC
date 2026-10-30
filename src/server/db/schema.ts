@@ -145,8 +145,8 @@ export const checkoutSnapshot = z.object({
 });
 export type CheckoutSnapshot = z.infer<typeof checkoutSnapshot>;
 
-// Adresse de livraison enregistrée par la cliente (`users/{uid}/adresses`) : mêmes champs et limites que les règles.
-export const ADDRESSES_MAX = 10;
+// Adresse de livraison enregistrée par la cliente (`users/{uid}/adresses`), écrite par le serveur seulement.
+export const ADDRESSES_MAX = 5; // décision de Jaelle (2026-10-30)
 export const adresse = z.strictObject({
   label: shortText(40),
   name: shortText(100).min(1),
