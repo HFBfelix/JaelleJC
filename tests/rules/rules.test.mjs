@@ -268,7 +268,7 @@ test('newsletter : inscriptions invalides refusées', async () => {
 
 for (const [nom, ctx] of Object.entries(tous)) {
   test(`serveur seul : ${nom} n'accède ni aux paniers, ni aux journaux, ni aux paiements en cours, ni aux clients Stripe, ni aux anciens droits`, async () => {
-    for (const [col, id] of [['carts', 'panier'], ['auditLog', 'log'], ['stripeEvents', 'evt'], ['checkouts', 'cs_test_x'], ['stripeCustomers', 'cliente-uid'], ['autorisations', 'admin@exemple.test'], ['messages', 'x']]) {
+    for (const [col, id] of [['carts', 'panier'], ['auditLog', 'log'], ['stripeEvents', 'evt'], ['checkouts', 'cs_test_x'], ['stripeCustomers', 'cliente-uid'], ['aiQuota', 'admin-uid_2026103012'], ['autorisations', 'admin@exemple.test'], ['messages', 'x']]) {
       await assertFails(getDoc(doc(db(ctx), col, id)));
       await assertFails(setDoc(doc(db(ctx), col, id), { x: 1 }));
     }

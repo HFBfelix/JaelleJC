@@ -8,7 +8,7 @@ import { requireAdmin } from '../auth/session';
 import { draftTexts, type DraftResult } from './ai';
 import { photosInput, productFields, productId, variantsInput } from './logic';
 import {
-  addPhoto, audit, createProduct, deleteDraft, loadProductAdmin, publishProduct, removePhoto, saveFields, saveVariants,
+  audit, createProduct, deleteDraft, loadProductAdmin, publishProduct, removePhoto, saveFields, saveVariants,
   setProductStatus, updatePhotos, type PhotoResult, type SaveResult, type StatusResult, type VariantsResult,
 } from './products';
 import { adminDb } from '../firebase/admin';
@@ -63,13 +63,7 @@ export async function saveVariantsAction(input: unknown): Promise<VariantsResult
   return run('variantes', (uid) => saveVariants(uid, parsed.data.productId, parsed.data.rows));
 }
 
-// Photo déjà réduite dans le navigateur ; type réel et taille revérifiés ici.
-export async function uploadPhotoAction(form: FormData): Promise<{ status: PhotoResult } | Denied> {
-  const id = productId.safeParse(form.get('productId'));
-  const file = form.get('photo');
-  if (!id.success || !(file instanceof File)) return INVALID;
-  return run('envoi de photo', async (uid) => ({ status: await addPhoto(uid, id.data, new Uint8Array(await file.arrayBuffer())) }));
-}
+// Envoi de photo : route dédiée src/app/api/createur/photos (limite de corps propre).
 
 export async function updatePhotosAction(input: unknown): Promise<{ status: PhotoResult | 'incomplet' } | Denied> {
   const parsed = photosInput.safeParse(input);

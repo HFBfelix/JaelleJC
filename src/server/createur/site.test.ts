@@ -13,8 +13,11 @@ describe('export CSV', () => {
   it('séparateur « ; », guillemets doublés, retours à la ligne aplatis', () => {
     expect(toCsv([{ a: 'x;y', b: 'il a dit "oui"\nmerci' }], ['a', 'b'])).toBe('a;b\r\n"x;y";"il a dit ""oui"" merci"');
   });
-  it.each(['=HYPERLINK("http://x")', '+33 6 00', '-2+3', '@SUM(A1)'])('formule « %s » neutralisée', (v) => {
+  it.each(['=HYPERLINK("http://x")', '+33 6 00', '-2+3', '@SUM(A1)', '\t=1'])('formule « %s » neutralisée', (v) => {
     expect(toCsv([{ a: v }], ['a']).split('\r\n')[1]).toBe(`"'${v.replace(/"/g, '""')}"`);
+  });
+  it('retour chariot isolé : aplati, la cellule reste sur une ligne', () => {
+    expect(toCsv([{ a: 'a\rb' }], ['a'])).toBe('a\r\n"a b"');
   });
 });
 

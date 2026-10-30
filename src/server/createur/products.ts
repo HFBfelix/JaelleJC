@@ -298,17 +298,26 @@ export async function removePhoto(uid: string, id: string, path: string): Promis
 
 export type StatusResult = { status: 'ok' | 'introuvable' | 'interdit' } | { status: 'incomplet'; checklist: ChecklistItem[] };
 
-// Mise en ligne : liste de contrôle rejouée côté serveur, document conforme au schéma public.
+// Mise en ligne : liste de contrôle rejouée côté serveur sur la fiche et les variantes relues dans la même
+// transaction que l'écriture (une photo retirée dans un autre onglet ne passe pas entre les deux).
 export async function publishProduct(uid: string, id: string): Promise<StatusResult> {
-  const loaded = await loadProductAdmin(id);
-  if (!loaded) return { status: 'introuvable' };
-  const { product, variants, checklist: items } = loaded;
-  if (!canPublish(items) || !publishable(publicDoc(product, variants))) return { status: 'incomplet', checklist: items };
-  await products().doc(id).update({
-    status: 'published', inStock: inStockOf(variants),
-    ...(product.publishedAt ? {} : { publishedAt: FieldValue.serverTimestamp() }),
-    updatedAt: FieldValue.serverTimestamp(), updatedBy: uid,
+  const categories = await listCategoriesAdmin();
+  const ref = products().doc(id);
+  const result = await db().runTransaction(async (tx): Promise<StatusResult> => {
+    const [snap, variantsSnap] = await Promise.all([tx.get(ref), tx.get(ref.collection(COLLECTIONS.variantes))]);
+    if (!snap.exists) return { status: 'introuvable' };
+    const product = toAdminProduct(id, snap.data()!);
+    const variants = toAdminVariants(variantsSnap.docs);
+    const items = checklistOf(product, variants, categories);
+    if (!canPublish(items) || !publishable(publicDoc(product, variants))) return { status: 'incomplet', checklist: items };
+    tx.update(ref, {
+      status: 'published', inStock: inStockOf(variants),
+      ...(product.publishedAt ? {} : { publishedAt: FieldValue.serverTimestamp() }),
+      updatedAt: FieldValue.serverTimestamp(), updatedBy: uid,
+    });
+    return { status: 'ok' };
   });
+  if (result.status !== 'ok') return result;
   await audit(uid, 'produit.publie', id);
   return { status: 'ok' };
 }

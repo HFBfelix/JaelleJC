@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { resizeImage } from '@/lib/resize-image';
 import {
   deleteDraftAction, draftAiAction, duplicateProductAction, publishAction, removePhotoAction, reviewAiAction,
-  saveFieldsAction, saveVariantsAction, setStatusAction, updatePhotosAction, uploadPhotoAction,
+  saveFieldsAction, saveVariantsAction, setStatusAction, updatePhotosAction,
 } from '@/server/createur/actions';
 import type { AiProposals } from '@/server/createur/ai';
 import { gridRows, type ChecklistItem, type ProductFields, type VariantRow } from '@/server/createur/logic';
@@ -249,7 +249,7 @@ function PhotosStep({ product, pending, setPending, setNotice, call }:
         const form = new FormData();
         form.set('productId', product.id);
         form.set('photo', await resizeImage(file), 'photo.jpg');
-        const r = await uploadPhotoAction(form);
+        const r = (await (await fetch('/api/createur/photos', { method: 'POST', body: form })).json()) as { status: string };
         if (r.status !== 'ok') { setNotice(MESSAGES[r.status] ?? MESSAGES.erreur!); break; }
       }
     } catch {

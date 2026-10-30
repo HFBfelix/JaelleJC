@@ -55,8 +55,8 @@ export async function saveCategory(uid: string, input: z.infer<typeof categoryIn
     // Une famille déjà utilisée par une pièce ne disparaît pas.
     const before = (snap.get('subs') as { slug: string }[] | undefined) ?? [];
     const removed = before.filter((s) => !subs.some((n) => n.slug === s.slug)).map((s) => s.slug);
-    if (removed.length) {
-      const used = await tx.get(db().collection(COLLECTIONS.produits).where('categoryId', '==', slug).where('subCategory', 'in', removed.slice(0, 10)).limit(1));
+    for (let i = 0; i < removed.length; i += 10) { // « in » : 10 valeurs au plus par requête
+      const used = await tx.get(db().collection(COLLECTIONS.produits).where('categoryId', '==', slug).where('subCategory', 'in', removed.slice(i, i + 10)).limit(1));
       if (!used.empty) return 'doublon' as const;
     }
     tx.set(ref, value);
@@ -132,8 +132,8 @@ export async function listNewsletter() {
 // (injection de formule dans le tableur).
 export function toCsv(rows: Record<string, string | null>[], columns: string[]): string {
   const cell = (v: string | null) => {
-    const s = (v ?? '').replace(/\r?\n/g, ' ');
-    const safe = /^[=+\-@\t]/.test(s) ? `'${s}` : s;
+    const s = (v ?? '').replace(/[\r\n]+/g, ' ');
+    const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
     return `"${safe.replace(/"/g, '""')}"`;
   };
   return [columns.join(';'), ...rows.map((r) => columns.map((c) => cell(r[c] ?? '')).join(';'))].join('\r\n');

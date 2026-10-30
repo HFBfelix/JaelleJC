@@ -15,9 +15,6 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
-  // Photos de l'espace créatrice : réduites dans le navigateur (quelques centaines de Ko), plafonnées à 4 Mo
-  // côté serveur ; limite des Server Actions relevée en conséquence (sous la limite de 4,5 Mo de Vercel).
-  experimental: { serverActions: { bodySizeLimit: '4.4mb' } },
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },

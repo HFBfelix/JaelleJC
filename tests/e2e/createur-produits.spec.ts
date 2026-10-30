@@ -54,6 +54,13 @@ test('anonyme et cliente ordinaire : l’espace créatrice et l’aperçu renvoi
     await page.goto(path);
     await expect(page).toHaveURL(/\/createur\/connexion$/);
   }
+  // Envoi de photo : cliente connectée refusée, autre site refusé, sans rien écrire.
+  const before = (await db().doc('produits/e2e-publie').get()).get('images');
+  const multipart = { productId: 'e2e-publie', photo: { name: 'x.png', mimeType: 'image/png', buffer: PNG } };
+  const origin = new URL(page.url()).origin;
+  expect((await page.request.post('/api/createur/photos', { multipart, headers: { origin } })).status()).toBe(401);
+  expect((await page.request.post('/api/createur/photos', { multipart, headers: { origin: 'https://evil.example' } })).status()).toBe(403);
+  expect((await db().doc('produits/e2e-publie').get()).get('images')).toEqual(before);
 });
 
 test('fiche guidée : photo, essentiel, détails, variantes, brouillon IA relu, mise en ligne, archivage', async ({ page }) => {

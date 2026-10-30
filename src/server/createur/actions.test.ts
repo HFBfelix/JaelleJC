@@ -27,15 +27,11 @@ describe('cliente ordinaire, anonyme ou droit retiré (requireAdmin → null)', 
   beforeEach(() => mocks.requireAdmin.mockResolvedValue(null));
 
   it('aucune action ne s’exécute', async () => {
-    const form = new FormData();
-    form.set('productId', 'p1');
-    form.set('photo', new File([new Uint8Array([0xff, 0xd8, 0xff])], 'x.jpg'));
     const results = await Promise.all([
       actions.createProductAction({ name: 'X' }),
       actions.duplicateProductAction({ productId: 'p1' }),
       actions.saveFieldsAction({ productId: 'p1', fields }),
       actions.saveVariantsAction({ productId: 'p1', rows: [row] }),
-      actions.uploadPhotoAction(form),
       actions.updatePhotosAction({ productId: 'p1', images: [] }),
       actions.removePhotoAction({ productId: 'p1', path: 'produits/p1/x.jpg' }),
       actions.publishAction({ productId: 'p1' }),
@@ -70,14 +66,6 @@ describe('administratrice', () => {
     mocks.publishProduct.mockResolvedValue({ status: 'ok' });
     await actions.publishAction({ productId: 'p1' });
     expect(mocks.publishProduct).toHaveBeenCalledWith('admin-uid', 'p1');
-  });
-
-  it('photo sans fichier : refusée', async () => {
-    const form = new FormData();
-    form.set('productId', 'p1');
-    form.set('photo', 'pas un fichier');
-    expect(await actions.uploadPhotoAction(form)).toEqual({ status: 'invalide' });
-    expect(mocks.addPhoto).not.toHaveBeenCalled();
   });
 
   it('erreur en base : message générique, journal sans contenu', async () => {
