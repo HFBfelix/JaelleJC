@@ -13,10 +13,14 @@ type Props = { searchParams: Promise<{ retour?: string; info?: string }> };
 export default async function ConnexionPage({ searchParams }: Props) {
   const params = await searchParams;
   const retour = safeReturn(params.retour);
-  if (await getSessionUser()) redirect(retour);
+  // Déjà connectée : retour direct, sauf demande de nouvelle connexion avant une action sensible
+  // (mot de passe, suppression du compte), qui exige une connexion récente.
+  const reauth = params.info === 'reconnexion';
+  if (!reauth && (await getSessionUser())) redirect(retour);
   const config = firebaseClientConfig();
   return (
     <AuthPage title="Connexion">
+      {reauth && <Notice>Par sécurité, reconnectez-vous pour confirmer cette action.</Notice>}
       {params.info === 'mot-de-passe' && (
         <Notice>Votre mot de passe est enregistré. Par sécurité, vous avez été déconnectée de tous vos appareils : reconnectez-vous avec ce mot de passe.</Notice>
       )}
