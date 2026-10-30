@@ -17,6 +17,7 @@ export const COLLECTIONS = {
   auditLog: 'auditLog',
   stripeEvents: 'stripeEvents', // événements Stripe déjà traités (idempotence du webhook)
   checkouts: 'checkouts', // paiements en cours : instantané du panier relu par le webhook
+  stripeCustomers: 'stripeCustomers', // client Stripe de chaque compte (préremplissage de l'adresse) : serveur uniquement
 } as const;
 
 const slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80);
@@ -143,6 +144,20 @@ export const checkoutSnapshot = z.object({
   gift: z.object({ wrap: z.boolean(), message: shortText(300) }),
 });
 export type CheckoutSnapshot = z.infer<typeof checkoutSnapshot>;
+
+// Adresse de livraison enregistrée par la cliente (`users/{uid}/adresses`) : mêmes champs et limites que les règles.
+export const ADDRESSES_MAX = 10;
+export const adresse = z.strictObject({
+  label: shortText(40),
+  name: shortText(100).min(1),
+  line1: shortText(200).min(1),
+  line2: shortText(200),
+  zipCode: z.string().trim().regex(/^[0-9]{5}$/),
+  city: shortText(100).min(1),
+  country: z.literal('FR'),
+  phone: shortText(30),
+});
+export type Adresse = z.infer<typeof adresse>;
 
 export const deliverySettings = z.object({
   freeThresholdCents: cents,

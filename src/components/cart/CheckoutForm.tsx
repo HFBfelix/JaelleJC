@@ -12,14 +12,20 @@ import { useCart } from './CartProvider';
 const MESSAGES: Partial<Record<CheckoutActionResult['status'], string>> = {
   indisponible: 'Le paiement est momentanément indisponible. Réessayez dans un instant.',
   invalide: `Le mot pour la naissance ne doit pas dépasser ${GIFT_MESSAGE_MAX} caractères.`,
+  adresse: 'Cette adresse n’est plus disponible. Choisissez-en une autre.',
   erreur: 'Le paiement est momentanément indisponible. Réessayez dans un instant.',
 };
 
-// Page panier : option cadeau, puis « Confirmer et payer ». Le serveur relit tout (prix, stock, livraison)
-// et renvoie l'adresse de la page de paiement Stripe ; le navigateur n'envoie que l'option cadeau.
-export default function CheckoutForm() {
+export type SavedAddress = { id: string; summary: string };
+const OTHER = '';
+
+// Page panier : adresse, option cadeau, puis « Confirmer et payer ». Le serveur relit tout (prix, stock,
+// livraison, adresse) et renvoie l'adresse de la page de paiement Stripe ; le navigateur n'envoie que l'option
+// cadeau et l'identifiant de l'adresse choisie.
+export default function CheckoutForm({ addresses }: { addresses: SavedAddress[] }) {
   const signedIn = useSignedIn();
   const router = useRouter();
+  const [addressId, setAddressId] = useState(addresses[0]?.id ?? OTHER);
   const [wrap, setWrap] = useState(false);
   const [message, setMessage] = useState('');
   const [pending, setPending] = useState(false);
@@ -33,7 +39,10 @@ export default function CheckoutForm() {
     setPending(true);
     setNotice(null);
     try {
-      const result = await startCheckoutAction({ gift: { wrap, message: wrap ? message : '' } });
+      const result = await startCheckoutAction({
+        gift: { wrap, message: wrap ? message : '' },
+        ...(addressId !== OTHER ? { addressId } : {}),
+      });
       if (result.status === 'ok') {
         window.location.assign(result.url); // page de paiement hébergée par Stripe
         return;
@@ -54,6 +63,18 @@ export default function CheckoutForm() {
 
   return (
     <form onSubmit={onSubmit}>
+      {addresses.length > 0 && (
+        <fieldset className="mb-8">
+          <legend className="text-[11px] uppercase tracking-[0.12em] text-neutral-500 mb-3">Livrer à</legend>
+          {[...addresses, { id: OTHER, summary: 'Une autre adresse (saisie au paiement)' }].map((a) => (
+            <label key={a.id || 'autre'} className="flex items-start gap-3 mb-3 cursor-pointer">
+              <input type="radio" name="adresse" value={a.id} checked={addressId === a.id} onChange={() => setAddressId(a.id)}
+                className="w-4 h-4 mt-0.5 accent-black" />
+              <span className="text-[14px] leading-snug">{a.summary}</span>
+            </label>
+          ))}
+        </fieldset>
+      )}
       <label className="flex items-center gap-3 mb-4 cursor-pointer">
         <input type="checkbox" checked={wrap} onChange={(e) => setWrap(e.target.checked)}
           className="w-4 h-4 accent-black" />

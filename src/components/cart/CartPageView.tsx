@@ -1,11 +1,11 @@
 'use client';
 
 import { CartLines, CartTotals, DeliveryProgress, EmptyCart } from './CartLines';
-import CheckoutForm from './CheckoutForm';
+import CheckoutForm, { type SavedAddress } from './CheckoutForm';
 import { useCart } from './CartProvider';
 
 // Page /panier : mêmes lignes et totaux que le tiroir, sur toute la largeur.
-const CartPageView = () => {
+const CartPageView = ({ addresses }: { addresses: SavedAddress[] }) => {
   const { cart, notice } = useCart();
   return (
     <div className="max-w-5xl mx-auto px-6 md:px-12 py-16 md:py-24">
@@ -20,7 +20,7 @@ const CartPageView = () => {
             <DeliveryProgress cart={cart} />
             <div className="p-8">
               <CartTotals cart={cart} />
-              <CheckoutForm />
+              <CheckoutForm addresses={addresses} />
             </div>
           </div>
         </div>

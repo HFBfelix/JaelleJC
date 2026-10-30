@@ -31,7 +31,23 @@ it('cliente connectée : seule l’option cadeau est transmise', async () => {
   mocks.getSessionUser.mockResolvedValueOnce(user);
   mocks.startCheckout.mockResolvedValueOnce({ status: 'ok', url: 'https://checkout.stripe.com/c/pay/cs_test_x' });
   expect(await startCheckoutAction({ gift: { wrap: true, message: 'Bienvenue' } })).toMatchObject({ status: 'ok' });
-  expect(mocks.startCheckout).toHaveBeenCalledWith(user, { wrap: true, message: 'Bienvenue' });
+  expect(mocks.startCheckout).toHaveBeenCalledWith(user, { wrap: true, message: 'Bienvenue' }, undefined);
+});
+
+it('adresse enregistrée : seul son identifiant est transmis (relue en base chez cette cliente)', async () => {
+  mocks.getSessionUser.mockResolvedValueOnce(user);
+  mocks.startCheckout.mockResolvedValueOnce({ status: 'adresse' });
+  expect(await startCheckoutAction({ gift: { wrap: false, message: '' }, addressId: 'a1' })).toEqual({ status: 'adresse' });
+  expect(mocks.startCheckout).toHaveBeenCalledWith(user, { wrap: false, message: '' }, 'a1');
+});
+
+it.each([
+  { gift: { wrap: false, message: '' }, addressId: '../autre/adresses/x' },
+  { gift: { wrap: false, message: '' }, address: { line1: '1 rue A', zipCode: '75001' } },
+])('adresse trafiquée %# : refusée', async (input) => {
+  mocks.getSessionUser.mockResolvedValue(user);
+  expect(await startCheckoutAction(input)).toEqual({ status: 'invalide' });
+  expect(mocks.startCheckout).not.toHaveBeenCalled();
 });
 
 it('erreur Stripe : message générique', async () => {

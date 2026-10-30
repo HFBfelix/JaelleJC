@@ -2,9 +2,9 @@
 
 import { useState, type FormEvent } from 'react';
 import Link from 'next/link';
-import { setPasswordAction, signOutAction, type PasswordResult } from '@/server/auth/actions';
+import { setPasswordAction, type PasswordResult } from '@/server/auth/actions';
 import { PASSWORD_MIN } from '@/server/auth/policy';
-import { Field, Notice, PrimaryButton, SecondaryButton } from './ui';
+import { Field, Notice, PrimaryButton } from './ui';
 
 const MESSAGES: Record<PasswordResult, string> = {
   reconnexion: 'Par sécurité, reconnectez-vous avant de choisir un mot de passe.',
@@ -12,7 +12,7 @@ const MESSAGES: Record<PasswordResult, string> = {
   erreur: 'Une erreur est survenue. Réessayez dans un instant.',
 };
 
-// Compte (étape 4, minimal) : adresse, mot de passe, déconnexion. Commandes et adresses : étape 6.
+// Identifiants du compte : adresse e-mail et mot de passe (commandes, adresses et données : page /compte).
 export default function AccountView({ email }: { email: string | null }) {
   const [password, setPassword] = useState('');
   const [result, setResult] = useState<PasswordResult | null>(null);
@@ -44,14 +44,10 @@ export default function AccountView({ email }: { email: string | null }) {
         <PrimaryButton type="submit" disabled={pending || password.length < PASSWORD_MIN}>Enregistrer</PrimaryButton>
         {result && <Notice>{MESSAGES[result]}</Notice>}
         {result === 'reconnexion' && (
-          <Link href="/connexion?retour=/compte" className="text-[11px] uppercase tracking-[0.12em] border-b-[0.5px] border-black pb-1">
+          <Link href="/connexion?retour=/compte&info=reconnexion" className="text-[11px] uppercase tracking-[0.12em] border-b-[0.5px] border-black pb-1">
             Me reconnecter
           </Link>
         )}
-      </form>
-
-      <form action={signOutAction}>
-        <SecondaryButton type="submit">Se déconnecter</SecondaryButton>
       </form>
     </>
   );

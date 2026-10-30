@@ -8,9 +8,11 @@ export const GIFT_MESSAGE_MAX = 300;
 // La session de paiement Stripe expire au bout de 30 minutes (minimum accepté par Stripe).
 export const CHECKOUT_EXPIRES_SECONDS = 30 * 60;
 
-// Seule entrée du navigateur au clic « Payer » : l'option cadeau. Aucun prix, aucune ligne.
+// Seules entrées du navigateur au clic « Payer » : l'option cadeau et, au choix, l'identifiant d'une adresse
+// enregistrée (relue en base chez cette cliente). Aucun prix, aucune ligne.
 export const checkoutInput = z.strictObject({
   gift: z.strictObject({ wrap: z.boolean(), message: z.string().max(GIFT_MESSAGE_MAX) }),
+  addressId: z.string().regex(/^[A-Za-z0-9_-]{1,100}$/).optional(),
 });
 
 export const normalizeGift = (gift: { wrap: boolean; message: string }) =>

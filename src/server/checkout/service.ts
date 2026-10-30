@@ -4,10 +4,12 @@ import 'server-only';
 import { randomBytes } from 'node:crypto';
 import { Timestamp } from 'firebase-admin/firestore';
 import { headers } from 'next/headers';
+import { addressFor } from '../account/addresses';
 import type { SessionUser } from '../auth/session';
 import { accountKey, loadCart, readDeliveryRule } from '../cart/repository';
 import { COLLECTIONS, checkoutSnapshot, type CheckoutSnapshot } from '../db/schema';
 import { adminDb } from '../firebase/admin';
+import { customerWithAddress } from '../payments/customers';
 import { getStripe } from '../payments/stripe';
 import {
   CHECKOUT_EXPIRES_SECONDS, amountsOf, normalizeGift, prepareLines, shippingOption, stripeLineItems,
@@ -15,7 +17,7 @@ import {
 
 export type StartCheckoutResult =
   | { status: 'ok'; url: string }
-  | { status: 'vide' | 'stock' | 'indisponible' };
+  | { status: 'vide' | 'stock' | 'indisponible' | 'adresse' };
 
 const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
 const env = (name: string) => process.env[name]?.trim() || null;
@@ -31,10 +33,15 @@ async function siteOrigin() {
   return `http://${host}`;
 }
 
-export async function startCheckout(user: SessionUser, gift: { wrap: boolean; message: string }): Promise<StartCheckoutResult> {
+export async function startCheckout(
+  user: SessionUser, gift: { wrap: boolean; message: string }, addressId?: string,
+): Promise<StartCheckoutResult> {
   if (!user.email) return { status: 'indisponible' };
   const key = accountKey(user.uid);
-  const [{ items, offers, adjusted }, rule] = await Promise.all([loadCart(key), readDeliveryRule()]);
+  const [{ items, offers, adjusted }, rule, address] = await Promise.all([
+    loadCart(key), readDeliveryRule(), addressId ? addressFor(user.uid, addressId) : null,
+  ]);
+  if (addressId && !address) return { status: 'adresse' }; // inconnue, d'une autre cliente ou incomplète
   // Panier corrigé en base par loadCart (pièce vendue ou retirée entre-temps) : la cliente est prévenue.
   if (adjusted) return { status: 'stock' };
   const prepared = prepareLines(items, offers);
@@ -44,6 +51,8 @@ export async function startCheckout(user: SessionUser, gift: { wrap: boolean; me
   const amounts = amountsOf(prepared.lines, rule);
   const origin = await siteOrigin();
   const now = Math.floor(Date.now() / 1000);
+  // Adresse choisie : portée par le client Stripe du compte, que la page de paiement préremplit.
+  const customer = address ? await customerWithAddress(user.uid, user.email, address) : null;
   const session = await getStripe().checkout.sessions.create({
     mode: 'payment',
     locale: 'fr',
@@ -54,7 +63,7 @@ export async function startCheckout(user: SessionUser, gift: { wrap: boolean; me
     // Carte seulement (Apple Pay et Google Pay compris) : paiement confirmé tout de suite. Les moyens différés
     // (prélèvement…) arriveraient après la réservation du stock et l'expiration de l'instantané.
     payment_method_types: ['card'],
-    customer_email: user.email,
+    ...(customer ? { customer } : { customer_email: user.email }),
     client_reference_id: user.uid,
     metadata: { cartId: key.id, uid: user.uid },
     expires_at: now + CHECKOUT_EXPIRES_SECONDS,
