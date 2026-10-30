@@ -76,21 +76,11 @@ service cloud.firestore {
       allow create, update: if proprietaire() && profilValide();
       allow delete: if false; // suppression du compte : par le serveur (export et effacement RGPD)
 
+      // ADRESSES : lues par leur propriétaire ; écrites par le serveur seulement (Server Actions validées,
+      // 5 adresses au plus). Aucune écriture du navigateur, même après la suppression du compte.
       match /adresses/{adresseId} {
-        function adresseValide() {
-          return request.resource.data.keys().hasOnly(['label', 'name', 'line1', 'line2', 'zipCode', 'city', 'country', 'phone'])
-              && request.resource.data.keys().hasAll(['name', 'line1', 'zipCode', 'city'])
-              && texte(request.resource.data.get('label', ''), 40)
-              && texte(request.resource.data.name, 100)
-              && texte(request.resource.data.line1, 200)
-              && texte(request.resource.data.get('line2', ''), 200)
-              && request.resource.data.zipCode is string && request.resource.data.zipCode.matches('^[0-9]{5}$')
-              && texte(request.resource.data.city, 100)
-              && request.resource.data.get('country', 'FR') == 'FR'
-              && texte(request.resource.data.get('phone', ''), 30);
-        }
-        allow read, delete: if proprietaire();
-        allow create, update: if proprietaire() && adresseValide();
+        allow read: if proprietaire();
+        allow write: if false;
       }
     }
 

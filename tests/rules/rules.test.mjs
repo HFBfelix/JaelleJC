@@ -192,21 +192,26 @@ for (const [nom, ctx] of Object.entries({ anonyme, autreCliente, fausseAdmin }))
   });
 }
 
-test('adresses : la cliente ajoute une adresse valide et la supprime', async () => {
-  const adresse = { name: 'Cliente', line1: '2 rue des Lilas', zipCode: '92100', city: 'Boulogne', country: 'FR' };
-  await assertSucceeds(setDoc(doc(db(cliente), 'users', 'cliente-uid', 'adresses', 'bureau'), adresse));
-  await assertSucceeds(deleteDoc(doc(db(cliente), 'users', 'cliente-uid', 'adresses', 'bureau')));
+test('adresses : la cliente lit ses adresses', async () => {
+  await assertSucceeds(getDoc(doc(db(cliente), 'users', 'cliente-uid', 'adresses', 'maison')));
+  await assertSucceeds(getDocs(collection(db(cliente), 'users', 'cliente-uid', 'adresses')));
 });
 
-test('adresses : adresse invalide refusée (code postal, pays, champ inconnu, trop long)', async () => {
-  const base = { name: 'C', line1: '1 rue', zipCode: '75001', city: 'Paris' };
-  const ref_ = doc(db(cliente), 'users', 'cliente-uid', 'adresses', 'x');
-  await assertFails(setDoc(ref_, { ...base, zipCode: '7500' }));
-  await assertFails(setDoc(ref_, { ...base, country: 'BE' }));
-  await assertFails(setDoc(ref_, { ...base, admin: true }));
-  await assertFails(setDoc(ref_, { ...base, line1: 'x'.repeat(201) }));
-  await assertFails(setDoc(ref_, { name: 'C', zipCode: '75001', city: 'Paris' }));
-});
+// Étape 6 : tout passe par le serveur (plafond de 5, validation) ; le navigateur n'écrit plus, même valide.
+for (const [nom, ctx] of Object.entries(tous)) {
+  test(`adresses : ${nom} ne crée, ne modifie ni ne supprime aucune adresse depuis le navigateur`, async () => {
+    const adresse = { name: 'Cliente', line1: '2 rue des Lilas', zipCode: '92100', city: 'Boulogne', country: 'FR' };
+    await assertFails(setDoc(doc(db(ctx), 'users', 'cliente-uid', 'adresses', 'bureau'), adresse));
+    await assertFails(updateDoc(doc(db(ctx), 'users', 'cliente-uid', 'adresses', 'maison'), { city: 'Lyon' }));
+    await assertFails(deleteDoc(doc(db(ctx), 'users', 'cliente-uid', 'adresses', 'maison')));
+  });
+}
+
+for (const [nom, ctx] of Object.entries({ anonyme, autreCliente, fausseAdmin })) {
+  test(`adresses : ${nom} ne lit pas les adresses de la cliente`, async () => {
+    await assertFails(getDoc(doc(db(ctx), 'users', 'cliente-uid', 'adresses', 'maison')));
+  });
+}
 
 // --- Contact et newsletter ---
 
