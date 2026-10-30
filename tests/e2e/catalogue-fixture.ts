@@ -108,5 +108,12 @@ export async function clean() {
     for (const v of (await d.collection(`produits/${id}/variantes`).get()).docs) batch.delete(v.ref);
     batch.delete(d.doc(`produits/${id}`));
   }
+  // Pièces créées par les parcours de l'espace créatrice (nom « E2E créatrice … ») et leur journal.
+  for (const p of (await d.collection('produits').get()).docs) {
+    if (!String(p.get('name') ?? '').startsWith('E2E créatrice')) continue;
+    for (const v of (await p.ref.collection('variantes').get()).docs) batch.delete(v.ref);
+    for (const a of (await d.collection('auditLog').where('target', '==', p.id).get()).docs) batch.delete(a.ref);
+    batch.delete(p.ref);
+  }
   await batch.commit();
 }

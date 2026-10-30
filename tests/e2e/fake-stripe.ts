@@ -1,6 +1,8 @@
 // Faux serveur Stripe des parcours (local et CI) : reçoit la création des sessions de paiement et les
 // remboursements, comme l'API Stripe, sans rien envoyer chez Stripe. Le site y est branché par
 // STRIPE_API_HOST (accepté seulement avec les émulateurs, src/server/payments/stripe.ts).
+// Il joue aussi l'API de l'IA du brouillon de fiche (OPENAI_API_HOST, src/server/createur/ai.ts) : il renvoie
+// des propositions fixes et garde les faits reçus, pour vérifier que seuls les faits saisis partent.
 import { randomBytes } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
 
@@ -12,6 +14,7 @@ const refunds: Record<string, string>[] = [];
 // Clients Stripe (adresse préremplie) : `deleted` passe à vrai à la suppression du compte.
 const customers = new Map<string, { params: Record<string, string>; deleted: boolean }>();
 const CUSTOMER_PATH = /^\/v1\/customers\/(cus_[A-Za-z0-9]+)$/;
+const aiRequests: unknown[] = [];
 
 function readBody(req: import('node:http').IncomingMessage): Promise<string> {
   return new Promise((resolve) => {
@@ -51,6 +54,16 @@ export function startFakeStripe(): Promise<Server> {
       refunds.push({ ...params, idempotencyKey: String(req.headers['idempotency-key'] ?? '') });
       return json(200, { id: id('re'), object: 'refund', status: 'succeeded', payment_intent: params.payment_intent });
     }
+    if (req.method === 'POST' && url.pathname === '/v1/chat/completions') {
+      aiRequests.push(JSON.parse(await readBody(req)));
+      const content = JSON.stringify({
+        accroches: ['Une cape douce pour le premier bain.', 'Le premier bain, enveloppé de gaze.'],
+        histoires: ['Cousue dans notre atelier.', 'Pensée pour les premiers jours.'],
+        descriptions: ['Cape en gaze de coton.', 'Une cape simple et douce.'],
+      });
+      return json(200, { id: id('chatcmpl'), object: 'chat.completion', choices: [{ index: 0, message: { role: 'assistant', content } }] });
+    }
+    if (req.method === 'GET' && url.pathname === '/__test/ai') return json(200, aiRequests);
     if (req.method === 'POST' && url.pathname === '/v1/customers') {
       const params = Object.fromEntries(new URLSearchParams(await readBody(req)));
       const customerId = id('cus');
