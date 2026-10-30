@@ -1,6 +1,6 @@
 # Suivi — ce qui reste à faire (mis à jour au fil des étapes)
 
-Dernière mise à jour : 2026-10-29, fin de l'étape 5 (checkout, Stripe, commandes). Chaque ligne renvoie au rapport ou à la décision d'origine.
+Dernière mise à jour : 2026-10-30, fin de l'étape 6 (espace client). Chaque ligne renvoie au rapport ou à la décision d'origine.
 
 ## Décisions de Jaelle (2026-10-24)
 
@@ -56,6 +56,8 @@ Dernière mise à jour : 2026-10-29, fin de l'étape 5 (checkout, Stripe, comman
 | Faible | Cache court du catalogue | Chaque requête relit le catalogue | rapport étape 2 F4 → étape 7/9 |
 | Faible | Optimiseur d'images | Bucket du test accepté aussi en production | rapport étape 2 F6 → étape 10 |
 | Faible | App Check, limitation de débit | Contact, newsletter, connexion | étape 9 |
+| Moyenne | Adresses modifiables depuis le navigateur | Les règles laissent la propriétaire écrire dans `users/{uid}/adresses` sans passer par le serveur (plafond de 10 et validation contournés ; adresses recréables pendant ~1 h après la suppression du compte). Correctif prêt à faire : écriture client fermée, tests de règles adaptés — **attend le feu vert de Jaelle** (règles Firestore) | rapport étape 6 M1 |
+| Faible | Contacts et newsletter à la suppression du compte | Gardés (consentement distinct pour la newsletter) ; recherche à l'export sur l'e-mail en minuscules | rapport étape 6 I2 → Jaelle |
 
 ## À faire — fonctionnel
 
@@ -67,6 +69,12 @@ Dernière mise à jour : 2026-10-29, fin de l'étape 5 (checkout, Stripe, comman
 | `src/lib/mail.ts` | Code mort | QA Q4 → suppression avec `legacy/` |
 | Émulateur des fonctions | Délai dépassé au chargement (10 s) en local ; utile seulement pour tester Stripe en local | étape 5 |
 | Fonction `onProductAdded` | Texte à trous et brouillon de blog automatiques à supprimer | `BACKOFFICE.md` §5 → étape 7 |
+
+## Étape 6 — espace client (2026-10-30)
+
+- Décisions de Jaelle (2026-10-30) : à la suppression du compte, commandes gardées (obligation comptable) mais détachées du compte ; adresses enregistrées seulement à la demande de la cliente ; préremplissage du paiement par un client Stripe.
+- Mes commandes (liste et détail avec suivi), mes adresses, choix de l'adresse au panier (page Stripe préremplie), export des données (JSON), suppression du compte (connexion récente, refusée si une commande est en cours). Lien « Me reconnecter » de l'étape 4 corrigé (`reports/qa/etape-6.md`, `reports/securite/etape-6.md`).
+- À faire par Jaelle : relire les textes du compte (liste dans le rapport QA) ; feu vert pour fermer l'écriture des adresses depuis le navigateur (règles, M1) ; voir l'espace client sur l'aperçu Vercel quand il fonctionnera.
 
 ## Étape 5 — checkout, Stripe, commandes (2026-10-29)
 
