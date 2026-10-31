@@ -60,7 +60,7 @@ Le rendu visuel actuel est la référence. La refonte change l'architecture, pas
 - La commande est créée UNIQUEMENT par le webhook Stripe `checkout.session.completed` : signature vérifiée, corps brut, idempotent (table des événements traités).
 - Stock tenu par variante (coloris × taille) : vérifié au clic sur « Payer », décrémenté en transaction dans le webhook. Stock insuffisant après paiement : remboursement automatique + e-mail d'excuses.
 - La page de confirmation lit la commande en base ; elle ne crée rien.
-- Clés secrètes Stripe/Brevo/OpenAI : variables d'environnement serveur ou secrets Firebase, jamais dans le code ni côté navigateur.
+- Clés secrètes Stripe/Brevo/Mistral : variables d'environnement serveur ou secrets Firebase, jamais dans le code ni côté navigateur.
 
 ### Authentification : DEUX méthodes
 - Lien magique (lien de connexion Firebase par e-mail) ET e-mail + mot de passe. Le client choisit.
@@ -131,4 +131,4 @@ Le rendu visuel actuel est la référence. La refonte change l'architecture, pas
 ## 7. Variables d'environnement (noms uniquement)
 
 Navigateur (publiques) : `NEXT_PUBLIC_FIREBASE_*`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SITE_URL`
-Serveur (secrètes) : `FIREBASE_SERVICE_ACCOUNT`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `BREVO_API_KEY`, `OPENAI_API_KEY`
+Serveur (secrètes) : `FIREBASE_SERVICE_ACCOUNT`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `BREVO_API_KEY`, `MISTRAL_API_KEY` (seule IA du site depuis le 2026-10-31 ; plus de clé OpenAI)

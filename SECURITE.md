@@ -120,12 +120,12 @@ Un pirate vise d'abord les comptes, pas le code. Ce qui compte le plus :
 **GitHub** : authentification à deux facteurs (passkey), `main` protégée, détection de secrets avec blocage à la poussée, alertes Dependabot.
 **Vercel** : double authentification, protection des aperçus, variables limitées par environnement.
 **Stripe** : double authentification, clés restreintes, alertes par e-mail, règles Radar.
-**Brevo, OpenAI** : double authentification, une clé par environnement, plafond de dépense.
+**Brevo, Mistral** : double authentification, une clé par environnement, plafond de dépense.
 **Nom de domaine et DNS** : double authentification et verrouillage du transfert chez le registrar. Quiconque contrôle le domaine contrôle les e-mails et le site.
 **Connexion à `/createur`** : double authentification (TOTP) pour le compte administrateur dans Firebase Authentication (nécessite la mise à niveau vers Identity Platform : à vérifier dans la documentation Firebase au moment de la mise en place), et nouvelle saisie du mot de passe avant les actions sensibles.
 **Ordinateur** : disque chiffré, système à jour, gestionnaire de mots de passe, aucune clé de production dans le dossier du projet.
 
-**En cas d'incident** : révoquer la session et les clés concernées, changer les clés Stripe/Brevo/OpenAI, désactiver le compte suspect dans Firebase Authentication, restaurer depuis la dernière sauvegarde. Garder ces étapes à portée de main avant la mise en ligne.
+**En cas d'incident** : révoquer la session et les clés concernées, changer les clés Stripe/Brevo/Mistral, désactiver le compte suspect dans Firebase Authentication, restaurer depuis la dernière sauvegarde. Garder ces étapes à portée de main avant la mise en ligne.
 
 ## 7. Après la mise en ligne
 

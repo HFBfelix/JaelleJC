@@ -100,7 +100,7 @@ Une seule page, avec une colonne d'étapes à gauche et un aperçu en direct de 
 - Entrée : uniquement les faits saisis (nom, famille, matières, dimensions, entretien, taille de série, ton de `EDITORIAL.md`). Il est interdit à l'IA d'ajouter une matière, un label, une dimension, une vertu écologique ou un lieu de fabrication non fournis.
 - Sortie : 2 propositions d'accroche, d'histoire et de description, affichées à côté du champ. Rien n'est écrit tant que Jaelle ne clique pas « Utiliser » sur chaque proposition.
 - La fonction actuelle `onProductAdded` (texte à trous écrit automatiquement dans la base, brouillon de blog vide) est supprimée.
-- Le fournisseur du modèle (OpenAI aujourd'hui, via un secret existant) peut être changé sans toucher au reste.
+- Le fournisseur du modèle (Mistral depuis le 2026-10-31, décision de Jaelle : une seule IA, données en Europe ; clé `MISTRAL_API_KEY`) peut être changé sans toucher au reste.
 
 ## 6. Migration des données existantes
 
