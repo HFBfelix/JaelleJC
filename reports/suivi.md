@@ -91,6 +91,13 @@ Dernière mise à jour : 2026-10-30, fin de l'étape 7 (espace créatrice). Chaq
 - Décision : **étape 7bis** — lien envoyé par le serveur aux seules administratrices, même réponse pour toutes les adresses (« Si cette adresse est autorisée, un lien vient de lui être envoyé ») ; **étape 9** — mot de passe + double authentification (TOTP) pour l'espace créatrice, App Check sur la connexion.
 - Projet de test : droit admin posé le 2026-10-30 sur hfentreprises@gmail.com (`scripts/set-admin.ts`) ; contact@jaellejc.com et felixhamilton@ymail.com après leur première connexion à l'aperçu.
 
+## Décisions de Jaelle (2026-10-31) : fiche produit pensée pour l'IA
+
+- Fiche sur **une seule page** : photos + description libre (tapée ou **dictée**, bouton micro) → « Envoyer à l'IA » → toute la fiche préremplie (cas d'usage, variantes, stock…), la créatrice vérifie, ajuste, valide.
+- **Rouge** dans l'espace créatrice pour ce qui manque avant la mise en ligne (exception au design, jamais sur le site public ; CLAUDE.md §2).
+- Mistral pour l'analyse (`mistral-small-latest`) et la dictée (`voxtral-mini-latest`) ; 10 analyses et 30 dictées par heure.
+- À vérifier par Jaelle sur l'aperçu, une fois le stockage activé : vraie dictée (Chrome, Safari) et vraie analyse avec photos (`reports/qa/etape-7.md` Q7).
+
 ## Étape 7 — espace créatrice (2026-10-30)
 
 - Décisions de Jaelle (2026-10-30) : expédition sans lien avec La Poste (numéro de suivi recopié) ; remboursement et annulation depuis Stripe ; photos réduites dans le navigateur ; trois livraisons (7a produits, 7b commandes et stocks, 7c le reste).

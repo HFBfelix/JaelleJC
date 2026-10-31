@@ -16,7 +16,7 @@ Périmètre : France, euros, petit catalogue, livraison à domicile, emballage c
 Le rendu visuel actuel est la référence. La refonte change l'architecture, pas l'apparence, à une exception près : la typographie « Atelier » décidée par Jaelle le 28/10/2026.
 - Polices (direction « Atelier ») : Crimson Pro 400 droit (titres) et Source Sans 3 400/600 (texte), chargées par `next/font`. Corps de texte 14 px / interligne 1.7. Pas d'italique.
 - Règles de taille : aucun texte sous 11 px ; petites capitales espacées de 0,12 em au plus ; la police à empattements seulement à partir de 18 px (en dessous, Source Sans 3).
-- Couleurs : blanc, noir, gris galerie `#F7F7F7`, fond de confirmation `#F5F2EE`. Aucune couleur ajoutée.
+- Couleurs : blanc, noir, gris galerie `#F7F7F7`, fond de confirmation `#F5F2EE`. Aucune couleur ajoutée. Seule exception (décision de Jaelle, 31/10/2026) : le rouge `red-700` dans l'espace créatrice `/createur`, uniquement pour signaler ce qui manque avant la mise en ligne d'une pièce. Jamais sur le site public.
 - Bordures 0,5 px, rayon d'arrondi 0 partout (sauf éléments déjà ronds aujourd'hui).
 - Petites capitales (`uppercase tracking-[0.12em]`), lignes fines, beaucoup d'espace.
 - Logos et images : `public/assets/` tels quels. Ne jamais les redessiner, recolorer ni recadrer.

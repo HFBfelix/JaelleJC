@@ -63,3 +63,18 @@ Date : 2026-10-30 · Branche : `refonte-next` · Environnement testé : local (`
 ## Décision
 
 **Go en local et sur le projet de test.** Aucune anomalie Critique, Élevée ou Moyenne propre à l'étape. Vérifié après corrections : `npm run typecheck`, `npm run lint`, `npm test` (303), règles 109/109, parcours 175 réussis / 62 ignorés (+ 19/19 relancés après une mise en veille), `npm run test:visual` 24/24. Reste à faire par Jaelle : vérification de bout en bout sur le projet de test (Q1), stockage Firebase du test (Blaze), clé OpenAI de l'aperçu, TTL `aiQuota`.
+
+## Mise à jour du 2026-10-31 : analyse IA de la fiche et dictée
+
+| Contrôle | Résultat | Preuve |
+|---|---|---|
+| Nouvelle route `/api/createur/dictee` : même origine, taille (4 Mo), droit admin relu, type réel de l'audio (octets), audio jamais conservé, journal sans contenu | OK | `createur-produits.spec.ts` (401 anonyme et cliente, 403 autre site, 400 fichier non audio) ; `analysis.test.ts` (audioType) |
+| Action `analyzeAction` : droit admin, Zod (identifiant, notes ≤ 6 000 caractères), quota 10/h en transaction | OK | `actions.test.ts` |
+| Réponse de l'IA jamais crue : types, limites du schéma, univers existants, prix et stock refusés s'ils sont douteux ; rien n'est écrit dans la fiche sans « Enregistrer » | OK | `analysis.test.ts`, parcours (prix toujours 0 en base après l'analyse) |
+| Stock : la proposition ne fait jamais perdre de stock (variante avec stock jamais désactivée, stock attendu inchangé → vente détectée) | OK | `analysis.test.ts` (mergeVariants), parcours « vente pendant la saisie » |
+| Données envoyées à Mistral : description libre et URL des photos (déjà publiques) ; aucune donnée de compte ; Mistral = données traitées en Europe | OK | parcours (`/__test/ai` sans `@exemple.test`) |
+| Texte libre privé : collection `produitsNotes`, refusée à tous les profils (règle par défaut), supprimée avec le brouillon | OK | règles 109/109 ; parcours suppression |
+| Micro : `Permissions-Policy: microphone=(self)` seulement sous `/createur/*`, `microphone=()` ailleurs | OK | `next.config.ts` |
+| Quota de dictée : 30/h par administratrice | OK | `ai.ts` (`takeQuota`) |
+
+Aucune dépendance ajoutée. Aucune anomalie Critique ni Élevée ouverte. Décision inchangée : **Go en local et sur le projet de test.**

@@ -76,3 +76,31 @@ Règles : `tests/rules/rules.test.mjs` **109/109**, dont `aiQuota` fermé à tou
 | Q4 | Suppression automatique (TTL) sur `aiQuota.expiresAt` : projet de test maintenant, production à la bascule | Jaelle (console) |
 | Q5 | Pièces migrées : la plupart affichent « à compléter » (textes alternatifs vides, accroche). Elles restent en vente, mais toute nouvelle publication exige une fiche complète | Jaelle |
 | Q6 | Textes de l'espace créatrice à relire (libellés, aides, messages) | Jaelle |
+
+## Mise à jour du 2026-10-31 : fiche sur une seule page, analyse IA et dictée
+
+Demande de Jaelle après son essai sur l'aperçu : photos ne s'enregistrant pas, blocage à l'étape « Variantes », fiche en 6 étapes jugée mal pensée.
+
+**Diagnostic (lecture seule du projet de test, compte `scripts-test`)**
+- Photos : le bucket `jaellejc-staging.firebasestorage.app` n'existe pas (`bucket.exists()` → `false`) : stockage Firebase non activé (forfait Blaze). Le message affiché est désormais explicite.
+- Blocage : les variantes bleu et noir ont bien été enregistrées (`auditLog` : `stock.modifie`), mais l'étape « Variantes » n'avait pas de bouton « Étape suivante » et les messages s'affichaient en haut de la carte, hors de vue. Corrigé par la page unique : messages dans le panneau fixe de droite.
+
+**Livré**
+- Une seule page : « Décrire la pièce » (photos + description libre tapée ou dictée, « Envoyer à l'IA »), puis L'essentiel, Détails, Variantes et stock, Textes ; panneau fixe : liste de contrôle, manques **en rouge** (champ, intitulé et liste), case « J'ai vérifié les propositions de l'IA », un seul « Enregistrer », « Mettre en ligne » (enregistre d'abord), aperçu.
+- Analyse Mistral (`mistral-small-latest`, texte + 4 photos) : nom, univers et famille existants, prix, matières, dimensions, entretien, série, emballage, cas d'usage, mots-clés, textes, FAQ, variantes et stock, textes alternatifs, liste « non trouvé dans votre description ». Champs marqués « proposé par l'IA · à vérifier ».
+- Dictée : bouton « Dicter » / « Arrêter la dictée » (micro du navigateur, 10 min au plus), transcription Mistral `voxtral-mini-latest` par la route `/api/createur/dictee`, texte ajouté à la description libre.
+- Nouvelle pièce : nom facultatif ; l'adresse de la page suit le nom tant qu'elle n'est ni modifiée ni publiée.
+
+**Tests exécutés**
+- `npx tsc --noEmit`, `eslint src tests` : sans erreur.
+- `npx vitest run` : 360 réussis (26 fichiers), dont `analysis.test.ts` (lecture de la réponse IA, prix et stock jamais devinés, univers inventés ignorés, fusion des variantes sans perte de stock, type réel de l'audio) et `actions.test.ts` (analyse et relecture refusées sans droit admin, entrées piégées).
+- Parcours `createur-produits.spec.ts` (5/5, micro simulé par Chromium) : refus anonyme / cliente / autre site sur photos et dictée ; fichier non audio refusé ; parcours complet photo → dictée → analyse (rien d'enregistré avant « Enregistrer », notes gardées dans `produitsNotes`, aucune donnée de compte envoyée à l'IA) → enregistrement → vérification → mise en ligne → pièce en ligne incomplète refusée → archivage ; vente pendant la saisie jamais écrasée ; suppression d'un brouillon avec son texte libre.
+- Suite complète ordinateur + mobile + Safari iPhone : 188 réussis, 64 ignorés, 0 échec (port 3517, émulateurs, faux Stripe et faux Mistral).
+- Règles Firestore/Storage : 109/109 (copie sur le projet `demo-regles-fiche-ia`), `produitsNotes` refusé à tous les profils.
+- Captures de la fiche vide et préremplie vérifiées (ordinateur, 1400 px).
+
+**Points ouverts**
+| # | Sujet | Qui |
+|---|---|---|
+| Q7 | Vérifier sur l'aperçu une vraie dictée (formats acceptés par Mistral : webm de Chrome, mp4 de Safari) et une vraie analyse avec photos | Jaelle, après Blaze |
+| Q8 | Rouge limité à l'espace créatrice (exception au design, décision de Jaelle) | — |

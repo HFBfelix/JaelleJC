@@ -79,6 +79,8 @@ L'onglet « Clients », vide aujourd'hui, est reporté en v2.
 
 Une seule page, avec une colonne d'étapes à gauche et un aperçu en direct de la fiche telle que le client la verra.
 
+> **Mise à jour 2026-10-31 (décision de Jaelle)** : la fiche n'a plus d'étapes. En haut, « Décrire la pièce » : photos + description libre, tapée ou dictée (bouton « Dicter », transcription Mistral), puis « Envoyer à l'IA », qui préremplit toute la fiche (nom, univers, prix, matières, dimensions, entretien, cas d'usage, variantes et stock, textes, textes alternatifs). Chaque champ prérempli porte « proposé par l'IA · à vérifier » ; ce que l'IA n'a pas trouvé est listé. Dessous, la fiche complète sur une page ; à droite, la liste de contrôle (manques en rouge), « Enregistrer », « Mettre en ligne », l'aperçu. Un seul « Enregistrer » pour tout. Le texte libre est gardé en privé (`produitsNotes`, serveur seul).
+
 1. **Photos** : glisser-déposer, réorganiser, choisir la couverture, saisir un texte alternatif pour chacune. JPEG, PNG ou WebP, 10 Mo maximum (photos d'iPhone en JPEG). Envoi direct vers Firebase Storage sous `produits/{productId}/{identifiant aléatoire}.{ext}` (jamais le nom d'origine du fichier). Redimensionnement et WebP assurés par `next/image`.
 2. **L'essentiel** : nom, univers, famille, prix TTC.
 3. **Détails** : matières, entretien (facultatif), série limitée (facultatif), emballage cadeau.
@@ -97,8 +99,9 @@ Une seule page, avec une colonne d'étapes à gauche et un aperçu en direct de 
 ## 5. Brouillon IA : règles
 
 - Déclenché uniquement par un clic. Exécuté côté serveur, clé dans les secrets, droit admin vérifié, limite d'appels par heure.
-- Entrée : uniquement les faits saisis (nom, famille, matières, dimensions, entretien, taille de série, ton de `EDITORIAL.md`). Il est interdit à l'IA d'ajouter une matière, un label, une dimension, une vertu écologique ou un lieu de fabrication non fournis.
-- Sortie : 2 propositions d'accroche, d'histoire et de description, affichées à côté du champ. Rien n'est écrit tant que Jaelle ne clique pas « Utiliser » sur chaque proposition.
+- Entrée : la description libre de la créatrice (tapée ou dictée) et ses photos (4 au plus). Il est interdit à l'IA d'ajouter une matière, un label, une dimension, une vertu écologique ou un lieu de fabrication non fournis ; les photos ne servent qu'au coloris et au texte alternatif ; prix et stock seulement s'ils sont écrits clairement.
+- Sortie (depuis le 2026-10-31) : de quoi préremplir toute la fiche, relu par le serveur (types, limites, univers existants). Rien n'est écrit dans la fiche tant que la créatrice ne clique pas « Enregistrer » ; la case « J'ai vérifié les propositions de l'IA » est exigée pour la mise en ligne.
+- Dictée : l'audio est transcrit par Mistral (`voxtral-mini-latest`), jamais conservé ; 30 dictées et 10 analyses par heure au plus.
 - La fonction actuelle `onProductAdded` (texte à trous écrit automatiquement dans la base, brouillon de blog vide) est supprimée.
 - Le fournisseur du modèle (Mistral depuis le 2026-10-31, décision de Jaelle : une seule IA, données en Europe ; clé `MISTRAL_API_KEY`) peut être changé sans toucher au reste.
 
