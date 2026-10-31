@@ -1,6 +1,7 @@
 // Brouillon IA d'une fiche (BACKOFFICE.md §5) : déclenché par un clic, côté serveur, à partir des seuls faits saisis.
 // Rien n'est écrit dans la fiche : les propositions reviennent à l'écran, Jaelle choisit « Utiliser ».
-// Fournisseur : OpenAI (clé OPENAI_API_KEY, environnement serveur) ; un faux serveur (OPENAI_API_HOST) sert aux
+// Fournisseur : Mistral (données traitées en Europe ; clé MISTRAL_API_KEY, environnement serveur), seule IA du site
+// depuis le 2026-10-31 (décision de Jaelle). Un faux serveur (MISTRAL_API_HOST) sert aux
 // parcours locaux, accepté seulement avec les émulateurs.
 import 'server-only';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
@@ -40,18 +41,18 @@ async function takeQuota(uid: string): Promise<boolean> {
 }
 
 function endpoint() {
-  const fake = env('OPENAI_API_HOST');
+  const fake = env('MISTRAL_API_HOST');
   if (fake) {
-    if (env('VERCEL_ENV') || !env('FIRESTORE_EMULATOR_HOST')) throw new Error('OPENAI_API_HOST réservé aux tests locaux.');
+    if (env('VERCEL_ENV') || !env('FIRESTORE_EMULATOR_HOST')) throw new Error('MISTRAL_API_HOST réservé aux tests locaux.');
     return `http://${fake}/v1/chat/completions`;
   }
-  return 'https://api.openai.com/v1/chat/completions';
+  return 'https://api.mistral.ai/v1/chat/completions';
 }
 
 export type DraftResult = { status: 'ok'; proposals: AiProposals } | { status: 'introuvable' | 'quota' | 'faits' | 'indisponible' };
 
 export async function draftTexts(uid: string, id: string): Promise<DraftResult> {
-  const key = env('OPENAI_API_KEY');
+  const key = env('MISTRAL_API_KEY');
   if (!key) return { status: 'indisponible' };
   const loaded = await loadProductAdmin(id);
   if (!loaded) return { status: 'introuvable' };
@@ -74,7 +75,7 @@ export async function draftTexts(uid: string, id: string): Promise<DraftResult> 
     method: 'POST',
     headers: { authorization: `Bearer ${key}`, 'content-type': 'application/json' },
     body: JSON.stringify({
-      model: env('OPENAI_MODEL') ?? 'gpt-4o-mini',
+      model: env('MISTRAL_MODEL') ?? 'mistral-small-latest',
       temperature: 0.6,
       response_format: { type: 'json_object' },
       messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: `FAITS : ${JSON.stringify(facts)}` }],

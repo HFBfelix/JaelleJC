@@ -43,8 +43,8 @@ jobs:
           export STRIPE_WEBHOOK_SECRET="whsec_$(openssl rand -hex 24)"
           export STRIPE_API_HOST="127.0.0.1:12111"
           # Espace créatrice : brouillon IA servi par le même faux serveur, photos dans l'émulateur Storage.
-          export OPENAI_API_KEY="sk-test-$(openssl rand -hex 16)"
-          export OPENAI_API_HOST="127.0.0.1:12111"
+          export MISTRAL_API_KEY="test-$(openssl rand -hex 16)"
+          export MISTRAL_API_HOST="127.0.0.1:12111"
           npx firebase emulators:exec --only firestore,auth,storage --project demo-jaellejc "npm run test:e2e"
       # Les captures de référence sont prises sous Windows : la comparaison visuelle se lance en local
       # (npm run test:visual), le rendu des polices différant sous Linux.

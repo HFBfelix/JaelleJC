@@ -17,7 +17,7 @@ export default async function FicheProduitPage({ params }: Props) {
       variants={loaded.variants}
       categories={loaded.categories.map((c) => ({ slug: c.slug, name: c.data.name, subs: c.data.subs }))}
       checklist={loaded.checklist}
-      aiEnabled={!!process.env.OPENAI_API_KEY}
+      aiEnabled={!!process.env.MISTRAL_API_KEY}
     />
   );
 }

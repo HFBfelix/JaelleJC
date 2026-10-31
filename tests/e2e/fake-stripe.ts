@@ -1,7 +1,7 @@
 // Faux serveur Stripe des parcours (local et CI) : reçoit la création des sessions de paiement et les
 // remboursements, comme l'API Stripe, sans rien envoyer chez Stripe. Le site y est branché par
 // STRIPE_API_HOST (accepté seulement avec les émulateurs, src/server/payments/stripe.ts).
-// Il joue aussi l'API de l'IA du brouillon de fiche (OPENAI_API_HOST, src/server/createur/ai.ts) : il renvoie
+// Il joue aussi l'API de l'IA du brouillon de fiche (MISTRAL_API_HOST, src/server/createur/ai.ts ; même format que l’API Mistral) : il renvoie
 // des propositions fixes et garde les faits reçus, pour vérifier que seuls les faits saisis partent.
 import { randomBytes } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
