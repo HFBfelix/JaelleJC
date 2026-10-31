@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import ProductEditor from '@/components/createur/ProductEditor';
 import { requireAdmin } from '@/server/auth/session';
+import { aiEnabled } from '@/server/createur/ai';
 import { loadProductAdmin } from '@/server/createur/products';
 
 type Props = { params: Promise<{ id: string }> };
@@ -16,8 +17,8 @@ export default async function FicheProduitPage({ params }: Props) {
       product={loaded.product}
       variants={loaded.variants}
       categories={loaded.categories.map((c) => ({ slug: c.slug, name: c.data.name, subs: c.data.subs }))}
-      checklist={loaded.checklist}
-      aiEnabled={!!process.env.MISTRAL_API_KEY}
+      notes={loaded.notes}
+      aiEnabled={aiEnabled()}
     />
   );
 }

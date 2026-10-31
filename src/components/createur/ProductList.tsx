@@ -33,7 +33,7 @@ export default function ProductList({ rows, categories }: { rows: ProductRow[]; 
     setNotice(null);
     try {
       const result = await createProductAction({ name }); // redirige vers la fiche en cas de succès
-      if (result) setNotice(result.status === 'invalide' ? 'Donnez un nom à la pièce.' : 'Une erreur est survenue. Réessayez.');
+      if (result) setNotice(result.status === 'invalide' ? 'Nom trop long (120 caractères au plus).' : 'Une erreur est survenue. Réessayez.');
     } catch (err) {
       if ((err as { digest?: string })?.digest?.startsWith('NEXT_REDIRECT')) throw err;
       setNotice('Une erreur est survenue. Réessayez.');
@@ -45,9 +45,9 @@ export default function ProductList({ rows, categories }: { rows: ProductRow[]; 
     <>
       <Card className="mb-8">
         <form onSubmit={onCreate} className="flex flex-col md:flex-row md:items-end gap-4" aria-label="Nouvelle pièce">
-          <div className="flex-1"><Input label="Nouvelle pièce" placeholder="Nom de la pièce" value={name} maxLength={120}
-            onChange={(e) => setName(e.target.value)} required /></div>
-          <Button type="submit" disabled={pending || !name.trim()} className="mb-6">Créer la fiche</Button>
+          <div className="flex-1"><Input label="Nouvelle pièce" placeholder="Nom (facultatif : l’IA le proposera)" value={name} maxLength={120}
+            onChange={(e) => setName(e.target.value)} /></div>
+          <Button type="submit" disabled={pending} className="mb-6">Créer la fiche</Button>
         </form>
         {notice && <Message>{notice}</Message>}
       </Card>

@@ -2,7 +2,15 @@ import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'rea
 
 // Éléments de l'espace créatrice : design de l'ancien Dashboard (fond crème #F5F2EE, cartes blanches, lignes fines),
 // typographie Atelier (aucun texte sous 11 px, pas d'italique).
+// Rouge : seulement dans l'espace créatrice, pour ce qui manque avant la mise en ligne (décision de Jaelle, 2026-10-31).
 export const label = 'text-[11px] uppercase tracking-[0.12em] text-neutral-500';
+export const missingText = 'text-red-700';
+
+type FieldExtras = { label: string; hint?: string; error?: string | null; ai?: boolean };
+
+// Mention sous l'intitulé d'un champ prérempli par l'IA, jusqu'à ce que la créatrice le modifie.
+export const AiMark = () => <span className="ml-2 normal-case tracking-normal text-[11px] text-neutral-500 border-[0.5px] border-neutral-400 px-1.5">proposé par l’IA · à vérifier</span>;
+const FieldError = ({ error }: { error?: string | null }) => (error ? <span className={`text-[13px] ${missingText} block mt-2`}>{error}</span> : null);
 
 export const Card = ({ children, className = '' }: { children: ReactNode; className?: string }) => (
   <div className={`bg-white border-[0.5px] border-neutral-300 p-6 ${className}`}>{children}</div>
@@ -15,18 +23,22 @@ export const AdminTitle = ({ children, action }: { children: ReactNode; action?:
   </div>
 );
 
-export const Input = ({ label: text, hint, ...input }: { label: string; hint?: string } & InputHTMLAttributes<HTMLInputElement>) => (
+export const Input = ({ label: text, hint, error, ai, ...input }: FieldExtras & InputHTMLAttributes<HTMLInputElement>) => (
   <label className="block mb-6">
-    <span className={`${label} block mb-2`}>{text}</span>
-    <input {...input} className="w-full bg-transparent border-b-[0.5px] border-neutral-400 focus:border-black py-2 outline-none text-[14px]" />
+    <span className={`${label} block mb-2 ${error ? missingText : ''}`}>{text}{ai && <AiMark />}</span>
+    <input {...input} aria-invalid={error ? true : undefined}
+      className={`w-full bg-transparent border-b-[0.5px] ${error ? 'border-red-700' : 'border-neutral-400'} focus:border-black py-2 outline-none text-[14px]`} />
+    <FieldError error={error} />
     {hint && <span className="text-[13px] text-neutral-500 block mt-2">{hint}</span>}
   </label>
 );
 
-export const TextArea = ({ label: text, hint, ...area }: { label: string; hint?: string } & TextareaHTMLAttributes<HTMLTextAreaElement>) => (
+export const TextArea = ({ label: text, hint, error, ai, ...area }: FieldExtras & TextareaHTMLAttributes<HTMLTextAreaElement>) => (
   <label className="block mb-6">
-    <span className={`${label} block mb-2`}>{text}</span>
-    <textarea {...area} className="w-full bg-white border-[0.5px] border-neutral-300 focus:border-black p-3 outline-none text-[14px] leading-relaxed resize-y" />
+    <span className={`${label} block mb-2 ${error ? missingText : ''}`}>{text}{ai && <AiMark />}</span>
+    <textarea {...area} aria-invalid={error ? true : undefined}
+      className={`w-full bg-white border-[0.5px] ${error ? 'border-red-700' : 'border-neutral-300'} focus:border-black p-3 outline-none text-[14px] leading-relaxed resize-y`} />
+    <FieldError error={error} />
     {hint && <span className="text-[13px] text-neutral-500 block mt-2">{hint}</span>}
   </label>
 );
