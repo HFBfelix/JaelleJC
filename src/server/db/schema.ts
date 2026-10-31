@@ -18,7 +18,8 @@ export const COLLECTIONS = {
   stripeEvents: 'stripeEvents', // événements Stripe déjà traités (idempotence du webhook)
   checkouts: 'checkouts', // paiements en cours : instantané du panier relu par le webhook
   stripeCustomers: 'stripeCustomers', // client Stripe de chaque compte (préremplissage de l'adresse) : serveur uniquement
-  aiQuota: 'aiQuota', // appels au brouillon IA par heure (espace créatrice) : serveur uniquement, TTL `expiresAt`
+  aiQuota: 'aiQuota', // appels à l'IA par heure (espace créatrice) : serveur uniquement, TTL `expiresAt`
+  produitsNotes: 'produitsNotes', // texte libre de la créatrice par pièce (analyse IA) : serveur uniquement, jamais public
 } as const;
 
 const slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80);

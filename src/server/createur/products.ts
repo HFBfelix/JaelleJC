@@ -105,11 +105,14 @@ export async function listProductsAdmin(): Promise<ProductRow[]> {
 
 export async function loadProductAdmin(id: string) {
   const ref = products().doc(id);
-  const [snap, variantsSnap, categories] = await Promise.all([ref.get(), ref.collection(COLLECTIONS.variantes).get(), listCategoriesAdmin()]);
+  const [snap, variantsSnap, categories, notesSnap] = await Promise.all([
+    ref.get(), ref.collection(COLLECTIONS.variantes).get(), listCategoriesAdmin(), db().collection(COLLECTIONS.produitsNotes).doc(id).get(),
+  ]);
   if (!snap.exists) return null;
   const product = toAdminProduct(snap.id, snap.data()!);
   const variants = toAdminVariants(variantsSnap.docs);
-  return { product, variants, categories, checklist: checklistOf(product, variants, categories) };
+  const notes = str(notesSnap.get('notes'));
+  return { product, variants, categories, notes, checklist: checklistOf(product, variants, categories) };
 }
 
 async function slugTaken(slug: string, exceptId: string | null) {
@@ -342,6 +345,7 @@ export async function deleteDraft(uid: string, id: string): Promise<StatusResult
   const batch = db().batch();
   variants.docs.forEach((v) => batch.delete(v.ref));
   batch.delete(ref);
+  batch.delete(db().collection(COLLECTIONS.produitsNotes).doc(id));
   await batch.commit();
   await Promise.all(p.images.filter((i) => i.path.startsWith(`produits/${id}/`)).map((i) => deletePhotoFile(i.path)));
   await audit(uid, 'produit.supprime', id);

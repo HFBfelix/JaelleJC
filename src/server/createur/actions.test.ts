@@ -5,11 +5,11 @@ const mocks = vi.hoisted(() => ({
   requireAdmin: vi.fn(),
   saveFields: vi.fn(), saveVariants: vi.fn(), addPhoto: vi.fn(), publishProduct: vi.fn(), setProductStatus: vi.fn(),
   deleteDraft: vi.fn(), createProduct: vi.fn(), updatePhotos: vi.fn(), removePhoto: vi.fn(), loadProductAdmin: vi.fn(),
-  audit: vi.fn(), draftTexts: vi.fn(), redirect: vi.fn(),
+  audit: vi.fn(), analyzeProduct: vi.fn(), redirect: vi.fn(),
 }));
 vi.mock('../auth/session', () => ({ requireAdmin: mocks.requireAdmin }));
 vi.mock('./products', () => mocks);
-vi.mock('./ai', () => ({ draftTexts: mocks.draftTexts }));
+vi.mock('./ai', () => ({ analyzeProduct: mocks.analyzeProduct }));
 vi.mock('../firebase/admin', () => ({ adminDb: () => { throw new Error('base touchée'); } }));
 vi.mock('next/navigation', () => ({ redirect: mocks.redirect }));
 
@@ -37,8 +37,9 @@ describe('cliente ordinaire, anonyme ou droit retiré (requireAdmin → null)', 
       actions.publishAction({ productId: 'p1' }),
       actions.setStatusAction({ productId: 'p1', status: 'archived' }),
       actions.deleteDraftAction({ productId: 'p1' }),
-      actions.draftAiAction({ productId: 'p1' }),
+      actions.analyzeAction({ productId: 'p1', notes: 'Cape en gaze' }),
       actions.reviewAiAction({ productId: 'p1' }),
+      actions.reviewAiAction({ productId: 'p1', reviewed: false }),
     ]);
     for (const r of results) expect(r).toEqual({ status: 'connexion' });
     for (const [name, fn] of Object.entries(mocks)) if (name !== 'requireAdmin') expect(fn).not.toHaveBeenCalled();
@@ -54,12 +55,28 @@ describe('administratrice', () => {
     ['champ en trop (stock dans la fiche)', () => actions.saveFieldsAction({ productId: 'p1', fields: { ...fields, inStock: true } })],
     ['prix négatif', () => actions.saveFieldsAction({ productId: 'p1', fields: { ...fields, priceCents: -100 } })],
     ['stock négatif', () => actions.saveVariantsAction({ productId: 'p1', rows: [{ ...row, stock: -3 }] })],
+    ['notes trop longues pour l’IA', () => actions.analyzeAction({ productId: 'p1', notes: 'x'.repeat(6001) })],
+    ['analyse sur un identifiant piégé', () => actions.analyzeAction({ productId: '../orders/x', notes: 'Cape' })],
   ])('%s : refusé avant la base', async (_, call) => {
     expect(await call()).toEqual({ status: 'invalide' });
     expect(mocks.publishProduct).not.toHaveBeenCalled();
     expect(mocks.setProductStatus).not.toHaveBeenCalled();
     expect(mocks.saveFields).not.toHaveBeenCalled();
     expect(mocks.saveVariants).not.toHaveBeenCalled();
+    expect(mocks.analyzeProduct).not.toHaveBeenCalled();
+  });
+
+  it('nouvelle pièce sans nom : « Nouvelle pièce », l’IA proposera le nom', async () => {
+    mocks.createProduct.mockResolvedValue('p9');
+    await actions.createProductAction({});
+    expect(mocks.createProduct).toHaveBeenCalledWith('admin-uid', 'Nouvelle pièce');
+    expect(mocks.redirect).toHaveBeenCalledWith('/createur/produits/p9');
+  });
+
+  it('analyse : l’uid de la session et les notes reçues, rien d’autre', async () => {
+    mocks.analyzeProduct.mockResolvedValue({ status: 'quota' });
+    expect(await actions.analyzeAction({ productId: 'p1', notes: 'Cape en gaze, 3 pièces' })).toEqual({ status: 'quota' });
+    expect(mocks.analyzeProduct).toHaveBeenCalledWith('admin-uid', 'p1', 'Cape en gaze, 3 pièces');
   });
 
   it('l’autrice enregistrée est l’uid de la session', async () => {

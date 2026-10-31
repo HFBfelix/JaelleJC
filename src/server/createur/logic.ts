@@ -106,6 +106,17 @@ export function imageType(bytes: Uint8Array): 'jpg' | 'png' | 'webp' | null {
   return null;
 }
 
+// Dictée : enregistrement du micro (webm/opus de Chrome, mp4 de Safari, ogg de Firefox), type réel lu dans les octets.
+export const AUDIO_MAX_BYTES = 4 * 1024 * 1024; // environ 15 minutes à 32 kbit/s, sous la limite d'envoi de Vercel
+export function audioType(bytes: Uint8Array): 'webm' | 'mp4' | 'ogg' | 'wav' | null {
+  const ascii = (from: number, to: number) => String.fromCharCode(...bytes.slice(from, to));
+  if (bytes.length > 4 && bytes[0] === 0x1a && bytes[1] === 0x45 && bytes[2] === 0xdf && bytes[3] === 0xa3) return 'webm';
+  if (bytes.length > 12 && ascii(4, 8) === 'ftyp') return 'mp4';
+  if (bytes.length > 4 && ascii(0, 4) === 'OggS') return 'ogg';
+  if (bytes.length > 12 && ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WAVE') return 'wav';
+  return null;
+}
+
 export const photosInput = z.strictObject({
   productId,
   images: z.array(z.strictObject({ path: z.string().max(300), alt: text(200) })).max(PHOTOS_MAX),

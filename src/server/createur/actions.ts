@@ -5,7 +5,8 @@
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { requireAdmin } from '../auth/session';
-import { draftTexts, type DraftResult } from './ai';
+import { analyzeProduct, type AnalyzeResult } from './ai';
+import { NOTES_MAX } from './analysis';
 import { photosInput, productFields, productId, variantsInput } from './logic';
 import {
   audit, createProduct, deleteDraft, loadProductAdmin, publishProduct, removePhoto, saveFields, saveVariants,
@@ -31,10 +32,11 @@ async function run<T>(label: string, fn: (uid: string) => Promise<T>): Promise<T
 
 const byId = z.strictObject({ productId });
 
+// Nouvelle pièce : le nom est facultatif (l'analyse IA le proposera à partir des notes et des photos).
 export async function createProductAction(input: unknown): Promise<Denied> {
-  const parsed = z.strictObject({ name: z.string().trim().min(1).max(120) }).safeParse(input);
+  const parsed = z.strictObject({ name: z.string().trim().max(120).optional() }).safeParse(input);
   if (!parsed.success) return INVALID;
-  const result = await run('création', (uid) => createProduct(uid, parsed.data.name));
+  const result = await run('création', (uid) => createProduct(uid, parsed.data.name || 'Nouvelle pièce'));
   if (typeof result !== 'string') return result;
   redirect(`/createur/produits/${result}`);
 }
@@ -97,20 +99,21 @@ export async function deleteDraftAction(input: unknown): Promise<StatusResult | 
   redirect('/createur/produits');
 }
 
-export async function draftAiAction(input: unknown): Promise<DraftResult | Denied> {
-  const parsed = byId.safeParse(input);
+// « Envoyer » : le texte libre (tapé ou dicté) et les photos partent à l'IA, qui propose de quoi préremplir la fiche.
+export async function analyzeAction(input: unknown): Promise<AnalyzeResult | Denied> {
+  const parsed = z.strictObject({ productId, notes: z.string().max(NOTES_MAX) }).safeParse(input);
   if (!parsed.success) return INVALID;
-  return run('brouillon IA', (uid) => draftTexts(uid, parsed.data.productId));
+  return run('analyse IA', (uid) => analyzeProduct(uid, parsed.data.productId, parsed.data.notes));
 }
 
-// « J'ai relu le brouillon IA » : lève le blocage de publication.
+// « J'ai vérifié les propositions de l'IA » : lève (ou remet) le blocage de publication.
 export async function reviewAiAction(input: unknown): Promise<{ status: 'ok' | 'introuvable' } | Denied> {
-  const parsed = byId.safeParse(input);
+  const parsed = z.strictObject({ productId, reviewed: z.boolean().default(true) }).safeParse(input);
   if (!parsed.success) return INVALID;
   return run('relecture IA', async (uid) => {
     const ref = adminDb().collection(COLLECTIONS.produits).doc(parsed.data.productId);
     if (!(await ref.get()).exists) return { status: 'introuvable' as const };
-    await ref.update({ 'aiDraft.reviewed': true, updatedBy: uid });
+    await ref.update({ 'aiDraft.reviewed': parsed.data.reviewed, updatedBy: uid });
     await audit(uid, 'produit.ia-relu', parsed.data.productId);
     return { status: 'ok' as const };
   });

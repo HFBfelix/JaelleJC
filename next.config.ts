@@ -16,7 +16,11 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    return [
+      { source: '/:path*', headers: securityHeaders },
+      // Micro autorisé pour ce site seulement dans l'espace créatrice (dictée de la fiche) ; refusé partout ailleurs.
+      { source: '/createur/:path*', headers: [{ key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' }] },
+    ];
   },
   // Photos produits servies par Firebase Storage (production et projet de test).
   images: {
