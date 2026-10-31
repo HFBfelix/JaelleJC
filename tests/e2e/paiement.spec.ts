@@ -235,6 +235,11 @@ test('dernière pièce payée par deux clientes : la seconde est remboursée et 
   const lateEvent = event(late, await sessionParams(late));
   expect((await sendWebhook(second, lateEvent)).status()).toBe(200);
   expect(await stockOf(FIXTURE.last.id)).toBe(0);
+  // Dernière pièce vendue : épuisée partout pour les internautes, sans intervention.
+  expect((await db().doc(`produits/${FIXTURE.last.id}`).get()).get('inStock')).toBe(false);
+  await page.goto(`/produits/${FIXTURE.last.slug}`);
+  await expect(page.getByText('Épuisé').filter({ visible: true }).first()).toBeVisible(); // vue mobile ou ordinateur
+  await expect(page.getByRole('button', { name: 'Ajouter à la sélection' })).toHaveCount(0);
   expect(await orderOf(first)).toMatchObject({ status: 'paid' });
   expect(await orderOf(late)).toMatchObject({ status: 'refunded', refund: { reason: 'stock', id: expect.stringMatching(/^re_/) } });
 

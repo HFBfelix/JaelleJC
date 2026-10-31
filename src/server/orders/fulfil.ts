@@ -43,7 +43,13 @@ export async function fulfilCheckout(rawSession: unknown, eventId: string, event
     const variantRefs = snap.lines.map((l) =>
       db.collection(COLLECTIONS.produits).doc(l.productId).collection(COLLECTIONS.variantes).doc(l.variantId));
     const cartRef = db.collection(COLLECTIONS.carts).doc(snap.cartId);
-    const [variantSnaps, cartSnap] = await Promise.all([tx.getAll(...variantRefs), tx.get(cartRef)]);
+    // Toutes les variantes des pièces achetées : l'indicateur « en stock » de chaque pièce est recalculé après le
+    // décompte (dernière pièce vendue → épuisée partout sur le site, listes et données structurées comprises).
+    const productIds = [...new Set(snap.lines.map((l) => l.productId))];
+    const [variantSnaps, cartSnap, ...allVariants] = await Promise.all([
+      tx.getAll(...variantRefs), tx.get(cartRef),
+      ...productIds.map((id) => tx.get(db.collection(COLLECTIONS.produits).doc(id).collection(COLLECTIONS.variantes))),
+    ]);
     const stocks = new Map(snap.lines.map((l, i) => {
       const stock = variantSnaps[i]?.get('stock');
       return [lineKey(l.productId, l.variantId), Number.isInteger(stock) ? (stock as number) : undefined] as const;
@@ -58,6 +64,14 @@ export async function fulfilCheckout(rawSession: unknown, eventId: string, event
       snap.lines.forEach((l, i) => {
         const key = lineKey(l.productId, l.variantId);
         tx.update(variantRefs[i]!, { stock: allocation.remaining.get(key), updatedAt: Timestamp.fromDate(now) });
+      });
+      productIds.forEach((id, n) => {
+        const inStock = allVariants[n]!.docs.some((v) => {
+          const remaining = allocation.remaining.get(lineKey(id, v.id));
+          const stock = remaining ?? (Number.isInteger(v.get('stock')) ? (v.get('stock') as number) : 0);
+          return v.get('active') === true && stock > 0;
+        });
+        tx.update(db.collection(COLLECTIONS.produits).doc(id), { inStock });
       });
       const cart = cartSchema.safeParse(cartSnap.data());
       if (cart.success) tx.update(cartRef, { items: withoutPurchased(cart.data.items, snap.lines), updatedAt: Timestamp.fromDate(now) });
