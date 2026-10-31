@@ -41,7 +41,7 @@ Dernière mise à jour : 2026-10-30, fin de l'étape 7 (espace créatrice). Chaq
 
 | Priorité | Sujet | Détail | Origine |
 |---|---|---|---|
-| **Critique** | Clés API Brevo exposées | 2 clés `xkeysib-` dans l'historique public GitHub (janvier et mars 2026), dont une incluse dans le site entre janvier et mars. Dans Brevo, onglet **« Clés API »** (pas « Clés SMTP ») : désactiver/supprimer ces clés, vérifier l'activité du compte. Si une clé active sert au secret Firebase `BREVO_API_KEY`, en créer une nouvelle avant. | `reports/securite/etape-0.md` #1 |
+| ~~Critique~~ **Clos (2026-10-31)** | Clés API Brevo exposées | Les 2 clés (« agentIA », « Jaelle&JC ») étaient déjà désactivées dans Brevo, puis **supprimées par Jaelle** le 2026-10-31. Nouvelle clé `site-refonte` aux droits minimaux (e-mails transactionnels + contacts seulement), saisie par Jaelle dans Vercel (Preview). Conséquence : l'ancien site en production n'envoie plus d'e-mails depuis la désactivation (dernière utilisation : 29 avril 2026) — jusqu'à la bascule. | `reports/securite/etape-0.md` #1 |
 | Moyenne | Outils de dev : 8 vulnérabilités moyennes | `postcss-selector-parser` (Tailwind 3), `uuid`, `gaxios`, `@opentelemetry/core` (firebase-tools) ; absentes du site publié | `reports/securite/etape-1.md` #3 |
 | Moyenne | Retrait du consentement cookies | Lien « Gérer les cookies », choix daté et redemandé après 6 mois | rapport étape 1 #2 → étape 8/9 |
 | Faible | CSP complète | Seule `frame-ancestors` est posée | rapport étape 1 #4 → étape 9 |
@@ -77,6 +77,13 @@ Dernière mise à jour : 2026-10-30, fin de l'étape 7 (espace créatrice). Chaq
 - « Fiche relation » par client ou prospect (occasion, recherches, panier, commandes, préférences, retours), avec consentement dédié au profilage, filtre des données délicates, durée de 3 ans après le dernier contact, incluse dans l'export et la suppression du compte.
 - Recherche par **cas d'usage** (sémantique, pas par mots-clés) : barre du milieu de l'accueil (« Chercher une pièce, un usage… ») ; ex. « cadeau pour le baptême de mon neveu » → coffrets de naissance seulement, « je pars en vacances » → cabas. Existant : fonction `analyzeIntent` (OpenAI `gpt-4o-mini`, `functions/src/index.ts`) et `legacy/src/pages/SmartSearchPOC.tsx`. Les recherches d'une cliente connectée et consentante enrichissent sa fiche relation.
 - OpenAI reste utilisé pour les brouillons de fiches produit (étape 7).
+
+## Brevo (2026-10-31)
+
+- Expéditeur des e-mails du site : **API Brevo** (décision de Jaelle, compte existant, données en Europe), à la place de Resend.
+- Clé `site-refonte` : « Emails transactionnels » et « contact » seulement (pas de campagnes : une clé volée ne peut pas écrire à toutes les abonnées). Dans Vercel, variable `BREVO_API_KEY`, Preview uniquement, sensible. Production : nouvelle clé à la bascule.
+- Domaine jaellejc.com **authentifié et vérifié** dans Brevo (authentification automatique OVH, 2026-10-31) ; expéditeur `Jaelle & JC <contact@jaellejc.com>` actif (vérifié par le connecteur Brevo, lecture seule).
+- Newsletter mensuelle : connecteur Brevo de Claude (connexion OAuth de Jaelle, aucune clé confiée) ; Claude prépare le brouillon, **Jaelle envoie** depuis Brevo.
 
 ## Décision de Jaelle (2026-10-30) : connexion à l'espace créatrice
 
