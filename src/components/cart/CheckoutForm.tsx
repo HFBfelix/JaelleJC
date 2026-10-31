@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { startCheckoutAction, type CheckoutActionResult } from '@/server/checkout/actions';
 import { GIFT_MESSAGE_MAX } from '@/server/checkout/logic';
@@ -13,7 +13,11 @@ const MESSAGES: Partial<Record<CheckoutActionResult['status'], string>> = {
   indisponible: 'Le paiement est momentanément indisponible. Réessayez dans un instant.',
   invalide: 'Vérifiez l’adresse de livraison (code postal à 5 chiffres, téléphone français) et le mot pour la naissance.',
   erreur: 'Le paiement est momentanément indisponible. Réessayez dans un instant.',
+  adresse: 'Adresse introuvable : choisissez-la dans la liste proposée (numéro et nom de rue).',
 };
+
+// Suggestion de la Base Adresse Nationale (adresse au numéro près).
+type Suggestion = { name: string; postcode: string; city: string };
 
 export type SavedAddress = { id: string; label: string; name: string; line1: string; line2: string; zipCode: string; city: string; phone: string };
 type Shipping = Omit<SavedAddress, 'id' | 'label'>;
@@ -25,7 +29,7 @@ const labelText = 'text-[11px] uppercase tracking-[0.12em] text-neutral-500 bloc
 
 // Page panier : livraison confirmée (adresse et téléphone, préremplis depuis le compte), option cadeau, puis
 // « Confirmer et payer ». Le serveur relit tout (prix, stock, livraison) et ouvre la page Stripe préremplie.
-export default function CheckoutForm({ addresses }: { addresses: SavedAddress[] }) {
+export default function CheckoutForm({ addresses, addressApi }: { addresses: SavedAddress[]; addressApi: string }) {
   const signedIn = useSignedIn();
   const router = useRouter();
   const [chosen, setChosen] = useState(addresses[0]?.id ?? '');
@@ -36,8 +40,34 @@ export default function CheckoutForm({ addresses }: { addresses: SavedAddress[] 
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const { announceStock } = useCart();
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const typed = useRef(false); // suggestions seulement pendant la saisie de la rue (pas après un choix)
+
+  // Code postal à 5 chiffres + au moins 3 caractères de rue : adresses réelles de ce code postal (pause de 250 ms).
+  useEffect(() => {
+    const q = shipping.line1.trim();
+    if (!typed.current || !/^[0-9]{5}$/.test(shipping.zipCode) || q.length < 3) { setSuggestions([]); return; }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ q, postcode: shipping.zipCode, type: 'housenumber', autocomplete: '1', limit: '5' });
+        const res = await fetch(`${addressApi}/geocodage/search?${params}`, { signal: controller.signal });
+        const body = (await res.json()) as { features?: { properties?: Record<string, unknown> }[] };
+        setSuggestions((body.features ?? []).flatMap(({ properties: p = {} }) =>
+          typeof p.name === 'string' && typeof p.postcode === 'string' && typeof p.city === 'string'
+            ? [{ name: p.name, postcode: p.postcode, city: p.city }] : []));
+      } catch { /* service injoignable : saisie libre, le serveur tranche au clic « Payer » */ }
+    }, 250);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [shipping.line1, shipping.zipCode, addressApi]);
 
   if (!signedIn) return <PayButton />;
+
+  const pickSuggestion = (s: Suggestion) => {
+    typed.current = false;
+    set({ line1: s.name, zipCode: s.postcode, city: s.city });
+    setSuggestions([]);
+  };
 
   const choose = (id: string) => {
     setChosen(id);
@@ -89,16 +119,31 @@ export default function CheckoutForm({ addresses }: { addresses: SavedAddress[] 
         )}
         <label className="block mb-4"><span className={labelText}>Nom et prénom</span>
           <input required maxLength={100} autoComplete="shipping name" value={shipping.name} onChange={(e) => set({ name: e.target.value })} className={field} /></label>
-        <label className="block mb-4"><span className={labelText}>Adresse</span>
-          <input required maxLength={200} autoComplete="shipping address-line1" value={shipping.line1} onChange={(e) => set({ line1: e.target.value })} className={field} /></label>
-        <label className="block mb-4"><span className={labelText}>Complément (optionnel)</span>
-          <input maxLength={200} autoComplete="shipping address-line2" value={shipping.line2} onChange={(e) => set({ line2: e.target.value })} className={field} /></label>
         <div className="grid grid-cols-[110px_1fr] gap-4">
           <label className="block mb-4"><span className={labelText}>Code postal</span>
             <input required inputMode="numeric" pattern="[0-9]{5}" maxLength={5} autoComplete="shipping postal-code" value={shipping.zipCode} onChange={(e) => set({ zipCode: e.target.value })} className={field} /></label>
           <label className="block mb-4"><span className={labelText}>Ville</span>
             <input required maxLength={100} autoComplete="shipping address-level2" value={shipping.city} onChange={(e) => set({ city: e.target.value })} className={field} /></label>
         </div>
+        <div className="mb-4">
+          <label className="block"><span className={labelText}>Adresse</span>
+            <input required maxLength={200} autoComplete="shipping address-line1" value={shipping.line1} aria-describedby="adresse-aide"
+              onChange={(e) => { typed.current = true; set({ line1: e.target.value }); }} className={field} /></label>
+          {suggestions.length > 0 && (
+            <ul aria-label="Adresses proposées" className="border-[0.5px] border-neutral-300 border-t-0 bg-white">
+              {suggestions.map((s) => (
+                <li key={`${s.name}|${s.postcode}`}>
+                  <button type="button" onClick={() => pickSuggestion(s)} className="w-full text-left px-3 py-2 text-[14px] hover:bg-neutral-50">
+                    {s.name}, {s.postcode} {s.city}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p id="adresse-aide" className="text-[13px] text-neutral-500 mt-1">Code postal d’abord, puis numéro et rue : choisissez votre adresse dans la liste.</p>
+        </div>
+        <label className="block mb-4"><span className={labelText}>Complément (optionnel)</span>
+          <input maxLength={200} autoComplete="shipping address-line2" value={shipping.line2} onChange={(e) => set({ line2: e.target.value })} className={field} /></label>
         <label className="block mb-2"><span className={labelText}>Téléphone</span>
           <input required type="tel" maxLength={30} autoComplete="shipping tel" value={shipping.phone} onChange={(e) => set({ phone: e.target.value })} className={field} /></label>
         <p className="text-[13px] text-neutral-500 mb-4">Pour le transporteur, en cas de besoin. Livraison en France uniquement.</p>

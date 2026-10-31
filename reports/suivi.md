@@ -98,6 +98,13 @@ Dernière mise à jour : 2026-10-30, fin de l'étape 7 (espace créatrice). Chaq
 - Mistral pour l'analyse (`mistral-small-latest`) et la dictée (`voxtral-mini-latest`) ; 10 analyses et 30 dictées par heure.
 - À vérifier par Jaelle sur l'aperçu, une fois le stockage activé : vraie dictée (Chrome, Safari) et vraie analyse avec photos (`reports/qa/etape-7.md` Q7).
 
+## Retours de Jaelle sur l'aperçu (2026-10-31) : paiement
+- Retour de Stripe sur l'adresse de la branche (`VERCEL_BRANCH_URL`) : connexion et choix des cookies conservés ; page de confirmation avec remerciement, annonce de l'e-mail et lien « Suivre ma commande » (`paiement.spec.ts`).
+- Adresse de livraison réelle exigée : code postal d'abord, puis suggestions de la Base Adresse Nationale (`data.geopf.fr`, service public, sans clé) ; revérifiée par le serveur au clic « Payer » (numéro, code postal, rue ; écriture officielle gardée), service injoignable → numéro et nom de rue exigés (`address.test.ts`, `paiement.spec.ts`).
+- Stripe ne redemande plus l'adresse de livraison ni le téléphone : ils partent avec le paiement (`payment_intent_data.shipping`) et la commande prend l'adresse vérifiée ; l'adresse de facturation de la carte reste libre chez Stripe.
+- Limite connue : un lieu-dit sans numéro est refusé (à revoir si une cliente le signale).
+- **Étape 8** : citer la Base Adresse Nationale (adresse tapée envoyée au service public de l'IGN) dans la page de confidentialité.
+
 ## Étape 7 — espace créatrice (2026-10-30)
 
 - Décisions de Jaelle (2026-10-30) : expédition sans lien avec La Poste (numéro de suivi recopié) ; remboursement et annulation depuis Stripe ; photos réduites dans le navigateur ; trois livraisons (7a produits, 7b commandes et stocks, 7c le reste).

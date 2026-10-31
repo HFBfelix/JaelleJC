@@ -2,7 +2,8 @@
 // remboursements, comme l'API Stripe, sans rien envoyer chez Stripe. Le site y est branché par
 // STRIPE_API_HOST (accepté seulement avec les émulateurs, src/server/payments/stripe.ts).
 // Il joue aussi l'API Mistral de l'espace créatrice (MISTRAL_API_HOST, src/server/createur/ai.ts) : analyse d'une pièce
-// (réponse fixe, requêtes gardées pour vérifier ce qui part) et transcription de la dictée (texte fixe).
+// (réponse fixe, requêtes gardées pour vérifier ce qui part) et transcription de la dictée (texte fixe),
+// ainsi que la Base Adresse Nationale (ADDRESS_API_URL, src/server/checkout/address.ts).
 import { randomBytes } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
 
@@ -15,6 +16,11 @@ const refunds: Record<string, string>[] = [];
 const customers = new Map<string, { params: Record<string, string>; deleted: boolean }>();
 const CUSTOMER_PATH = /^\/v1\/customers\/(cus_[A-Za-z0-9]+)$/;
 const aiRequests: unknown[] = [];
+const STREETS = [
+  { postcode: '75002', match: /rue de la p/i, name: 'Rue de la Paix', city: 'Paris' },
+  { postcode: '78000', match: /place du m/i, name: 'Place du Marché', city: 'Versailles' },
+  { postcode: '69001', match: /rue neuve/i, name: 'Rue Neuve', city: 'Lyon' },
+];
 
 function readBody(req: import('node:http').IncomingMessage): Promise<string> {
   return new Promise((resolve) => {
@@ -71,6 +77,16 @@ export function startFakeStripe(): Promise<Server> {
       return json(200, { model: 'voxtral-mini-latest', text: 'Cape de bain en gaze de coton, trois pièces en écru.' });
     }
     if (req.method === 'GET' && url.pathname === '/__test/ai') return json(200, aiRequests);
+    // Base Adresse Nationale (ADDRESS_API_URL) : seules les rues de STREETS existent ; appelée aussi par le navigateur.
+    if (req.method === 'GET' && url.pathname === '/geocodage/search') {
+      res.setHeader('access-control-allow-origin', '*');
+      const q = url.searchParams.get('q') ?? '';
+      const number = /^\s*(\d+)/.exec(q)?.[1];
+      const street = STREETS.find((s) => s.postcode === url.searchParams.get('postcode') && s.match.test(q));
+      return json(200, { type: 'FeatureCollection', features: number && street ? [{ type: 'Feature', properties: {
+        type: 'housenumber', name: `${number} ${street.name}`, housenumber: number, postcode: street.postcode, city: street.city, score: 0.95,
+      } }] : [] });
+    }
     if (req.method === 'POST' && url.pathname === '/v1/customers') {
       const params = Object.fromEntries(new URLSearchParams(await readBody(req)));
       const customerId = id('cus');

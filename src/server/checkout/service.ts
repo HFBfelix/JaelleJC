@@ -10,6 +10,7 @@ import { accountKey, loadCart, readDeliveryRule } from '../cart/repository';
 import { COLLECTIONS, checkoutSnapshot, type Adresse, type CheckoutSnapshot } from '../db/schema';
 import { adminDb } from '../firebase/admin';
 import { customerWithAddress } from '../payments/customers';
+import { verifyAddress } from './address';
 import { getStripe } from '../payments/stripe';
 import {
   CHECKOUT_EXPIRES_SECONDS, amountsOf, normalizeGift, prepareLines, shippingOption, stripeLineItems, type ShippingInput,
@@ -17,7 +18,7 @@ import {
 
 export type StartCheckoutResult =
   | { status: 'ok'; url: string }
-  | { status: 'vide' | 'stock' | 'indisponible' };
+  | { status: 'vide' | 'stock' | 'indisponible' | 'adresse' };
 
 const LOCAL_HOST = /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/;
 const env = (name: string) => process.env[name]?.trim() || null;
@@ -46,6 +47,10 @@ export async function startCheckout(
   if (!prepared.ok) return { status: prepared.reason };
   if (!rule) return { status: 'indisponible' }; // livraison inconnue : aucun paiement
 
+  // Adresse réelle exigée (Base Adresse Nationale) ; écriture officielle gardée (rue, code postal, ville).
+  const checked = await verifyAddress(shipping);
+  if (checked.status === 'introuvable') return { status: 'adresse' };
+  if (checked.status === 'verifiee') shipping = { ...shipping, line1: checked.line1, zipCode: checked.zipCode, city: checked.city };
   const address: Adresse = { label: '', ...shipping, country: 'FR' };
   // « Enregistrer cette adresse » : seulement à la demande, sans doublon ; plafond atteint = simplement non enregistrée.
   if (save) {
@@ -56,15 +61,20 @@ export async function startCheckout(
   const amounts = amountsOf(prepared.lines, rule);
   const origin = await siteOrigin();
   const now = Math.floor(Date.now() / 1000);
-  // Adresse confirmée : portée par le client Stripe du compte, que la page de paiement préremplit (modifiable).
+  // Adresse vérifiée : portée par le client Stripe du compte et par le paiement. Stripe ne redemande pas la livraison
+  // (la cliente la change sur la page panier) ; l'adresse de facturation de la carte reste libre chez Stripe.
   const customer = await customerWithAddress(user.uid, user.email, address);
   const session = await getStripe().checkout.sessions.create({
     mode: 'payment',
     locale: 'fr',
     line_items: stripeLineItems(prepared.lines),
-    shipping_address_collection: { allowed_countries: ['FR'] },
     shipping_options: [shippingOption(amounts.deliveryCents)],
-    phone_number_collection: { enabled: true },
+    payment_intent_data: {
+      shipping: {
+        name: shipping.name, phone: shipping.phone,
+        address: { line1: shipping.line1, line2: shipping.line2 || undefined, postal_code: shipping.zipCode, city: shipping.city, country: 'FR' },
+      },
+    },
     // Carte seulement (Apple Pay et Google Pay compris) : paiement confirmé tout de suite. Les moyens différés
     // (prélèvement…) arriveraient après la réservation du stock et l'expiration de l'instantané.
     payment_method_types: ['card'],
@@ -79,6 +89,7 @@ export async function startCheckout(
 
   const snapshot: CheckoutSnapshot = checkoutSnapshot.parse({
     uid: user.uid, email: user.email, cartId: key.id, lines: prepared.lines, amounts, gift: normalizeGift(gift),
+    shipping: { name: shipping.name, line1: shipping.line1, line2: shipping.line2, zipCode: shipping.zipCode, city: shipping.city, phone: shipping.phone },
   });
   await adminDb().collection(COLLECTIONS.checkouts).doc(session.id).set({
     ...snapshot,

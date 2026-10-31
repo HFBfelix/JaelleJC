@@ -164,6 +164,7 @@ export const matchesSnapshot = (s: PaidSession, snap: CheckoutSnapshot) =>
 // Commande enregistrée : instantané (noms, prix, adresse) qui ne bouge plus ensuite.
 export function buildOrder(s: PaidSession, snap: CheckoutSnapshot, eventId: string, outcome: 'paid' | 'stock' | 'montant', reference: string) {
   const ship = s.collected_information?.shipping_details;
+  const confirmed = snap.shipping; // adresse vérifiée sur la page panier : seule source quand elle existe
   return {
     userId: snap.uid,
     reference,
@@ -172,16 +173,18 @@ export function buildOrder(s: PaidSession, snap: CheckoutSnapshot, eventId: stri
     customer: {
       uid: snap.uid,
       email: s.customer_details?.email || snap.email,
-      name: ship?.name || s.customer_details?.name || '',
-      phone: s.customer_details?.phone ?? '',
+      name: confirmed?.name || ship?.name || s.customer_details?.name || '',
+      phone: confirmed?.phone || (s.customer_details?.phone ?? ''),
     },
-    shipping: {
-      line1: ship?.address.line1 ?? '',
-      line2: ship?.address.line2 ?? '',
-      zipCode: ship?.address.postal_code ?? '',
-      city: ship?.address.city ?? '',
-      country: ship?.address.country ?? '',
-    },
+    shipping: confirmed
+      ? { line1: confirmed.line1, line2: confirmed.line2, zipCode: confirmed.zipCode, city: confirmed.city, country: 'FR' }
+      : {
+        line1: ship?.address.line1 ?? '',
+        line2: ship?.address.line2 ?? '',
+        zipCode: ship?.address.postal_code ?? '',
+        city: ship?.address.city ?? '',
+        country: ship?.address.country ?? '',
+      },
     gift: snap.gift,
     stripe: { sessionId: s.id, paymentIntentId: paymentIntentId(s), eventId },
     status: outcome === 'paid' ? ('paid' as const) : ('refunded' as const),

@@ -248,7 +248,7 @@ test.describe('préremplissage du paiement (faux Stripe)', () => {
     expect(withAddress['line_items[0][price_data][unit_amount]']).toBe(String(FIXTURE.buy.priceCents));
     const c = await customer(withAddress.customer!);
     expect(c.params).toMatchObject({
-      email: user.email, phone: '+33611223344', 'shipping[name]': 'Dominique Test', 'shipping[address][line1]': '9 place du Marché',
+      email: user.email, phone: '+33611223344', 'shipping[name]': 'Dominique Test', 'shipping[address][line1]': '9 Place du Marché', // écriture officielle (Base Adresse Nationale)
       'shipping[address][postal_code]': '78000', 'shipping[address][city]': 'Versailles', 'shipping[address][country]': 'FR',
       'shipping[phone]': '+33611223344', 'metadata[uid]': user.uid,
     });

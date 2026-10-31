@@ -103,8 +103,13 @@ test('paiement réussi : prix lus en base, commande créée par le webhook, stoc
     mode: 'payment', customer: expect.stringMatching(/^cus_/), client_reference_id: user.uid, 'metadata[cartId]': `u_${user.uid}`,
     'line_items[0][price_data][unit_amount]': String(FIXTURE.buy.priceCents), 'line_items[0][price_data][currency]': 'eur',
     'line_items[0][quantity]': '1', 'line_items[0][price_data][product_data][metadata][productId]': FIXTURE.buy.id,
-    'shipping_address_collection[allowed_countries][0]': 'FR', 'phone_number_collection[enabled]': 'true',
+    // Livraison vérifiée sur la page panier, transmise au paiement ; Stripe ne la redemande pas.
+    'payment_intent_data[shipping][name]': 'Camille Test', 'payment_intent_data[shipping][phone]': '+33600000000',
+    'payment_intent_data[shipping][address][line1]': '1 Rue de la Paix', 'payment_intent_data[shipping][address][postal_code]': '75002',
+    'payment_intent_data[shipping][address][city]': 'Paris', 'payment_intent_data[shipping][address][country]': 'FR',
   });
+  expect(params['shipping_address_collection[allowed_countries][0]']).toBeUndefined();
+  expect(params['phone_number_collection[enabled]']).toBeUndefined();
   expect(params['line_items[1][quantity]']).toBeUndefined();
   expect(await orderOf(sessionId)).toBeUndefined(); // aucune commande avant le paiement confirmé
 
@@ -115,7 +120,8 @@ test('paiement réussi : prix lus en base, commande créée par le webhook, stoc
     userId: user.uid, status: 'paid', refund: null,
     items: [{ productId: FIXTURE.buy.id, quantity: 1, unitPriceCents: FIXTURE.buy.priceCents }],
     gift: { wrap: true, message: '<b>Bienvenue</b> petite Lou' }, // texte brut ; échappé à l'affichage et dans les e-mails
-    shipping: { line1: '1 rue de la Paix', zipCode: '75002', city: 'Paris', country: 'FR' },
+    shipping: { line1: '1 Rue de la Paix', zipCode: '75002', city: 'Paris', country: 'FR' }, // adresse vérifiée, pas celle de Stripe
+    customer: { name: 'Camille Test', phone: '+33600000000' },
     emails: { cliente: 'en_attente', boutique: 'en_attente' }, // expéditeur pas encore choisi
   });
   expect(order!.reference).toMatch(/^JJC-\d{6}-[A-Z2-9]{4}$/);
@@ -267,6 +273,35 @@ test('stock vérifié au clic « Payer » : pièce partie entre-temps, pas de pa
   await expect(main(page).getByRole('status')).toHaveText('Cette pièce vient de trouver preneur. Elle a été retirée de votre sélection.');
   expect(((await (await fetch(`${FAKE}/__test/count`)).json()) as { sessions: number }).sessions).toBe(sessionsBefore);
   await expect(main(page).getByText('Votre sélection est vide.')).toBeVisible();
+});
+
+test('adresse introuvable dans la Base Adresse Nationale : pas de paiement, message clair', async ({ page }) => {
+  await signIn(page);
+  await addToCart(page, FIXTURE.buy.slug);
+  await page.goto('/panier');
+  await fillShipping(page);
+  const form = main(page).getByRole('group', { name: 'Livraison' });
+  await form.getByLabel('Adresse', { exact: true }).fill('10'); // numéro sans rue
+  const sessionsBefore = ((await (await fetch(`${FAKE}/__test/count`)).json()) as { sessions: number }).sessions;
+  await main(page).getByRole('button', { name: 'Confirmer et payer' }).click();
+  await expect(main(page).getByRole('alert')).toHaveText('Adresse introuvable : choisissez-la dans la liste proposée (numéro et nom de rue).');
+  await form.getByLabel('Adresse', { exact: true }).fill('10 rue Imaginaire'); // rue inexistante dans ce code postal
+  await main(page).getByRole('button', { name: 'Confirmer et payer' }).click();
+  await expect(main(page).getByRole('alert')).toHaveText(/^Adresse introuvable/);
+  expect(((await (await fetch(`${FAKE}/__test/count`)).json()) as { sessions: number }).sessions).toBe(sessionsBefore);
+});
+
+test('saisie guidée : code postal puis rue, adresse réelle choisie dans la liste', async ({ page }) => {
+  await signIn(page);
+  await addToCart(page, FIXTURE.buy.slug);
+  await page.goto('/panier');
+  const form = main(page).getByRole('group', { name: 'Livraison' });
+  await form.getByLabel('Code postal').fill('75002');
+  await form.getByLabel('Adresse', { exact: true }).fill('4 rue de la p');
+  await form.getByRole('list', { name: 'Adresses proposées' }).getByRole('button', { name: '4 Rue de la Paix, 75002 Paris' }).click();
+  await expect(form.getByLabel('Adresse', { exact: true })).toHaveValue('4 Rue de la Paix');
+  await expect(form.getByLabel('Ville')).toHaveValue('Paris');
+  await expect(form.getByRole('list', { name: 'Adresses proposées' })).toBeHidden();
 });
 
 test('prix modifié en base après l’ajout : Stripe reçoit le prix de la base', async ({ page }) => {

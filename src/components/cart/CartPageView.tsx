@@ -5,7 +5,7 @@ import CheckoutForm, { type SavedAddress } from './CheckoutForm';
 import { useCart } from './CartProvider';
 
 // Page /panier : mêmes lignes et totaux que le tiroir, sur toute la largeur.
-const CartPageView = ({ addresses }: { addresses: SavedAddress[] }) => {
+const CartPageView = ({ addresses, addressApi }: { addresses: SavedAddress[]; addressApi: string }) => {
   const { cart, notice } = useCart();
   return (
     <div className="max-w-5xl mx-auto px-6 md:px-12 py-16 md:py-24">
@@ -20,7 +20,7 @@ const CartPageView = ({ addresses }: { addresses: SavedAddress[] }) => {
             <DeliveryProgress cart={cart} />
             <div className="p-8">
               <CartTotals cart={cart} />
-              <CheckoutForm addresses={addresses} />
+              <CheckoutForm addresses={addresses} addressApi={addressApi} />
             </div>
           </div>
         </div>

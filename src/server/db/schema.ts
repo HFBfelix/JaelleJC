@@ -146,6 +146,12 @@ export const checkoutSnapshot = z.object({
   })).min(1).max(30),
   amounts: z.object({ subtotalCents: cents, deliveryCents: cents, totalCents: cents }),
   gift: z.object({ wrap: z.boolean(), message: shortText(300) }),
+  // Adresse de livraison vérifiée sur la page panier (Stripe ne la redemande plus). Absente des paiements ouverts
+  // avant ce changement : le webhook reprend alors celle saisie chez Stripe.
+  shipping: z.object({
+    name: shortText(100), line1: shortText(200), line2: shortText(200), zipCode: z.string().regex(/^[0-9]{5}$/),
+    city: shortText(100), phone: z.string().max(30),
+  }).optional(),
 });
 export type CheckoutSnapshot = z.infer<typeof checkoutSnapshot>;
 

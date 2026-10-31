@@ -124,6 +124,14 @@ describe('commande', () => {
     expect(buildOrder(session, snap, 'evt_1', 'stock', 'R')).toMatchObject({ status: 'refunded', refund: { reason: 'stock', id: null } });
   });
 
+  it('adresse vérifiée sur la page panier : elle prime sur celle de Stripe', () => {
+    const shipping = { name: 'Lou Test', line1: '10 Rue Léon Blum', line2: 'Bât. B', zipCode: '92100', city: 'Boulogne-Billancourt', phone: '+33700000001' };
+    expect(buildOrder(session, { ...snap, shipping }, 'evt_1', 'paid', 'R')).toMatchObject({
+      shipping: { line1: '10 Rue Léon Blum', line2: 'Bât. B', zipCode: '92100', city: 'Boulogne-Billancourt', country: 'FR' },
+      customer: { name: 'Lou Test', phone: '+33700000001', email: 'cliente@exemple.fr' },
+    });
+  });
+
   it('référence lisible, sans caractère ambigu', () => {
     expect(orderReference(new Date('2026-10-29T10:00:00Z'), new Uint8Array([0, 1, 31, 32]))).toBe('JJC-261029-AB9A');
   });

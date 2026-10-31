@@ -3,6 +3,7 @@ import CartPageView from '@/components/cart/CartPageView';
 import { listAddresses } from '@/server/account/addresses';
 import { isComplete } from '@/server/account/logic';
 import { getSessionUser } from '@/server/auth/session';
+import { addressApi } from '@/server/checkout/address';
 
 // Page « Votre sélection » : même panier que le tiroir, lu côté serveur par le layout. Page privée : noindex.
 export const metadata: Metadata = {
@@ -11,8 +12,9 @@ export const metadata: Metadata = {
 };
 
 // Adresses enregistrées et complètes de la cliente connectée : préremplissent l'étape « Livraison ».
+// Base Adresse Nationale : suggestions d'adresses réelles pendant la saisie.
 export default async function PanierPage() {
   const user = await getSessionUser();
   const addresses = user ? (await listAddresses(user.uid)).filter(isComplete) : [];
-  return <CartPageView addresses={addresses} />;
+  return <CartPageView addresses={addresses} addressApi={addressApi()} />;
 }
