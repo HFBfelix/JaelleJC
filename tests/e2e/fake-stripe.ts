@@ -1,8 +1,8 @@
 // Faux serveur Stripe des parcours (local et CI) : reçoit la création des sessions de paiement et les
 // remboursements, comme l'API Stripe, sans rien envoyer chez Stripe. Le site y est branché par
 // STRIPE_API_HOST (accepté seulement avec les émulateurs, src/server/payments/stripe.ts).
-// Il joue aussi l'API de l'IA du brouillon de fiche (MISTRAL_API_HOST, src/server/createur/ai.ts ; même format que l’API Mistral) : il renvoie
-// des propositions fixes et garde les faits reçus, pour vérifier que seuls les faits saisis partent.
+// Il joue aussi l'API Mistral de l'espace créatrice (MISTRAL_API_HOST, src/server/createur/ai.ts) : analyse d'une pièce
+// (réponse fixe, requêtes gardées pour vérifier ce qui part) et transcription de la dictée (texte fixe).
 import { randomBytes } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
 
@@ -57,11 +57,18 @@ export function startFakeStripe(): Promise<Server> {
     if (req.method === 'POST' && url.pathname === '/v1/chat/completions') {
       aiRequests.push(JSON.parse(await readBody(req)));
       const content = JSON.stringify({
-        accroches: ['Une cape douce pour le premier bain.', 'Le premier bain, enveloppé de gaze.'],
-        histoires: ['Cousue dans notre atelier.', 'Pensée pour les premiers jours.'],
-        descriptions: ['Cape en gaze de coton.', 'Une cape simple et douce.'],
+        nom: 'E2E créatrice cape de bain en gaze', univers: 'createur-e2e', famille: 'capes', prixEuros: 45.5,
+        matieres: ['gaze de coton'], details: ['Cape : 80 × 80 cm'], entretien: 'Lavage à 30 °C.', serieLimitee: null,
+        emballageCadeau: true, usages: ['naissance', 'baptême'], motsCles: ['cape'], accroche: 'Une cape douce pour le premier bain.',
+        histoire: 'Cousue dans notre atelier.', description: 'Cape en gaze de coton, pensée pour les premiers jours.', faq: [],
+        variantes: [{ coloris: 'écru', taille: '', stock: 3, prixEuros: null }, { coloris: 'rose', taille: '', stock: null, prixEuros: null }],
+        textesAlternatifs: ['Cape de bain écrue pliée'], manquants: ['Stock du coloris rose non indiqué'],
       });
       return json(200, { id: id('chatcmpl'), object: 'chat.completion', choices: [{ index: 0, message: { role: 'assistant', content } }] });
+    }
+    if (req.method === 'POST' && url.pathname === '/v1/audio/transcriptions') {
+      await readBody(req);
+      return json(200, { model: 'voxtral-mini-latest', text: 'Cape de bain en gaze de coton, trois pièces en écru.' });
     }
     if (req.method === 'GET' && url.pathname === '/__test/ai') return json(200, aiRequests);
     if (req.method === 'POST' && url.pathname === '/v1/customers') {

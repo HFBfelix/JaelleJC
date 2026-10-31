@@ -119,6 +119,7 @@ export async function clean() {
     if (!String(p.get('name') ?? '').startsWith('E2E créatrice')) continue;
     for (const v of (await p.ref.collection('variantes').get()).docs) batch.delete(v.ref);
     for (const a of (await d.collection('auditLog').where('target', '==', p.id).get()).docs) batch.delete(a.ref);
+    batch.delete(d.doc(`produitsNotes/${p.id}`));
     batch.delete(p.ref);
   }
   await batch.commit();
