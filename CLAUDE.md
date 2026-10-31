@@ -117,6 +117,7 @@ Le rendu visuel actuel est la référence. La refonte change l'architecture, pas
 2. Une étape de `PLAN.md` à la fois. Ne commence pas la suivante sans mon accord.
 3. Avant de coder : plan court (fichiers touchés, risques). Attends mon feu vert pour tout ce qui touche à l'authentification, au paiement, au stock, aux règles Firestore/Storage et aux données existantes.
 4. Ne modifie que les fichiers de l'étape. Pas de refactorisation « au passage ».
+   - Retours de Jaelle : correction chirurgicale. Traiter exactement ce qui est demandé, rien d'autre (pas de « vibecoding », pas d'amélioration non demandée, aucun texte ni comportement voisin changé). Avant : nommer la cause et les fichiers touchés. Après : dire précisément ce qui a changé et ce qui n'a pas bougé, test à l'appui ; les tests existants restent verts.
 5. Logique métier dans `src/server/<module>` (`catalog`, `cart`, `auth`, `checkout`, `orders`, `payments`, `emails`), pas dans les composants.
 6. Toute règle métier (prix, fusion, stock, expiration) et toute règle Firestore ont un test.
 7. Données : aucune commande destructive (suppression, réécriture massive) sans sauvegarde et accord explicite. Migrations par scripts rejouables.
