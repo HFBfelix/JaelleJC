@@ -125,6 +125,8 @@ test('paiement réussi : prix lus en base, commande créée par le webhook, stoc
   await page.goto(`/commande/confirmation?session_id=${sessionId}`);
   await expect(main(page).getByRole('heading', { level: 1 })).toHaveText('Merci. Votre pièce est en préparation.');
   await expect(main(page).getByText(`Référence : ${order!.reference}`)).toBeVisible();
+  await expect(main(page).getByText(/Un e-mail de confirmation vous est envoyé à/)).toBeVisible();
+  await expect(main(page).getByRole('link', { name: 'Suivre ma commande' })).toHaveAttribute('href', `/compte/commandes/${sessionId}`);
   await expect(main(page).getByText('Emballage cadeau — « <b>Bienvenue</b> petite Lou »')).toBeVisible();
   await expect(page.getByRole('button', { name: /^Ma sélection/ })).toHaveAccessibleName('Ma sélection (0)');
 });

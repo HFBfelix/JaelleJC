@@ -43,7 +43,11 @@ export default async function ConfirmationPage({ searchParams }: Props) {
 
   return (
     <AuthPage title="Merci. Votre pièce est en préparation.">
-      <p className="text-[11px] uppercase tracking-[0.12em] text-neutral-500 mb-10">Référence : {order.reference}</p>
+      <p className="text-[11px] uppercase tracking-[0.12em] text-neutral-500 mb-6">Référence : {order.reference}</p>
+      <p className="text-[14px] mb-10">
+        Merci pour votre confiance. Un e-mail de confirmation vous est envoyé à {user.email} ; nous vous écrirons de nouveau
+        à l’expédition, avec le numéro de suivi de votre colis.
+      </p>
       <ul className="border-t-[0.5px] border-black mb-6">
         {order.items.map((i) => (
           <li key={`${i.productId}/${i.variantId}`} className="flex justify-between gap-4 py-3 border-b-[0.5px] border-neutral-100 text-[14px]">
@@ -63,9 +67,14 @@ export default async function ConfirmationPage({ searchParams }: Props) {
           Emballage cadeau{order.gift.message ? ` — « ${order.gift.message} »` : ''}
         </p>
       )}
-      <Link href="/collection" className="text-[11px] uppercase tracking-[0.12em] border-b-[0.5px] border-black pb-1">
-        Découvrir les cadeaux de naissance
-      </Link>
+      <div className="flex flex-wrap gap-x-8 gap-y-4">
+        <Link href={`/compte/commandes/${result.id}`} className="text-[11px] uppercase tracking-[0.12em] border-b-[0.5px] border-black pb-1">
+          Suivre ma commande
+        </Link>
+        <Link href="/collection" className="text-[11px] uppercase tracking-[0.12em] border-b-[0.5px] border-black pb-1">
+          Découvrir les cadeaux de naissance
+        </Link>
+      </div>
     </AuthPage>
   );
 }

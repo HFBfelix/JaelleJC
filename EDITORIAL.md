@@ -88,7 +88,7 @@ La section « Les défis de l'industrie » (4 puces génériques) est supprimée
 - Lien envoyé : *Un lien vient de vous être envoyé. Il est valable [durée] et ne sert qu'une fois.*
 - Erreur de connexion : *Nous n'avons pas pu vous connecter. Vérifiez votre e-mail et réessayez.* (même message que l'e-mail existe ou non)
 - Stock insuffisant : *Cette pièce vient de trouver preneur. Elle a été retirée de votre sélection.*
-- Confirmation : *Merci. Votre pièce est en préparation.* + délai [à confirmer]
+- Confirmation : *Merci. Votre pièce est en préparation.* + *Merci pour votre confiance. Un e-mail de confirmation vous est envoyé à [e-mail] ; nous vous écrirons de nouveau à l'expédition, avec le numéro de suivi de votre colis.* + liens *Suivre ma commande* / *Découvrir les cadeaux de naissance* (demande de Jaelle, 2026-10-31) + délai [à confirmer]
 
 ## 6. E-mails
 
