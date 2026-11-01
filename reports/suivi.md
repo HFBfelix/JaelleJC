@@ -105,6 +105,11 @@ Dernière mise à jour : 2026-10-30, fin de l'étape 7 (espace créatrice). Chaq
 - Limite connue : un lieu-dit sans numéro est refusé (à revoir si une cliente le signale).
 - **Étape 8** : citer la Base Adresse Nationale (adresse tapée envoyée au service public de l'IGN) dans la page de confidentialité.
 
+## Retours de Jaelle (2026-11-01) : couleurs et tailles
+- Grilles de tailles (`src/server/catalog/sizes.ts`) : Femme S / M / L / XL / XXL ; Bébé 3M à 36M ; Enfant 3A / 4A / 6A / 8A / 10A / 12A (grille enfant proposée par Claude, à confirmer). Grille proposée selon l'univers, tailles cochées ; nouvelle taille hors grille refusée par le serveur ; l'IA ne propose que ces tailles (`sizes.test.ts`, `analysis.test.ts`, `createur-produits.spec.ts`).
+- Une teinte par coloris, choisie au nuancier (champ `colorHex` des variantes) ; fiche : pastilles « Couleur : … », tailles dans l'ordre de la grille, couleur ou taille épuisée barrée (`catalogue.spec.ts`).
+- Anciennes variantes : gardent leur taille d'origine (affichée après les tailles de grille) ; teinte grise tant qu'elle n'est pas choisie.
+
 ## Étape 7 — espace créatrice (2026-10-30)
 
 - Décisions de Jaelle (2026-10-30) : expédition sans lien avec La Poste (numéro de suivi recopié) ; remboursement et annulation depuis Stripe ; photos réduites dans le navigateur ; trois livraisons (7a produits, 7b commandes et stocks, 7c le reste).

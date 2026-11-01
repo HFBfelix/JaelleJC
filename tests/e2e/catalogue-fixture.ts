@@ -22,14 +22,16 @@ export const FIXTURE = {
   // Paiement (étape 5) : pièce achetée par les parcours, et dernière pièce disputée par deux clientes.
   buy: { id: 'e2e-zpaiement', slug: 'coffret-e2e-paiement', name: 'Coffret E2E paiement', priceCents: 6000, stock: 50 },
   last: { id: 'e2e-zderniere', slug: 'veste-e2e-derniere', name: 'Veste E2E dernière', priceCents: 7000, stock: 1 },
-  // Une seule fiche, coloris × tailles (stock par variante) : choix « Coloris » puis « Taille ».
+  // Une seule fiche, couleurs × tailles (stock par variante) : pastilles « Couleur » puis « Taille » (grille bébé).
   sizes: { id: 'e2e-ztailles', slug: 'gilet-e2e-tailles', name: 'Gilet E2E tailles', priceCents: 5200 },
 };
+// Ordre de saisie volontairement mélangé (6M avant 3M) : la fiche suit l'ordre de la grille. Bleu : tout est vendu.
 const SIZE_VARIANTS = [
-  { id: 'ecru-3-mois', color: 'Écru', size: '3 mois', stock: 2 },
-  { id: 'ecru-6-mois', color: 'Écru', size: '6 mois', stock: 0 },
-  { id: 'rose-3-mois', color: 'Rose', size: '3 mois', stock: 0 },
-  { id: 'rose-6-mois', color: 'Rose', size: '6 mois', stock: 1 },
+  { id: 'ecru-6m', color: 'Écru', colorHex: '#f3ead8', size: '6M', stock: 0 },
+  { id: 'ecru-3m', color: 'Écru', colorHex: '#f3ead8', size: '3M', stock: 2 },
+  { id: 'rose-3m', color: 'Rose', colorHex: '#e8b4b8', size: '3M', stock: 0 },
+  { id: 'rose-6m', color: 'Rose', colorHex: '#e8b4b8', size: '6M', stock: 1 },
+  { id: 'bleu-3m', color: 'Bleu', colorHex: '#1f3a5f', size: '3M', stock: 0 },
 ];
 
 // Réglage de livraison des parcours, créé seulement s'il manque (jamais écrasé sur la base locale de Jaelle).
@@ -96,8 +98,8 @@ export async function seed() {
   batch.set(d.doc(`produits/${FIXTURE.soldOut.id}/variantes/inactive`), variant(9, false));
   batch.set(d.doc(`produits/${FIXTURE.sizes.id}`),
     { ...base(FIXTURE.sizes.slug, FIXTURE.sizes.name, 'published', FIXTURE.sizes.priceCents), categoryId: FIXTURE.paymentCategory.slug });
-  SIZE_VARIANTS.forEach(({ id, color, size, stock }, order) => batch.set(d.doc(`produits/${FIXTURE.sizes.id}/variantes/${id}`),
-    { ...variant(stock), sku: `E2E-${id}`, color, size, order }));
+  SIZE_VARIANTS.forEach(({ id, color, colorHex, size, stock }, order) => batch.set(d.doc(`produits/${FIXTURE.sizes.id}/variantes/${id}`),
+    { ...variant(stock), sku: `E2E-${id}`, color, colorHex, size, order }));
   await batch.commit();
 }
 

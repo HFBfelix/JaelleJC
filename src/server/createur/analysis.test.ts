@@ -75,7 +75,7 @@ describe('lecture de la réponse', () => {
 
 describe('variantes proposées appliquées à la grille', () => {
   const row = (o: Partial<GridRow>): GridRow => ({
-    key: o.id ?? 'k', color: '', size: '', stock: 0, expectedStock: 0, dimensions: '', priceCents: null, active: true, ...o,
+    key: o.id ?? 'k', color: '', colorHex: null, size: '', stock: 0, expectedStock: 0, dimensions: '', priceCents: null, active: true, ...o,
   });
   const keyOf = (n: number) => `new-${n}`;
 
@@ -121,5 +121,28 @@ describe('dictée : type réel de l’enregistrement', () => {
   it('autre fichier refusé (photo, texte)', () => {
     expect(audioType(bytes([0xff, 0xd8, 0xff, 0xe0, 0]))).toBeNull();
     expect(audioType(bytes('<html>'))).toBeNull();
+  });
+});
+
+describe('tailles et teintes proposées par l’IA', () => {
+  it('consigne : tailles des grilles seulement', () => {
+    const p = analysisPrompt(categories);
+    expect(p).toContain('Femme : S, M, L, XL, XXL');
+    expect(p).toContain('Bébé : 3M, 6M, 9M, 12M, 18M, 24M, 30M, 36M');
+    expect(p).toContain('Enfant : 3A, 4A, 6A, 8A, 10A, 12A');
+  });
+
+  it('taille ramenée à la grille ; hors grille écartée et signalée', () => {
+    const a = parseAnalysis(reply({
+      variantes: [{ coloris: 'bleu', taille: '3 mois', stock: 2 }, { coloris: 'bleu', taille: 'xl' }, { coloris: 'rose', taille: '0-3 mois', stock: 1 }],
+    }), categories, 0)!;
+    expect(a.variants.map((v) => v.size)).toEqual(['3M', 'XL']);
+    expect(a.missing).toContain('Taille « 0-3 mois » hors des grilles : à choisir dans la grille');
+  });
+
+  it('nouvelle variante d’un coloris déjà teinté : même teinte', () => {
+    const rows: GridRow[] = [{ key: 'b', id: 'bleu-3m', color: 'Bleu', colorHex: '#1f3a5f', size: '3M', stock: 1, expectedStock: 1, dimensions: '', priceCents: null, active: true }];
+    const next = mergeVariants(rows, { stock: null, variants: [{ color: 'bleu', size: '6M', stock: 2, priceCents: null }] }, (n) => `new-${n}`);
+    expect(next[1]).toMatchObject({ color: 'bleu', size: '6M', colorHex: '#1f3a5f' });
   });
 });

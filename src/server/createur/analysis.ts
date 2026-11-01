@@ -3,6 +3,7 @@
 // consigne, lecture de la réponse, mise aux limites du schéma. Rien n'est écrit en base à partir de la réponse :
 // elle préremplit le formulaire, la créatrice vérifie puis enregistre.
 import { z } from 'zod';
+import { SIZE_GRIDS, normalizeSize } from '../catalog/sizes';
 
 export const NOTES_MAX = 6000;
 export const ANALYSIS_PHOTOS_MAX = 4;
@@ -49,6 +50,9 @@ STYLE DES TEXTES : vouvoiement, phrases courtes et concrètes, aucun point d'exc
 série ; on montre la matière et les gestes. Nom en français, une seule capitale en début (« Cabas imprimé bleu »).
 
 UNIVERS DISPONIBLES : ${JSON.stringify(univers)}
+
+TAILLES : uniquement celles des grilles suivantes, écrites exactement ainsi (sinon "" et une ligne dans "manquants") :
+${Object.values(SIZE_GRIDS).map((g) => `${g.label} : ${g.sizes.join(', ')}`).join(' ; ')}.
 
 Réponds uniquement en JSON, avec exactement ces clés :
 {"nom": "", "univers": "slug ou null", "famille": "slug ou null", "prixEuros": nombre ou null,
@@ -107,11 +111,14 @@ export function parseAnalysis(content: string, categories: AnalysisCategory[], p
   const sub = category?.subs.find((s) => s.slug === r.famille);
 
   const seen = new Set<string>();
+  const offGrid: string[] = []; // tailles hors grille : écartées, signalées à la créatrice
   const variants = (r.variantes ?? []).flatMap((v): AnalysisVariant[] => {
     if (!v || typeof v !== 'object') return [];
     const o = v as Record<string, unknown>;
     const color = clip(o.coloris, 40);
-    const size = clip(o.taille, 40);
+    const rawSize = clip(o.taille, 40);
+    const size = rawSize ? normalizeSize(rawSize) : '';
+    if (size === null) { offGrid.push(rawSize); return []; }
     const key = `${color.toLowerCase()}|${size.toLowerCase()}`;
     if ((!color && !size) || seen.has(key)) return [];
     seen.add(key);
@@ -146,7 +153,8 @@ export function parseAnalysis(content: string, categories: AnalysisCategory[], p
     stock: variants.length ? null : wholeNumber(r.stock, 9999),
     variants,
     alts: (r.textesAlternatifs ?? []).slice(0, photoCount).map((a) => clip(a, 200)),
-    missing: strings(r.manquants, 12, 160),
+    missing: [...strings(r.manquants, 12, 160),
+      ...[...new Set(offGrid)].slice(0, 4).map((s) => clip(`Taille « ${s} » hors des grilles : à choisir dans la grille`, 160))],
   };
 }
 
@@ -157,9 +165,13 @@ export function parseAnalysis(content: string, categories: AnalysisCategory[], p
 // - variante absente de la proposition : désactivée seulement si son stock est à 0 (jamais de stock perdu).
 // Sans variantes proposées : le stock donné pour la pièce va à la variante unique.
 export type GridRow = {
-  key: string; id?: string; color: string; size: string; stock: number; expectedStock: number | null;
+  key: string; id?: string; color: string; colorHex: string | null; size: string; stock: number; expectedStock: number | null;
   dimensions: string; priceCents: number | null; active: boolean;
 };
+
+// Teinte déjà choisie pour ce coloris (une teinte par coloris, toutes tailles confondues).
+export const hexOf = (rows: Pick<GridRow, 'color' | 'colorHex'>[], color: string) =>
+  rows.find((r) => r.color.trim().toLowerCase() === color.trim().toLowerCase() && r.colorHex)?.colorHex ?? null;
 
 const variantKey = (color: string, size: string) => `${color.trim().toLowerCase()}|${size.trim().toLowerCase()}`;
 
@@ -181,7 +193,7 @@ export function mergeVariants(rows: GridRow[], analysis: Pick<Analysis, 'variant
   });
   let n = 0;
   for (const v of proposed.values()) {
-    next.push({ key: newKey(n++), color: v.color, size: v.size, stock: v.stock ?? 0, expectedStock: null, dimensions: '', priceCents: v.priceCents, active: true });
+    next.push({ key: newKey(n++), color: v.color, colorHex: hexOf(rows, v.color), size: v.size, stock: v.stock ?? 0, expectedStock: null, dimensions: '', priceCents: v.priceCents, active: true });
   }
   return next;
 }

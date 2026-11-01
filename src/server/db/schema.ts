@@ -65,6 +65,7 @@ export type Produit = z.infer<typeof produit>;
 export const variante = z.object({
   sku: shortText(40).min(1),
   color: shortText(40).nullable(),
+  colorHex: z.string().regex(/^#[0-9a-f]{6}$/).nullable().optional(), // teinte de la pastille (absente des anciennes fiches)
   size: shortText(40).nullable(),
   priceCents: cents.min(1).nullable(), // remplace le prix de base si renseigné
   stock: z.number().int().nonnegative(),

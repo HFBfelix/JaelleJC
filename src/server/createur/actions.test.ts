@@ -19,7 +19,7 @@ const fields = {
   name: 'Cape', categoryId: null, subCategory: null, priceCents: 8900, accroche: '', histoire: '', description: '', materials: [],
   entretien: '', details: [], faq: [], limitedEditionSize: null, giftWrap: true, tags: [], usages: [],
 };
-const row = { color: '', size: '', stock: 1, expectedStock: 0, dimensions: '', priceCents: null, active: true };
+const row = { color: '', colorHex: null, size: '', stock: 1, expectedStock: 0, dimensions: '', priceCents: null, active: true };
 
 beforeEach(() => vi.clearAllMocks());
 

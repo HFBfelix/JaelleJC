@@ -8,7 +8,8 @@ import {
   analyzeAction, deleteDraftAction, duplicateProductAction, publishAction, removePhotoAction, reviewAiAction,
   saveFieldsAction, saveVariantsAction, setStatusAction, updatePhotosAction,
 } from '@/server/createur/actions';
-import { NOTES_MAX, mergeVariants, type Analysis, type GridRow } from '@/server/createur/analysis';
+import { NOTES_MAX, hexOf, mergeVariants, type Analysis, type GridRow } from '@/server/createur/analysis';
+import { SIZE_GRIDS, SIZE_GRID_KEYS, gridForCategory, gridOf, type SizeGrid } from '@/server/catalog/sizes';
 import { checklist as checklistOf, gridRows, slugify, variantIdFor, type ProductFields } from '@/server/createur/logic';
 import type { AdminProduct, AdminVariant } from '@/server/createur/products';
 import type { Categorie, Produit, Variante } from '@/server/db/schema';
@@ -31,6 +32,7 @@ const MESSAGES: Record<string, string> = {
   'slug-pris': 'Cette adresse est déjà utilisée par une autre pièce : modifiez l’adresse de la page.',
   incomplet: 'Une pièce en ligne doit rester complète : complétez ce qui est en rouge ou remettez-la en brouillon.',
   doublon: 'Deux variantes ont le même coloris et la même taille.',
+  'hors-grille': 'Une nouvelle taille doit être choisie dans une grille (Femme, Bébé ou Enfant).',
   'stock-modifie': 'Une vente a modifié le stock pendant votre saisie. Les variantes ont été rechargées : vérifiez puis enregistrez de nouveau.',
   type: 'Format refusé : JPEG, PNG ou WebP seulement.',
   taille: 'Photo trop lourde, même réduite.',
@@ -50,7 +52,7 @@ type Fields = {
 };
 
 const toRows = (vs: AdminVariant[]): GridRow[] => vs.map((v) => ({
-  key: v.id, id: v.id, color: v.color ?? '', size: v.size ?? '', stock: v.stock, expectedStock: v.stock,
+  key: v.id, id: v.id, color: v.color ?? '', colorHex: v.colorHex ?? null, size: v.size ?? '', stock: v.stock, expectedStock: v.stock,
   dimensions: v.dimensions ?? '', priceCents: v.priceCents, active: v.active,
 }));
 const toPhotos = (p: AdminProduct): Photo[] => p.images.map((i) => ({ path: i.path, url: i.url, alt: i.alt }));
@@ -168,7 +170,7 @@ export default function ProductEditor({ product, variants, categories, notes: sa
       const r = await call(() => saveVariantsAction({
         productId: product.id,
         rows: rows.map((r) => ({
-          ...(r.id ? { id: r.id } : {}), color: r.color, size: r.size, stock: r.stock, expectedStock: r.expectedStock,
+          ...(r.id ? { id: r.id } : {}), color: r.color, colorHex: r.colorHex, size: r.size, stock: r.stock, expectedStock: r.expectedStock,
           dimensions: r.dimensions, priceCents: r.priceCents, active: r.active,
         })),
       }));
@@ -392,7 +394,7 @@ export default function ProductEditor({ product, variants, categories, notes: sa
           </Card>
 
           <Card>
-            <VariantsSection rows={rows} priceCents={priceCents} error={missing.has('stock')} ai={aiKeys.has('variantes')}
+            <VariantsSection rows={rows} priceCents={priceCents} error={missing.has('stock')} ai={aiKeys.has('variantes')} categoryId={fields.categoryId || null}
               setRows={(next) => { setRows(next); setRowsDirty(true); unmark(['variantes']); }} />
           </Card>
 
@@ -470,31 +472,71 @@ export default function ProductEditor({ product, variants, categories, notes: sa
   );
 }
 
-function VariantsSection({ rows, setRows, priceCents, error, ai }:
-  { rows: GridRow[]; setRows: (rows: GridRow[]) => void; priceCents: number; error: boolean; ai: boolean }) {
+function VariantsSection({ rows, setRows, priceCents, error, ai, categoryId }:
+  { rows: GridRow[]; setRows: (rows: GridRow[]) => void; priceCents: number; error: boolean; ai: boolean; categoryId: string | null }) {
   const [colors, setColors] = useState('');
-  const [sizes, setSizes] = useState('');
+  // Grille de tailles : celle des tailles déjà saisies, sinon celle de l'univers (Femmes, Bébé) ; modifiable.
+  const [chosenGrid, setChosenGrid] = useState<SizeGrid | '' | null>(null);
+  const grid = chosenGrid ?? gridOf(rows.map((r) => r.size)) ?? gridForCategory(categoryId) ?? '';
+  const [checked, setChecked] = useState<string[]>([]);
   const update = (i: number, patch: Partial<GridRow>) => setRows(rows.map((row, n) => (n === i ? { ...row, ...patch } : row)));
+  const toggle = (size: string) => setChecked((c) => (c.includes(size) ? c.filter((s) => s !== size) : [...c, size]));
+  // Une teinte par coloris : appliquée à toutes ses tailles.
+  const setHex = (color: string, hex: string) => setRows(rows.map((r) => (r.color === color ? { ...r, colorHex: hex } : r)));
+  const tinted = [...new Set(rows.filter((r) => r.color).map((r) => r.color))];
 
   const generate = () => {
     const existing = new Set(rows.map((r) => `${r.color}|${r.size}`));
-    const added = gridRows(lines(colors.replace(/,/g, '\n')), lines(sizes.replace(/,/g, '\n')))
+    const sizes = grid ? SIZE_GRIDS[grid].sizes.filter((s) => checked.includes(s)) : [];
+    const added = gridRows(lines(colors.replace(/,/g, '\n')), sizes)
       .filter((c) => !existing.has(`${c.color}|${c.size}`))
-      .map((c, n) => ({ ...c, key: `new-${Date.now()}-${n}`, stock: 0, expectedStock: null, dimensions: '', priceCents: null, active: true }));
+      .map((c, n) => ({ ...c, colorHex: hexOf(rows, c.color), key: `new-${Date.now()}-${n}`, stock: 0, expectedStock: null, dimensions: '', priceCents: null, active: true }));
     setRows([...rows, ...added]);
     setColors('');
-    setSizes('');
+    setChecked([]);
   };
 
   return (
     <section aria-label="Variantes et stock">
       <h2 className="font-serif text-[22px] mb-2">Variantes et stock{ai && <span className="ml-3 align-middle text-[11px] font-sans text-neutral-500 border-[0.5px] border-neutral-400 px-1.5">proposé par l’IA · à vérifier</span>}</h2>
       <p className="text-[14px] text-neutral-600 mb-6">Le stock est tenu par variante (coloris × taille). Une variante retirée n’est jamais supprimée : décochez « Active ».</p>
-      <div className="grid md:grid-cols-[1fr_1fr_auto] gap-4 items-end mb-2">
-        <Input label="Ajouter des coloris" value={colors} onChange={(e) => setColors(e.target.value)} hint="Séparés par des virgules." />
-        <Input label="Ajouter des tailles" value={sizes} onChange={(e) => setSizes(e.target.value)} hint="Séparées par des virgules." />
-        <Button variant="secondary" onClick={generate} disabled={!colors.trim() && !sizes.trim()} className="mb-12">Ajouter</Button>
-      </div>
+      <Input label="Ajouter des coloris" value={colors} onChange={(e) => setColors(e.target.value)} hint="Séparés par des virgules." />
+      <label className="block mb-4">
+        <span className={`${label} block mb-2`}>Grille de tailles</span>
+        <select value={grid} onChange={(e) => { setChosenGrid(e.target.value as SizeGrid | ''); setChecked([]); }}
+          className="w-full md:w-64 bg-white border-[0.5px] border-neutral-300 p-2 text-[14px]">
+          <option value="">Sans taille</option>
+          {SIZE_GRID_KEYS.map((g) => <option key={g} value={g}>{SIZE_GRIDS[g].label} ({SIZE_GRIDS[g].sizes.join(' / ')})</option>)}
+        </select>
+      </label>
+      {grid && (
+        <fieldset className="mb-4">
+          <legend className={`${label} mb-2`}>Tailles à ajouter</legend>
+          <div className="flex flex-wrap gap-x-5 gap-y-2">
+            {SIZE_GRIDS[grid].sizes.map((s) => (
+              <label key={s} className="flex items-center gap-2 text-[14px] cursor-pointer">
+                <input type="checkbox" checked={checked.includes(s)} onChange={() => toggle(s)} className="w-4 h-4 accent-black" />{s}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+      <Button variant="secondary" onClick={generate} disabled={!colors.trim() && !checked.length} className="mb-8">Ajouter</Button>
+
+      {tinted.length > 0 && (
+        <fieldset className="mb-8">
+          <legend className={`${label} mb-2`}>Teinte de chaque coloris (pastille sur la fiche)</legend>
+          <div className="flex flex-wrap gap-x-6 gap-y-3">
+            {tinted.map((c) => (
+              <label key={c} className="flex items-center gap-2 text-[14px] cursor-pointer">
+                <input type="color" aria-label={`Teinte ${c}`} value={hexOf(rows, c) ?? '#e5e5e5'} onChange={(e) => setHex(c, e.target.value)}
+                  className="w-8 h-8 p-0 border-[0.5px] border-neutral-400 bg-transparent cursor-pointer" />
+                {c}{!hexOf(rows, c) && <span className={`text-[13px] ${missingText}`}>à choisir</span>}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
       <div className="overflow-x-auto">
         <table className="w-full text-[14px]">
@@ -509,7 +551,7 @@ function VariantsSection({ rows, setRows, priceCents, error, ai }:
             {rows.map((r, i) => (
               <tr key={r.key} className={`border-t-[0.5px] border-neutral-200 ${r.active ? '' : 'text-neutral-400'}`}>
                 <td className="py-2 pr-2">{r.id ? (r.color || '—') : <input aria-label="Coloris" value={r.color} onChange={(e) => update(i, { color: e.target.value })} className="w-24 border-b-[0.5px] border-neutral-400 bg-transparent" />}</td>
-                <td className="py-2 pr-2">{r.id ? (r.size || '—') : <input aria-label="Taille" value={r.size} onChange={(e) => update(i, { size: e.target.value })} className="w-20 border-b-[0.5px] border-neutral-400 bg-transparent" />}</td>
+                <td className="py-2 pr-2">{r.size || '—'}</td>
                 <td className="py-2 pr-2"><input aria-label={`Stock ${[r.color, r.size].filter(Boolean).join(' ') || 'unique'}`} type="number" min={0} max={9999} value={r.stock}
                   onChange={(e) => update(i, { stock: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
                   className={`w-16 border-b-[0.5px] ${error && r.active ? 'border-red-700' : 'border-neutral-400'} bg-transparent`} /></td>

@@ -4,6 +4,7 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { FieldValue, Timestamp, type Transaction } from 'firebase-admin/firestore';
 import { COLLECTIONS, categorie, variante, type Categorie, type Produit, type Variante } from '../db/schema';
+import { isGridSize } from '../catalog/sizes';
 import { adminDb } from '../firebase/admin';
 import { deletePhotoFile, savePhoto } from '../firebase/storage';
 import {
@@ -192,7 +193,7 @@ function publicDoc(p: AdminProduct, variants: Variante[]) {
   return { ...rest, status: 'published', inStock: inStockOf(variants), aiDraft: { generatedAt: aiDraft.generatedAt ? now() : null, reviewed: aiDraft.reviewed } };
 }
 
-export type VariantsResult = { status: 'ok' } | { status: 'introuvable' | 'doublon' } | { status: 'stock-modifie'; variants: string[] };
+export type VariantsResult = { status: 'ok' } | { status: 'introuvable' | 'doublon' | 'hors-grille' } | { status: 'stock-modifie'; variants: string[] };
 
 // Variantes : stock tenu par variante, écrit en transaction. Une variante retirée de la grille est désactivée
 // (jamais supprimée : paniers et commandes y font référence).
@@ -205,6 +206,8 @@ export async function saveVariants(uid: string, id: string, rows: VariantRow[]):
     const existing = new Map(existingSnap.docs.map((d) => [d.id, d.data()]));
     const ids = rows.map((r) => r.id ?? variantIdFor(r.color, r.size));
     if (new Set(ids).size !== ids.length) return { status: 'doublon' };
+    // Nouvelle variante : taille prise dans une grille (les anciennes gardent la leur).
+    if (rows.some((r, i) => !existing.has(ids[i]!) && r.size && !isGridSize(r.size))) return { status: 'hors-grille' };
 
     const conflicts = rows.flatMap((r, i) => {
       const current = existing.get(ids[i]!);
@@ -220,7 +223,7 @@ export async function saveVariants(uid: string, id: string, rows: VariantRow[]):
       const before = existing.get(vid);
       const value: Variante = {
         sku: typeof before?.sku === 'string' && before.sku ? before.sku : skuFor(slug, r.color, r.size),
-        color: r.color || null, size: r.size || null, priceCents: r.priceCents, stock: r.stock,
+        color: r.color || null, colorHex: r.color ? r.colorHex : null, size: r.size || null, priceCents: r.priceCents, stock: r.stock,
         dimensions: r.dimensions || null, active: r.active, order: i,
       };
       tx.set(ref.collection(COLLECTIONS.variantes).doc(vid), value);

@@ -53,12 +53,12 @@ describe('vue publique d’un produit', () => {
   it('variantes proposées au panier : actives seulement, dans l’ordre, disponibilité sans stock exact', () => {
     const view = toProductView('id', produit(), [
       variante(0, true, { color: 'Bleu', order: 1 }),
-      variante(3, true, { color: 'Écru', size: '6 mois', order: 0 }),
+      variante(3, true, { color: 'Écru', colorHex: '#f3ead8', size: '6 mois', order: 0 }),
       variante(9, false),
     ], categories)!;
     expect(view.variants).toEqual([
-      { id: 'v-3-true', label: 'Écru · 6 mois', color: 'Écru', size: '6 mois', inStock: true },
-      { id: 'v-0-true', label: 'Bleu', color: 'Bleu', size: '', inStock: false },
+      { id: 'v-3-true', label: 'Écru · 6 mois', color: 'Écru', colorHex: '#f3ead8', size: '6 mois', inStock: true },
+      { id: 'v-0-true', label: 'Bleu', color: 'Bleu', colorHex: null, size: '', inStock: false },
     ]);
   });
 

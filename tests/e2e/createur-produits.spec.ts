@@ -187,6 +187,24 @@ test('stock : une vente pendant la saisie n’est jamais écrasée', async ({ pa
   await expect(main(page).getByLabel('Stock unique')).toHaveValue('7'); // variantes rechargées depuis la base
 });
 
+test('variantes : tailles cochées dans une grille, une teinte par coloris, enregistrées en base', async ({ page }) => {
+  await signInAdmin(page);
+  const { id } = await newProduct(page);
+  const section = main(page).getByRole('region', { name: 'Variantes et stock' });
+  await section.getByLabel('Ajouter des coloris').fill('Bleu nuit');
+  await section.getByLabel('Grille de tailles').selectOption('bebe');
+  await section.getByRole('group', { name: 'Tailles à ajouter' }).getByLabel('6M', { exact: true }).check();
+  await section.getByRole('group', { name: 'Tailles à ajouter' }).getByLabel('3M', { exact: true }).check();
+  await section.getByRole('button', { name: 'Ajouter', exact: true }).click();
+  await section.getByLabel('Teinte Bleu nuit').fill('#1f3a5f');
+  await section.getByLabel('Stock Bleu nuit 3M').fill('2');
+  await panel(page).getByRole('button', { name: 'Enregistrer', exact: true }).click();
+  await expect(panel(page).getByText('Enregistré.')).toBeVisible();
+  const variants = (await db().collection(`produits/${id}/variantes`).where('color', '==', 'Bleu nuit').get()).docs.map((d) => d.data());
+  expect(variants.map((v) => v.size).sort()).toEqual(['3M', '6M']);
+  expect(variants.every((v) => v.colorHex === '#1f3a5f')).toBe(true);
+});
+
 test('aperçu privé d’un brouillon ; le brouillon reste introuvable pour le public', async ({ page }) => {
   await signInAdmin(page);
   const { id } = await newProduct(page);

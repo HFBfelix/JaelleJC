@@ -38,7 +38,8 @@ export type ProductFields = z.infer<typeof productFields>;
 export const variantRow = z.strictObject({
   id: z.string().regex(/^[a-z0-9-]{1,60}$/).optional(),
   color: text(40),
-  size: text(40),
+  colorHex: z.string().regex(/^#[0-9a-f]{6}$/).nullable(), // teinte choisie au nuancier pour ce coloris
+  size: text(40), // nouvelle variante : taille d'une grille (sizes.ts) ou vide ; vérifié à l'enregistrement
   stock: z.number().int().min(0).max(9999),
   expectedStock: z.number().int().min(0).nullable(), // null : variante nouvelle
   dimensions: text(80),
