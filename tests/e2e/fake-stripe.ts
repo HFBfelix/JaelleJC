@@ -3,7 +3,8 @@
 // STRIPE_API_HOST (accepté seulement avec les émulateurs, src/server/payments/stripe.ts).
 // Il joue aussi l'API Mistral de l'espace créatrice (MISTRAL_API_HOST, src/server/createur/ai.ts) : analyse d'une pièce
 // (réponse fixe, requêtes gardées pour vérifier ce qui part) et transcription de la dictée (texte fixe),
-// ainsi que la Base Adresse Nationale (ADDRESS_API_URL, src/server/checkout/address.ts).
+// ainsi que la Base Adresse Nationale (ADDRESS_API_URL, src/server/checkout/address.ts) et l'API e-mail de Brevo
+// (BREVO_API_URL, src/server/emails/sender.ts) : e-mails gardés pour vérifier qui les reçoit et ce qu'ils disent.
 import { randomBytes } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
 
@@ -16,6 +17,8 @@ const refunds: Record<string, string>[] = [];
 const customers = new Map<string, { params: Record<string, string>; deleted: boolean }>();
 const CUSTOMER_PATH = /^\/v1\/customers\/(cus_[A-Za-z0-9]+)$/;
 const aiRequests: unknown[] = [];
+export type FakeEmail = { to: string; subject: string; html: string; text: string };
+const emails: FakeEmail[] = [];
 const STREETS = [
   { postcode: '75002', match: /rue de la p/i, name: 'Rue de la Paix', city: 'Paris' },
   { postcode: '78000', match: /place du m/i, name: 'Place du Marché', city: 'Versailles' },
@@ -77,6 +80,17 @@ export function startFakeStripe(): Promise<Server> {
       return json(200, { model: 'voxtral-mini-latest', text: 'Cape de bain en gaze de coton, trois pièces en écru.' });
     }
     if (req.method === 'GET' && url.pathname === '/__test/ai') return json(200, aiRequests);
+    if (req.method === 'POST' && url.pathname === '/v3/smtp/email') {
+      if (!req.headers['api-key']) return json(401, { code: 'unauthorized' });
+      const body = JSON.parse(await readBody(req)) as { to: { email: string }[]; subject: string; htmlContent: string; textContent: string };
+      for (const t of body.to) emails.push({ to: t.email, subject: body.subject, html: body.htmlContent, text: body.textContent });
+      return json(201, { messageId: `<${id('msg')}@smtp-relay.mailin.fr>` });
+    }
+    // E-mails reçus par une adresse (les plus récents en dernier).
+    if (req.method === 'GET' && url.pathname === '/__test/emails') {
+      const to = url.searchParams.get('to');
+      return json(200, to ? emails.filter((e) => e.to === to) : emails);
+    }
     // Base Adresse Nationale (ADDRESS_API_URL) : seules les rues de STREETS existent ; appelée aussi par le navigateur.
     if (req.method === 'GET' && url.pathname === '/geocodage/search') {
       res.setHeader('access-control-allow-origin', '*');

@@ -122,9 +122,13 @@ test('paiement réussi : prix lus en base, commande créée par le webhook, stoc
     gift: { wrap: true, message: '<b>Bienvenue</b> petite Lou' }, // texte brut ; échappé à l'affichage et dans les e-mails
     shipping: { line1: '1 Rue de la Paix', zipCode: '75002', city: 'Paris', country: 'FR' }, // adresse vérifiée, pas celle de Stripe
     customer: { name: 'Camille Test', phone: '+33600000000' },
-    emails: { cliente: 'en_attente', boutique: 'en_attente' }, // expéditeur pas encore choisi
+    emails: { cliente: 'envoye', boutique: 'envoye' }, // envoyés par Brevo (faux serveur des tests)
   });
   expect(order!.reference).toMatch(/^JJC-\d{6}-[A-Z2-9]{4}$/);
+  const inbox = (await (await fetch(`${FAKE}/__test/emails?to=${encodeURIComponent(user.email)}`)).json()) as { subject: string; html: string }[];
+  const confirmation = inbox.find((e) => e.subject === `Votre commande Jaelle & JC — ${order!.reference}`);
+  expect(confirmation!.html).toContain('&lt;b&gt;Bienvenue&lt;/b&gt; petite Lou'); // texte de la cliente échappé
+  expect(confirmation!.html).not.toContain('<b>Bienvenue</b>');
   expect(await stockOf(FIXTURE.buy.id)).toBe(before - 1);
   expect((await db().doc(`carts/u_${user.uid}`).get()).get('items')).toEqual([]);
 
