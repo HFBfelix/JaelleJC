@@ -40,7 +40,6 @@ const s = StyleSheet.create({
   title: { fontFamily: 'Crimson', fontSize: 40, lineHeight: 1.2, marginTop: 40, marginBottom: 12 },
   h2: { fontFamily: 'Crimson', fontSize: 28, lineHeight: 1.2, marginBottom: 16 },
   name: { fontFamily: 'Crimson', fontSize: 26, lineHeight: 1.2, marginTop: 6 },
-  photo: { width: '100%', height: 440, objectFit: 'cover', backgroundColor: GREY },
   photoEmpty: { width: '100%', height: 440, backgroundColor: GREY },
   swatch: { width: 12, height: 12, borderRadius: 6, borderWidth: 0.5, borderColor: '#d4d4d4', marginRight: 6 },
 });
@@ -60,7 +59,27 @@ async function photo(url: string | null): Promise<Buffer | null> {
   }
 }
 
-type Doc = { pieces: (CataloguePiece & { text: string; image: Buffer | null })[]; intro: string; showPrices: boolean; date: Date };
+type Doc = { pieces: (CataloguePiece & { text: string; images: Buffer[] })[]; intro: string; showPrices: boolean; date: Date };
+
+// Photos d'une pièce (jusqu'à 3) : la principale en grand, les deux autres en colonne à sa droite ;
+// avec deux photos, côte à côte ; avec une seule, pleine largeur.
+const img = (data: Buffer, style: Record<string, unknown>) => <Image src={{ data, format: 'jpg' }} style={{ objectFit: 'cover', backgroundColor: GREY, ...style }} />;
+function Photos({ images }: { images: Buffer[] }) {
+  if (!images.length) return <View style={s.photoEmpty} />;
+  if (images.length === 1) return img(images[0]!, { width: '100%', height: 440 });
+  if (images.length === 2) {
+    return <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>{img(images[0]!, { width: '49.2%', height: 400 })}{img(images[1]!, { width: '49.2%', height: 400 })}</View>;
+  }
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+      {img(images[0]!, { width: '66%', height: 440 })}
+      <View style={{ width: '32.4%', justifyContent: 'space-between' }}>
+        {img(images[1]!, { width: '100%', height: 216 })}
+        {img(images[2]!, { width: '100%', height: 216 })}
+      </View>
+    </View>
+  );
+}
 
 function Catalogue({ pieces, intro, showPrices, date, logo }: Doc & { logo: Buffer }) {
   const month = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(date);
@@ -87,7 +106,7 @@ function Catalogue({ pieces, intro, showPrices, date, logo }: Doc & { logo: Buff
 
       {pieces.map((p) => (
         <Page key={p.id} size="A4" style={s.page}>
-          {p.image ? <Image src={{ data: p.image, format: 'jpg' }} style={s.photo} /> : <View style={s.photoEmpty} />}
+          <Photos images={p.images} />
           <Text style={[s.caps, { marginTop: 18 }]}>{[p.category, p.sku].filter(Boolean).join(' · ')}</Text>
           <Text style={s.name}>{p.name}</Text>
           {showPrices && <Text style={{ fontSize: 13, marginTop: 4 }}>{formatEuros(p.priceCents)} €</Text>}
@@ -126,7 +145,7 @@ function Catalogue({ pieces, intro, showPrices, date, logo }: Doc & { logo: Buff
 }
 
 export async function catalogueBuffer(doc: Omit<Doc, 'pieces'> & { pieces: (CataloguePiece & { text: string })[] }): Promise<Buffer> {
-  const [logo, images] = await Promise.all([readFile(LOGO), Promise.all(doc.pieces.map((p) => photo(p.cover)))]);
-  const pieces = doc.pieces.map((p, i) => ({ ...p, image: images[i] ?? null }));
+  const [logo, images] = await Promise.all([readFile(LOGO), Promise.all(doc.pieces.map((p) => Promise.all(p.photos.map(photo))))]);
+  const pieces = doc.pieces.map((p, i) => ({ ...p, images: (images[i] ?? []).filter((b): b is Buffer => !!b) }));
   return renderToBuffer(<Catalogue {...doc} pieces={pieces} logo={logo} />);
 }

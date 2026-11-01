@@ -33,6 +33,10 @@ describe('export Excel', () => {
 });
 
 describe('pièces du catalogue', () => {
+  it('trois photos au plus, dans l’ordre de la fiche', () => {
+    const images = [0, 1, 2, 3].map((n) => ({ path: 'p', url: `https://firebasestorage.googleapis.com/${n}.jpg`, alt: 'x', order: n }));
+    expect(toPiece(product({ images }), [], '').photos).toEqual([0, 1, 2].map((n) => `https://firebasestorage.googleapis.com/${n}.jpg`));
+  });
   it('couleurs et tailles en stock seulement, tailles dans l’ordre de la grille', () => {
     const p = toPiece(product(), [
       variant('a', 'Écru', '6M', 1, { colorHex: '#f3ead8' }), variant('b', 'Écru', '3M', 2), variant('c', 'Rose', '3M', 0),
@@ -41,6 +45,7 @@ describe('pièces du catalogue', () => {
     expect(p.colors).toEqual([{ name: 'Écru', hex: '#f3ead8' }]);
     expect(p.sizes).toEqual(['3M', '6M']);
     expect(p.totalStock).toBe(3);
+    expect(p.photos).toEqual(['https://firebasestorage.googleapis.com/x.jpg']);
   });
   it('texte par défaut : l’accroche, sinon la description, borné', () => {
     expect(defaultText({ accroche: 'Accroche.', description: 'Desc.' })).toBe('Accroche.');

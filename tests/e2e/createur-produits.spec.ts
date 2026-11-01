@@ -257,6 +257,16 @@ test('export Excel : tableur de tous les produits ; catalogue : pièces en stock
   const bytes = await (await import('node:fs/promises')).readFile((await xlsx.path())!);
   expect(bytes.subarray(0, 2).toString()).toBe('PK'); // classeur Excel (archive zip)
 
+  // Pièce en stock avec trois photos (servies par le faux serveur) : mise en page à trois photos du PDF.
+  const withPhotos = `${E2E_PRODUCT_PREFIX} catalogue ${randomBytes(3).toString('hex')}`;
+  const photoRef = db().collection('produits').doc();
+  await photoRef.set({
+    slug: `catalogue-${photoRef.id.toLowerCase()}`, name: withPhotos, status: 'draft', categoryId: FIXTURE.createurCategory.slug, subCategory: 'capes',
+    accroche: 'Cabas en toile imprimée.', histoire: '', description: '', materials: [], entretien: '', details: [], faq: [], priceCents: 6500,
+    images: ['cabas_bleu_2.webp', 'cabasbleu3.webp', 'IMG_4826.webp'].map((f, order) => ({ path: `produits/x/${f}`, url: `${FAKE}/__test/photo/${f}`, alt: 'Cabas', order })),
+    limitedEditionSize: null, giftWrap: true, tags: [], usages: [], inStock: true, aiDraft: { generatedAt: null, reviewed: true },
+  });
+  await photoRef.collection('variantes').doc('unique').set({ sku: 'E2E-CAT', color: null, size: null, priceCents: null, stock: 2, dimensions: null, active: true, order: 0 });
   await main(page).getByRole('link', { name: 'Générer un catalogue' }).click();
   await expect(page).toHaveURL(/\/atelier\/produits\/catalogue$/);
   const list = main(page).getByRole('list', { name: 'Pièces du catalogue' });
@@ -268,6 +278,7 @@ test('export Excel : tableur de tous les produits ; catalogue : pièces en stock
   while (await checkedBoxes.count()) await checkedBoxes.first().uncheck();
   await list.getByLabel(`Inclure ${FIXTURE.sizes.name}`).check();
   await list.getByLabel(`Inclure ${FIXTURE.published.name}`).check();
+  await list.getByLabel(`Inclure ${withPhotos}`).check();
   await main(page).getByRole('button', { name: 'Rédiger avec l’IA' }).click();
   await expect(list.getByLabel(`Texte du catalogue : ${FIXTURE.sizes.name}`)).toHaveValue(`Texte de l’IA pour ${FIXTURE.sizes.name}.`);
   await list.getByLabel(`Texte du catalogue : ${FIXTURE.sizes.name}`).fill('Texte relu par la créatrice.');

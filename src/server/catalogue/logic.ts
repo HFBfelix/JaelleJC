@@ -8,6 +8,7 @@ import type { AdminProduct, AdminVariant } from '../createur/products';
 export const CATALOGUE_TEXT_MAX = 320; // texte d'une pièce : tient sous la photo, sur une page A4
 export const CATALOGUE_INTRO_MAX = 700;
 export const CATALOGUE_PIECES_MAX = 60;
+export const CATALOGUE_PHOTOS = 3; // photos par pièce dans le PDF (une seule ne suffit pas à montrer la pièce)
 export const STATUS_LABELS = { draft: 'Brouillon', published: 'En ligne', archived: 'Archivé' } as const;
 
 const productId = z.string().regex(/^[A-Za-z0-9_-]{1,128}$/);
@@ -37,7 +38,7 @@ export function exportRows(items: { product: AdminProduct; variants: AdminVarian
 
 // --- Pièces du catalogue ---
 export type CataloguePiece = {
-  id: string; name: string; sku: string; status: AdminProduct['status']; category: string; priceCents: number; cover: string | null;
+  id: string; name: string; sku: string; status: AdminProduct['status']; category: string; priceCents: number; cover: string | null; photos: string[];
   accroche: string; description: string; materials: string[]; details: string[]; totalStock: number;
   colors: { name: string; hex: string | null }[]; sizes: string[];
 };
@@ -49,6 +50,7 @@ export function toPiece(p: AdminProduct, variants: AdminVariant[], category: str
   const sizes = [...new Set(inStock.map((v) => v.size ?? '').filter(Boolean))].sort((a, b) => sizeRank(a) - sizeRank(b));
   return {
     id: p.id, name: p.name, sku: p.sku ?? '', status: p.status, category, priceCents: p.priceCents, cover: p.images[0]?.url ?? null,
+    photos: p.images.slice(0, CATALOGUE_PHOTOS).map((i) => i.url).filter(Boolean),
     accroche: p.accroche, description: p.description, materials: p.materials, details: p.details,
     totalStock: inStock.reduce((n, v) => n + v.stock, 0), colors, sizes,
   };

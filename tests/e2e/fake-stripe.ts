@@ -6,6 +6,7 @@
 // ainsi que la Base Adresse Nationale (ADDRESS_API_URL, src/server/checkout/address.ts) et l'API e-mail de Brevo
 // (BREVO_API_URL, src/server/emails/sender.ts) : e-mails gardés pour vérifier qui les reçoit et ce qu'ils disent.
 import { randomBytes } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
 
 export const FAKE_STRIPE_PORT = Number(process.env.STRIPE_FAKE_PORT ?? 12111);
@@ -90,6 +91,14 @@ export function startFakeStripe(): Promise<Server> {
       return json(200, { model: 'voxtral-mini-latest', text: 'Cape de bain en gaze de coton, trois pièces en écru.' });
     }
     if (req.method === 'GET' && url.pathname === '/__test/ai') return json(200, aiRequests);
+    // Photos de pièces pour le catalogue PDF (images du dossier public/assets, servies telles quelles).
+    const photoName = /^\/__test\/photo\/([A-Za-z0-9_-]+\.(?:webp|png|jpg))$/.exec(url.pathname)?.[1];
+    if (req.method === 'GET' && photoName) {
+      const body = await readFile(`public/assets/${photoName}`).catch(() => null);
+      if (!body) return json(404, {});
+      res.writeHead(200, { 'content-type': 'application/octet-stream' });
+      return res.end(body);
+    }
     if (req.method === 'POST' && url.pathname === '/v3/smtp/email') {
       if (!req.headers['api-key']) return json(401, { code: 'unauthorized' });
       const body = JSON.parse(await readBody(req)) as { to: { email: string }[]; subject: string; htmlContent: string; textContent: string };
