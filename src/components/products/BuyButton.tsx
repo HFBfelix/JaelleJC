@@ -68,14 +68,28 @@ const BuyButton = ({ productId, variants }: { productId: string; variants: Varia
         <fieldset className="mb-6">
           <legend className="text-[11px] uppercase tracking-[0.12em] text-neutral-500 mb-3">Taille</legend>
           <div className="flex flex-wrap gap-2">
-            {sizes.map((s) => (
-              <button key={s} type="button" disabled={!available(color, s)} aria-pressed={s === size} onClick={() => setSize(s)}
-                className={`px-4 py-2 border-[0.5px] text-[11px] uppercase tracking-[0.12em] transition-colors
-                  disabled:text-neutral-300 disabled:line-through
-                  ${s === size ? 'border-black text-black' : 'border-neutral-200 text-neutral-500 hover:border-black'}`}>
-                {s}
-              </button>
-            ))}
+            {sizes.map((s) => {
+              const soldOut = !available(color, s);
+              // Épuisée : case barrée d'un trait noir épais en diagonale, « Épuisé » au survol (bouton inactif : le survol
+              // est porté par l'enveloppe).
+              return (
+                <span key={s} className="relative group" title={soldOut ? 'Épuisé' : undefined}>
+                  <button type="button" disabled={soldOut} aria-pressed={s === size} onClick={() => setSize(s)}
+                    aria-label={soldOut ? `${s} (épuisé)` : s}
+                    className={`relative overflow-hidden px-4 py-2 border-[0.5px] text-[11px] uppercase tracking-[0.12em] transition-colors
+                      disabled:text-neutral-400 disabled:pointer-events-none
+                      ${s === size ? 'border-black text-black' : 'border-neutral-200 text-neutral-500 hover:border-black'}`}>
+                    {s}
+                    {soldOut && <span aria-hidden className="absolute left-1/2 top-1/2 w-[150%] h-[2px] bg-black -translate-x-1/2 -translate-y-1/2 -rotate-[24deg]" />}
+                  </button>
+                  {soldOut && (
+                    <span aria-hidden className="pointer-events-none absolute left-1/2 bottom-full mb-1 -translate-x-1/2 whitespace-nowrap bg-black text-white px-2 py-1 text-[11px] uppercase tracking-[0.12em] opacity-0 group-hover:opacity-100 transition-opacity">
+                      Épuisé
+                    </span>
+                  )}
+                </span>
+              );
+            })}
           </div>
         </fieldset>
       )}

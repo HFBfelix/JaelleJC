@@ -128,6 +128,12 @@ test('une seule fiche pour toutes les tailles : pastilles de couleur, tailles da
   await expect(colors.getByRole('button', { name: 'Écru' })).toHaveAttribute('aria-pressed', 'true');
   await expect(sizes.getByRole('button')).toHaveText(['3M', '6M']);
   await expect(sizes.getByRole('button', { name: '3M' })).toHaveAttribute('aria-pressed', 'true');
+  // Taille épuisée : barrée, « Épuisé » au survol (souris seulement).
+  await expect(sizes.getByRole('button', { name: '6M (épuisé)' })).toBeDisabled();
+  if (!test.info().project.use.isMobile) {
+    await sizes.locator('[title="Épuisé"]').hover();
+    await expect(sizes.getByText('Épuisé', { exact: true })).toBeVisible();
+  }
   await expect(sizes.getByRole('button', { name: '6M' })).toBeDisabled();
   // Rose : le 3M est épuisé, la taille passe d'elle-même au 6M.
   await colors.getByRole('button', { name: 'Rose' }).click();
