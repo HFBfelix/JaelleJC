@@ -122,7 +122,11 @@ test('une seule fiche pour toutes les tailles : pastilles de couleur, tailles da
   await expect(colors).toHaveCount(1);
   // Pastille de la teinte choisie par la créatrice ; couleur sans aucun stock barrée.
   await expect(colors.getByRole('button', { name: 'Écru' })).toHaveCSS('background-color', 'rgb(243, 234, 216)');
-  await expect(colors.getByRole('button', { name: 'Bleu' })).toBeDisabled();
+  await expect(colors.getByRole('button', { name: 'Bleu (épuisé)' })).toBeDisabled();
+  if (!test.info().project.use.isMobile) {
+    await colors.locator('[title="Épuisé"]').hover();
+    await expect(colors.getByText('Épuisé', { exact: true })).toBeVisible();
+  }
   // Première variante en stock choisie d'office : Écru, 3M ; 6M épuisé en écru. Ordre de la grille : 3M avant 6M.
   await expect(colors).toContainText('Couleur : Écru');
   await expect(colors.getByRole('button', { name: 'Écru' })).toHaveAttribute('aria-pressed', 'true');

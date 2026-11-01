@@ -51,14 +51,23 @@ const BuyButton = ({ productId, variants }: { productId: string; variants: Varia
           <div className="flex flex-wrap gap-3">
             {colors.map((c) => {
               const enabled = variants.some((v) => v.color === c && v.inStock);
+              // Épuisée : même traitement que les tailles (trait noir épais, liseré blanc pour les teintes foncées,
+              // « Épuisé » au survol porté par l'enveloppe).
               return (
-                <button key={c} type="button" disabled={!enabled} aria-pressed={c === color} aria-label={c} title={c}
-                  onClick={() => chooseColor(c)}
-                  className={`relative w-8 h-8 rounded-full border-[0.5px] border-neutral-300 disabled:cursor-not-allowed
-                    ${c === color ? 'outline outline-[0.5px] outline-black outline-offset-2' : 'hover:outline hover:outline-[0.5px] hover:outline-neutral-400 hover:outline-offset-2'}`}
-                  style={{ backgroundColor: hexOf(c) }}>
-                  {!enabled && <span aria-hidden className="absolute left-1/2 top-1/2 w-[130%] h-px bg-neutral-500 -translate-x-1/2 -translate-y-1/2 -rotate-45" />}
-                </button>
+                <span key={c} className="relative group" title={enabled ? c : 'Épuisé'}>
+                  <button type="button" disabled={!enabled} aria-pressed={c === color} aria-label={enabled ? c : `${c} (épuisé)`}
+                    onClick={() => chooseColor(c)}
+                    className={`relative block w-8 h-8 rounded-full border-[0.5px] border-neutral-300 disabled:pointer-events-none
+                      ${c === color ? 'outline outline-[0.5px] outline-black outline-offset-2' : 'hover:outline hover:outline-[0.5px] hover:outline-neutral-400 hover:outline-offset-2'}`}
+                    style={{ backgroundColor: hexOf(c) }}>
+                    {!enabled && <span aria-hidden className="absolute left-1/2 top-1/2 w-[120%] h-[2px] bg-black shadow-[0_0_0_1px_#fff] -translate-x-1/2 -translate-y-1/2 -rotate-45" />}
+                  </button>
+                  {!enabled && (
+                    <span aria-hidden className="pointer-events-none absolute left-1/2 bottom-full mb-1 -translate-x-1/2 whitespace-nowrap bg-black text-white px-2 py-1 text-[11px] uppercase tracking-[0.12em] opacity-0 group-hover:opacity-100 transition-opacity">
+                      Épuisé
+                    </span>
+                  )}
+                </span>
               );
             })}
           </div>
