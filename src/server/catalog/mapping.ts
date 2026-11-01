@@ -66,7 +66,9 @@ export function toProductView(
   return {
     ...card,
     inStock: active.some((v) => v.stock > 0),
-    variants: active.map((v) => ({ id: v.id, label: [v.color, v.size].filter(Boolean).join(' · '), inStock: v.stock > 0 })),
+    variants: active.map((v) => ({
+      id: v.id, label: [v.color, v.size].filter(Boolean).join(' · '), color: v.color ?? '', size: v.size ?? '', inStock: v.stock > 0,
+    })),
     accroche: p.accroche,
     description: p.description,
     details: p.details,

@@ -57,8 +57,8 @@ describe('vue publique d’un produit', () => {
       variante(9, false),
     ], categories)!;
     expect(view.variants).toEqual([
-      { id: 'v-3-true', label: 'Écru · 6 mois', inStock: true },
-      { id: 'v-0-true', label: 'Bleu', inStock: false },
+      { id: 'v-3-true', label: 'Écru · 6 mois', color: 'Écru', size: '6 mois', inStock: true },
+      { id: 'v-0-true', label: 'Bleu', color: 'Bleu', size: '', inStock: false },
     ]);
   });
 

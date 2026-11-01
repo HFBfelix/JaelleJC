@@ -22,7 +22,15 @@ export const FIXTURE = {
   // Paiement (étape 5) : pièce achetée par les parcours, et dernière pièce disputée par deux clientes.
   buy: { id: 'e2e-zpaiement', slug: 'coffret-e2e-paiement', name: 'Coffret E2E paiement', priceCents: 6000, stock: 50 },
   last: { id: 'e2e-zderniere', slug: 'veste-e2e-derniere', name: 'Veste E2E dernière', priceCents: 7000, stock: 1 },
+  // Une seule fiche, coloris × tailles (stock par variante) : choix « Coloris » puis « Taille ».
+  sizes: { id: 'e2e-ztailles', slug: 'gilet-e2e-tailles', name: 'Gilet E2E tailles', priceCents: 5200 },
 };
+const SIZE_VARIANTS = [
+  { id: 'ecru-3-mois', color: 'Écru', size: '3 mois', stock: 2 },
+  { id: 'ecru-6-mois', color: 'Écru', size: '6 mois', stock: 0 },
+  { id: 'rose-3-mois', color: 'Rose', size: '3 mois', stock: 0 },
+  { id: 'rose-6-mois', color: 'Rose', size: '6 mois', stock: 1 },
+];
 
 // Réglage de livraison des parcours, créé seulement s'il manque (jamais écrasé sur la base locale de Jaelle).
 export const DELIVERY = { freeThresholdCents: 15000, flatRateCents: 690, zones: ['France'], estimatedDays: '' };
@@ -86,6 +94,10 @@ export async function seed() {
   }
   // Variante inactive avec du stock : ne doit pas rendre l'épuisé disponible.
   batch.set(d.doc(`produits/${FIXTURE.soldOut.id}/variantes/inactive`), variant(9, false));
+  batch.set(d.doc(`produits/${FIXTURE.sizes.id}`),
+    { ...base(FIXTURE.sizes.slug, FIXTURE.sizes.name, 'published', FIXTURE.sizes.priceCents), categoryId: FIXTURE.paymentCategory.slug });
+  SIZE_VARIANTS.forEach(({ id, color, size, stock }, order) => batch.set(d.doc(`produits/${FIXTURE.sizes.id}/variantes/${id}`),
+    { ...variant(stock), sku: `E2E-${id}`, color, size, order }));
   await batch.commit();
 }
 
@@ -110,7 +122,7 @@ export async function clean() {
     }
   }
   for (const { id } of [FIXTURE.published, FIXTURE.soldOut, FIXTURE.draft, FIXTURE.archived, FIXTURE.invalid, FIXTURE.html,
-    FIXTURE.cabas, FIXTURE.priced, FIXTURE.withdrawn, FIXTURE.buy, FIXTURE.last]) {
+    FIXTURE.cabas, FIXTURE.priced, FIXTURE.withdrawn, FIXTURE.buy, FIXTURE.last, FIXTURE.sizes]) {
     for (const v of (await d.collection(`produits/${id}/variantes`).get()).docs) batch.delete(v.ref);
     batch.delete(d.doc(`produits/${id}`));
   }

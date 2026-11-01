@@ -112,3 +112,31 @@ test('adresse de fiche anormale (très longue, majuscules, script) : 404, jamais
     expect((await request.get(`/produits/${slug}`)).status()).toBe(404);
   }
 });
+
+test('une seule fiche pour toutes les tailles : choix du coloris puis de la taille, taille épuisée barrée', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('jaellejc-cookies', 'none')); // bandeau des cookies fermé
+  await page.goto(`/produits/${FIXTURE.sizes.slug}`);
+  const colors = page.getByRole('group', { name: 'Coloris' });
+  const sizes = page.getByRole('group', { name: 'Taille' });
+  // Bloc d'achat présent deux fois dans la page (mobile, ordinateur) : un seul visible une fois les styles chargés.
+  await expect(colors).toHaveCount(1);
+  // Première variante en stock choisie d'office : Écru, 3 mois ; 6 mois épuisé en écru.
+  await expect(colors.getByRole('button', { name: 'Écru' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(sizes.getByRole('button', { name: '3 mois' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(sizes.getByRole('button', { name: '6 mois' })).toBeDisabled();
+  // Rose : le 3 mois est épuisé, la taille passe d'elle-même au 6 mois.
+  await colors.getByRole('button', { name: 'Rose' }).click();
+  await expect(sizes.getByRole('button', { name: '3 mois' })).toBeDisabled();
+  await expect(sizes.getByRole('button', { name: '6 mois' })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Ajouter à la sélection' }).click();
+  const drawer = page.getByRole('dialog', { name: 'Votre sélection' });
+  await expect(drawer.getByRole('status')).toHaveText('Ajouté à votre sélection');
+  await expect(drawer.getByText('Rose · 6 mois')).toBeVisible();
+});
+
+test('pièce sans taille ni coloris : aucun choix, ajout direct', async ({ page }) => {
+  await page.goto(`/produits/${FIXTURE.published.slug}`);
+  await expect(page.getByRole('group', { name: 'Taille' })).toHaveCount(0);
+  await expect(page.getByRole('group', { name: 'Coloris' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Ajouter à la sélection' })).toBeEnabled();
+});

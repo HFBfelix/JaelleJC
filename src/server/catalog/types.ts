@@ -26,7 +26,7 @@ export type ProductCardView = {
 };
 
 // Variante proposée au panier : identifiant, libellé (coloris · taille) et disponibilité, jamais le stock exact.
-export type VariantView = { id: string; label: string; inStock: boolean };
+export type VariantView = { id: string; label: string; color: string; size: string; inStock: boolean };
 
 export type ProductView = ProductCardView & {
   variants: VariantView[];
