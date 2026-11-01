@@ -252,10 +252,12 @@ test('export Excel et catalogue PDF : réservés à l’administratrice', async 
 test('export Excel : tableur de tous les produits ; catalogue : pièces en stock cochées, textes de l’IA relus, PDF téléchargé', async ({ page }) => {
   await signInAdmin(page);
   await page.goto('/atelier/produits');
-  const [xlsx] = await Promise.all([page.waitForEvent('download'), main(page).getByRole('link', { name: 'Exporter (Excel)' }).click()]);
-  expect(xlsx.suggestedFilename()).toMatch(/^produits-jaellejc-\d{4}-\d{2}-\d{2}\.xlsx$/);
-  const bytes = await (await import('node:fs/promises')).readFile((await xlsx.path())!);
-  expect(bytes.subarray(0, 2).toString()).toBe('PK'); // classeur Excel (archive zip)
+  const [csv] = await Promise.all([page.waitForEvent('download'), main(page).getByRole('link', { name: 'Exporter (Excel)' }).click()]);
+  expect(csv.suggestedFilename()).toMatch(/^produits-jaellejc-\d{4}-\d{2}-\d{2}\.csv$/);
+  const sheet = await (await import('node:fs/promises')).readFile((await csv.path())!, 'utf8');
+  // CSV pour Excel : UTF-8 avec BOM, point-virgule, une ligne par variante, décimales à virgule.
+  expect(sheet.startsWith('﻿Nom;Référence (SKU);Univers;Famille;Statut;Prix (€);Couleur;Taille;')).toBe(true);
+  expect(sheet).toContain(`"${FIXTURE.sizes.name}";"";"Paiement E2E";"Capes";"En ligne";"52,00";"Rose";"6M"`);
 
   // Pièce en stock avec trois photos (servies par le faux serveur) : mise en page à trois photos du PDF.
   const withPhotos = `${E2E_PRODUCT_PREFIX} catalogue ${randomBytes(3).toString('hex')}`;

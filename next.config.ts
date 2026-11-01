@@ -15,9 +15,9 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
-  // Catalogue PDF et export Excel de l'Atelier : bibliothèques serveur, polices et logo lus sur le disque.
+  // Catalogue PDF de l'Atelier : bibliothèques serveur, polices et logo lus sur le disque.
   // react-pdf : chargé hors du paquet de Next, avec le React du projet (son moteur de rendu ne lit pas le React interne de Next).
-  serverExternalPackages: ['@react-pdf/renderer', 'exceljs', 'sharp'],
+  serverExternalPackages: ['@react-pdf/renderer', 'sharp'],
   outputFileTracingIncludes: {
     '/api/createur/catalogue': ['./src/server/catalogue/fonts/*.ttf', './public/assets/Logo noir Jaelle&JC_V2.png'],
   },

@@ -1,12 +1,12 @@
 // Export Excel et catalogue de l'Atelier (Admin SDK). Appelé seulement par des routes et actions qui ont vérifié
 // le droit admin. Lecture seule : rien n'est écrit en base, hormis le quota d'appels à l'IA.
 import 'server-only';
-import ExcelJS from 'exceljs';
 import { COLLECTIONS } from '../db/schema';
 import { endpoint, takeQuota } from '../createur/ai';
+import { toCsv } from '../createur/site';
 import { listCategoriesAdmin, toAdminProduct, toAdminVariants, type AdminProduct, type AdminVariant } from '../createur/products';
 import { adminDb } from '../firebase/admin';
-import { cataloguePrompt, catalogueFacts, exportRows, parseCatalogueTexts, toPiece, type CataloguePiece } from './logic';
+import { cataloguePrompt, catalogueFacts, exportRows, parseCatalogueTexts, toPiece, type CataloguePiece, type ExportRow } from './logic';
 
 export const CATALOGUE_AI_PER_HOUR = 10;
 const env = (name: string) => process.env[name]?.trim() || null;
@@ -37,25 +37,19 @@ export async function piecesFor(ids: string[]): Promise<CataloguePiece[]> {
   return ids.flatMap((id) => all.filter((p) => p.id === id && p.totalStock > 0));
 }
 
-// Tableur de tous les produits (états et stocks), une ligne par variante.
-export async function productsWorkbook(): Promise<Buffer> {
-  const rows = exportRows(await loadItems());
-  const wb = new ExcelJS.Workbook();
-  wb.creator = 'Jaelle & JC';
-  const ws = wb.addWorksheet('Produits', { views: [{ state: 'frozen', ySplit: 1 }] });
-  ws.columns = [
-    { header: 'Nom', key: 'name', width: 34 }, { header: 'Référence (SKU)', key: 'sku', width: 18 },
-    { header: 'Univers', key: 'category', width: 16 }, { header: 'Famille', key: 'family', width: 16 },
-    { header: 'Statut', key: 'status', width: 12 }, { header: 'Prix (€)', key: 'priceEuros', width: 10, style: { numFmt: '#,##0.00' } },
-    { header: 'Couleur', key: 'color', width: 14 }, { header: 'Taille', key: 'size', width: 10 },
-    { header: 'SKU variante', key: 'variantSku', width: 24 }, { header: 'Stock', key: 'stock', width: 8 },
-    { header: 'Variante active', key: 'active', width: 14 }, { header: 'Stock total de la pièce', key: 'totalStock', width: 20 },
-  ];
-  // Texte saisi : jamais interprété comme une formule par le tableur.
-  const safe = (v: unknown) => (typeof v === 'string' && /^[=+\-@\t\r]/.test(v) ? `'${v}` : v);
-  for (const r of rows) ws.addRow(Object.fromEntries(Object.entries(r).map(([k, v]) => [k, safe(v)])));
-  ws.getRow(1).font = { bold: true };
-  return Buffer.from(await wb.xlsx.writeBuffer());
+// Tableur de tous les produits (états et stocks), une ligne par variante, en CSV (décision de Jaelle, 2026-11-01) :
+// s'ouvre dans Excel (point-virgule, UTF-8 avec BOM, décimales à virgule) ; texte jamais interprété comme formule.
+const CSV_COLUMNS: [keyof ExportRow, string][] = [
+  ['name', 'Nom'], ['sku', 'Référence (SKU)'], ['category', 'Univers'], ['family', 'Famille'], ['status', 'Statut'],
+  ['priceEuros', 'Prix (€)'], ['color', 'Couleur'], ['size', 'Taille'], ['variantSku', 'SKU variante'], ['stock', 'Stock'],
+  ['active', 'Variante active'], ['totalStock', 'Stock total de la pièce'],
+];
+
+export async function productsCsv(): Promise<string> {
+  const rows = exportRows(await loadItems()).map((r) => Object.fromEntries(CSV_COLUMNS.map(([key, header]) => [
+    header, key === 'priceEuros' ? r.priceEuros.toFixed(2).replace('.', ',') : String(r[key]),
+  ])));
+  return `﻿${toCsv(rows, CSV_COLUMNS.map(([, header]) => header))}`;
 }
 
 export type TextsResult = { status: 'ok'; intro: string; texts: Record<string, string> } | { status: 'quota' | 'indisponible' | 'vide' };
