@@ -52,7 +52,7 @@ export default async function CommandeAdminPage({ params }: Props) {
           <p className="text-[14px]">{order.customerEmail}{order.customerPhone ? ` · ${order.customerPhone}` : ''}</p>
         </Card>
 
-        <OrderActions orderId={order.id} status={order.status} tracking={order.tracking} />
+        <OrderActions orderId={order.id} status={order.status} tracking={order.tracking} emails={order.emails} />
       </div>
     </>
   );

@@ -190,8 +190,10 @@ export function buildOrder(s: PaidSession, snap: CheckoutSnapshot, eventId: stri
     status: outcome === 'paid' ? ('paid' as const) : ('refunded' as const),
     refund: outcome === 'paid' ? null : { reason: outcome, id: null },
     tracking: null,
-    emails: { cliente: 'en_attente', boutique: 'en_attente' } as Record<'cliente' | 'boutique', EmailStatus>,
+    emails: { cliente: 'en_attente', boutique: 'en_attente' } as OrderEmails,
   };
 }
 export type EmailStatus = 'en_attente' | 'envoye';
+// E-mails d'une commande : confirmation et alerte boutique à la création, puis un par changement de statut.
+export type OrderEmails = Record<'cliente' | 'boutique', EmailStatus> & Partial<Record<'preparation' | 'expedition', EmailStatus>>;
 export type NewOrder = ReturnType<typeof buildOrder>;

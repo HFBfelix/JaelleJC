@@ -4,6 +4,7 @@
 import type { NewOrder } from '../checkout/logic';
 
 export type EmailMessage = { to: string; subject: string; html: string; text: string };
+type MailOrder = Omit<NewOrder, 'tracking'>;
 
 export function escapeHtml(value: unknown): string {
   return String(value ?? '')
@@ -22,7 +23,7 @@ const layout = (body: string) => `<!doctype html><html lang="fr"><body style="ma
 <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;margin-top:48px;">Jaelle &amp; JC — cousu main en Île-de-France</p>
 </td></tr></table></body></html>`;
 
-function itemsTable(order: NewOrder) {
+function itemsTable(order: MailOrder) {
   const rows = order.items.map((i) => `<tr>
 <td style="padding:12px 0;border-bottom:0.5px solid #eee;">${escapeHtml(i.name)}${i.variantLabel ? ` — ${escapeHtml(i.variantLabel)}` : ''}</td>
 <td align="center" style="padding:12px 0;border-bottom:0.5px solid #eee;color:#666;">${i.quantity}</td>
@@ -33,10 +34,10 @@ function itemsTable(order: NewOrder) {
 <tr><td style="padding-top:12px;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;font-weight:600;">Total</td><td align="right" style="padding-top:12px;font-size:20px;">${euros(order.amounts.totalCents)} €</td></tr></table>`;
 }
 
-const address = (order: NewOrder) => [order.customer.name, order.shipping.line1, order.shipping.line2,
+const address = (order: MailOrder) => [order.customer.name, order.shipping.line1, order.shipping.line2,
   `${order.shipping.zipCode} ${order.shipping.city}`.trim()].filter(Boolean).map(escapeHtml).join('<br>');
 
-function giftBlock(order: NewOrder) {
+function giftBlock(order: MailOrder) {
   if (!order.gift.wrap) return '';
   const message = order.gift.message
     ? `<p style="margin:8px 0 0;">« ${escapeHtml(order.gift.message).replace(/\r?\n/g, '<br>')} »</p>` : '';
@@ -44,7 +45,7 @@ function giftBlock(order: NewOrder) {
 <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;margin:0;">Emballage cadeau</p>${message}</div>`;
 }
 
-export function orderConfirmation(order: NewOrder): EmailMessage {
+export function orderConfirmation(order: MailOrder): EmailMessage {
   const html = layout(`
 <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;">Commande confirmée</p>
 <h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">Merci pour votre commande.</h1>
@@ -60,7 +61,7 @@ ${itemsTable(order)}${giftBlock(order)}
   return { to: order.customer.email, subject: oneLine(`Votre commande Jaelle & JC — ${order.reference}`), html, text };
 }
 
-export function stockApology(order: NewOrder): EmailMessage {
+export function stockApology(order: MailOrder): EmailMessage {
   const stock = order.refund?.reason !== 'montant';
   const html = layout(`
 <h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">${stock ? 'Votre pièce a trouvé preneur.' : 'Votre commande n’a pas pu aboutir.'}</h1>
@@ -72,7 +73,7 @@ export function stockApology(order: NewOrder): EmailMessage {
   return { to: order.customer.email, subject: oneLine(`Votre commande Jaelle & JC — ${order.reference} : remboursement`), html, text };
 }
 
-export function shopNotification(order: NewOrder, shopEmail: string): EmailMessage {
+export function shopNotification(order: MailOrder, shopEmail: string): EmailMessage {
   const refunded = order.status === 'refunded';
   const html = layout(`
 <h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:24px;margin:8px 0;">${refunded ? 'Commande remboursée automatiquement' : 'Nouvelle commande'}</h1>
@@ -92,4 +93,36 @@ export function signInLink(to: string, link: string): EmailMessage {
 <p style="color:#666;">Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.</p>`);
   const text = `Voici votre lien pour vous connecter. Il ne fonctionne qu'une fois.\n${link}\nSi vous n'êtes pas à l'origine de cette demande, ignorez ce message.`;
   return { to, subject: 'Votre lien de connexion Jaelle & JC', html, text };
+}
+
+// Commande passée « en préparation » dans l'espace créatrice.
+export function orderPreparing(order: MailOrder): EmailMessage {
+  const html = layout(`
+<p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;">Référence : ${escapeHtml(order.reference)}</p>
+<h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">Votre commande est en préparation.</h1>
+<p>Bonjour ${escapeHtml(order.customer.name || '')},</p>
+<p>Votre sélection est en préparation à l'atelier. Nous vous écrirons dès son départ, avec le numéro de suivi du colis.</p>
+${itemsTable(order)}${giftBlock(order)}`);
+  const text = `Votre commande ${order.reference} est en préparation à l'atelier. Nous vous écrirons dès son départ, avec le numéro de suivi du colis.`;
+  return { to: order.customer.email, subject: oneLine(`Votre commande Jaelle & JC — ${order.reference} : en préparation`), html, text };
+}
+
+// Colis remis au transporteur (EDITORIAL.md §6) : numéro de suivi recopié par Jaelle et lien du transporteur.
+export type ShippedOrder = Omit<NewOrder, 'tracking'> & { tracking: { carrier: string; number: string; url: string } };
+export function orderShipped(order: ShippedOrder): EmailMessage {
+  const { carrier, number, url } = order.tracking;
+  const link = url.startsWith('https://') ? url : '';
+  const html = layout(`
+<p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;">Référence : ${escapeHtml(order.reference)}</p>
+<h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">Votre colis est en route.</h1>
+<p>Bonjour ${escapeHtml(order.customer.name || '')},</p>
+<p>Votre commande vient de partir de l'atelier.</p>
+<div style="background:#F7F7F7;padding:20px;margin:24px 0;">
+<p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;margin:0 0 8px;">${escapeHtml(carrier)}</p>
+<p style="margin:0;">Numéro de suivi : ${escapeHtml(number)}</p>
+${link ? `<p style="margin:16px 0 0;"><a href="${escapeHtml(link)}" style="color:#000;">Suivre mon colis</a></p>` : ''}</div>
+<div style="padding:0 0 8px;"><p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;margin:0 0 8px;">Livraison</p>
+<p style="margin:0;">${address(order)}</p></div>`);
+  const text = [`Votre colis est en route (${order.reference}).`, `${carrier} — numéro de suivi : ${number}`, link].filter(Boolean).join('\n');
+  return { to: order.customer.email, subject: oneLine(`Votre colis est en route — ${order.reference}`), html, text };
 }

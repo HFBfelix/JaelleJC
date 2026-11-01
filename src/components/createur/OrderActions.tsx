@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { moveOrderAction, shipOrderAction } from '@/server/createur/orders-actions';
+import { moveOrderAction, resendOrderEmailsAction, shipOrderAction } from '@/server/createur/orders-actions';
 import { Button, Card, Input, Message, label } from './ui';
 
 const MESSAGES: Record<string, string> = {
@@ -15,8 +15,8 @@ const MESSAGES: Record<string, string> = {
 
 // Avancement d'une commande : en préparation → expédiée (Colissimo et numéro de suivi recopié) → livrée.
 // Remboursement ou annulation : depuis le tableau de bord Stripe pour l'instant.
-export default function OrderActions({ orderId, status, tracking }:
-  { orderId: string; status: string; tracking: { carrier: string; number: string; url: string } | null }) {
+export default function OrderActions({ orderId, status, tracking, emails }:
+  { orderId: string; status: string; tracking: { carrier: string; number: string; url: string } | null; emails: { label: string; sent: boolean }[] }) {
   const router = useRouter();
   const [carrier, setCarrier] = useState<'colissimo' | 'lettre_suivie' | 'autre'>('colissimo');
   const [number, setNumber] = useState('');
@@ -67,7 +67,7 @@ export default function OrderActions({ orderId, status, tracking }:
             hint="Recopié depuis l’étiquette (ex. 6A12345678901)." />
           {carrier === 'autre' && <Input label="Lien de suivi" type="url" value={url} onChange={(e) => setUrl(e.target.value)} required placeholder="https://…" />}
           <Button type="submit" className="w-full" disabled={pending || !number.trim()}>Marquer comme expédiée</Button>
-          <p className="text-[13px] text-neutral-500 mt-3">La cliente voit aussitôt le suivi dans son compte. L’e-mail « colis parti » sera envoyé à partir de l’étape 7bis.</p>
+          <p className="text-[13px] text-neutral-500 mt-3">La cliente voit aussitôt le suivi dans son compte et reçoit l’e-mail « Votre colis est en route » avec ce numéro.</p>
         </form>
       )}
 
@@ -84,6 +84,19 @@ export default function OrderActions({ orderId, status, tracking }:
       )}
       {status === 'delivered' && <p className="text-[14px]">Commande livrée.</p>}
       {(status === 'refunded' || status === 'cancelled') && <p className="text-[14px]">Commande {status === 'refunded' ? 'remboursée' : 'annulée'}.</p>}
+      {emails.length > 0 && (
+        <div className="mt-6 border-t-[0.5px] border-neutral-200 pt-4">
+          <h3 className={`${label} mb-2`}>E-mails à la cliente</h3>
+          <ul className="text-[14px] space-y-1 mb-3">
+            {emails.map((e) => <li key={e.label}>{e.label} : {e.sent ? 'envoyé' : 'en attente'}</li>)}
+          </ul>
+          {emails.some((e) => !e.sent) && (
+            <Button variant="secondary" className="w-full" disabled={pending} onClick={() => call(() => resendOrderEmailsAction({ orderId }))}>
+              Renvoyer les e-mails en attente
+            </Button>
+          )}
+        </div>
+      )}
       <p className="text-[13px] text-neutral-500 mt-6">Remboursement ou annulation : depuis le tableau de bord Stripe.</p>
     </Card>
   );

@@ -127,7 +127,11 @@ export const order = z.object({
   // Remboursement automatique (stock insuffisant ou montant inattendu) : `id` null tant que Stripe n'a pas confirmé.
   refund: z.object({ reason: z.enum(['stock', 'montant']), id: z.string().nullable() }).nullable().optional(),
   // E-mails : « en_attente » tant que l'expéditeur n'est pas branché ou si l'envoi a échoué (renvoi possible).
-  emails: z.object({ cliente: z.enum(['en_attente', 'envoye']), boutique: z.enum(['en_attente', 'envoye']) }).optional(),
+  // `preparation` et `expedition` : posés par le changement de statut dans l'espace créatrice.
+  emails: z.object({
+    cliente: z.enum(['en_attente', 'envoye']), boutique: z.enum(['en_attente', 'envoye']),
+    preparation: z.enum(['en_attente', 'envoye']).optional(), expedition: z.enum(['en_attente', 'envoye']).optional(),
+  }).optional(),
 });
 
 // Paiement en cours : instantané du panier au moment de créer la session Stripe (`checkouts/{sessionId}`),

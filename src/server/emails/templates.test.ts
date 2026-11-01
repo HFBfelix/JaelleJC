@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { NewOrder } from '../checkout/logic';
-import { escapeHtml, orderConfirmation, shopNotification, stockApology } from './templates';
+import { escapeHtml, orderConfirmation, orderPreparing, orderShipped, shopNotification, stockApology } from './templates';
 
 const order = (over: Partial<NewOrder> = {}): NewOrder => ({
   userId: 'u1',
@@ -51,5 +51,24 @@ describe('e-mails : tout texte saisi est échappé', () => {
 
   it('boutique : adresse de notification choisie par Jaelle', () => {
     expect(shopNotification(order(), 'contact@jaellejc.com').to).toBe('contact@jaellejc.com');
+  });
+});
+
+describe('e-mails de suivi de commande', () => {
+  it('en préparation : texte échappé, objet sur une ligne', () => {
+    const m = orderPreparing(order());
+    expect(m.subject).toBe('Votre commande Jaelle & JC — JJC-261029-ABCD : en préparation');
+    expect(m.html).not.toContain('<script>');
+    expect(m.to).toBe('cliente@exemple.fr');
+  });
+
+  it('colis en route : numéro et lien du transporteur ; lien non https ignoré', () => {
+    const shipped = { ...order(), tracking: { carrier: 'Colissimo', number: '6A12345678901', url: 'https://www.laposte.fr/outils/suivre-vos-envois?code=6A12345678901' } };
+    const m = orderShipped(shipped);
+    expect(m.subject).toBe('Votre colis est en route — JJC-261029-ABCD');
+    expect(m.html).toContain('6A12345678901');
+    expect(m.html).toContain('href="https://www.laposte.fr/outils/suivre-vos-envois?code=6A12345678901"');
+    const bad = orderShipped({ ...shipped, tracking: { ...shipped.tracking, url: 'javascript:alert(1)' } });
+    expect(bad.html).not.toContain('javascript:');
   });
 });

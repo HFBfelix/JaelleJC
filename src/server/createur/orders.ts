@@ -11,7 +11,16 @@ import { audit } from './products';
 
 const db = () => adminDb();
 
-export type AdminOrder = OrderDetail & { customerEmail: string; customerPhone: string; legacy: boolean };
+export type AdminOrder = OrderDetail & { customerEmail: string; customerPhone: string; legacy: boolean; emails: { label: string; sent: boolean }[] };
+
+// État des e-mails d'une commande, pour la fiche de l'espace créatrice (renvoi possible de ce qui est en attente).
+export const EMAIL_LABELS = { cliente: 'Confirmation', boutique: 'Alerte boutique', preparation: 'En préparation', expedition: 'Colis en route' } as const;
+export function emailStates(emails: unknown): { label: string; sent: boolean }[] {
+  const e = (emails && typeof emails === 'object' ? emails : {}) as Record<string, unknown>;
+  return (Object.keys(EMAIL_LABELS) as (keyof typeof EMAIL_LABELS)[])
+    .filter((k) => e[k] === 'envoye' || e[k] === 'en_attente')
+    .map((k) => ({ label: EMAIL_LABELS[k], sent: e[k] === 'envoye' }));
+}
 
 export async function listOrdersAdmin(): Promise<AdminOrder[]> {
   // Sans orderBy : les commandes migrées sans date resteraient invisibles. Petite boutique : tout est lu, trié ici.
@@ -21,7 +30,10 @@ export async function listOrdersAdmin(): Promise<AdminOrder[]> {
 
 function toAdminOrder(id: string, d: Record<string, unknown>): AdminOrder {
   const detail = orderDetail(id, d);
-  return { ...detail, customerEmail: detail.contact.email, customerPhone: detail.contact.phone, legacy: !!d.legacy };
+  return {
+    ...detail, customerEmail: detail.contact.email, customerPhone: detail.contact.phone, legacy: !!d.legacy,
+    emails: d.reference ? emailStates(d.emails) : [],
+  };
 }
 
 export async function orderAdmin(id: string): Promise<AdminOrder | null> {
@@ -59,10 +71,11 @@ export async function moveOrder(
     tx.update(ref, {
       status: to,
       [`${to}At`]: FieldValue.serverTimestamp(),
+      // E-mails à la cliente : « en préparation », puis « colis en route » (envoyés juste après, voir notify.ts).
+      ...(to === 'preparing' ? { 'emails.preparation': 'en_attente' } : {}),
       ...(to === 'shipped' && tracking
         ? {
             tracking: { carrier: CARRIERS[tracking.carrier], number: tracking.number, url: trackingUrl(tracking.carrier, tracking.number, tracking.url) },
-            // E-mail « colis parti » : préparé, envoyé à l'étape 7bis (expéditeur choisi par Jaelle).
             'emails.expedition': 'en_attente',
           }
         : {}),

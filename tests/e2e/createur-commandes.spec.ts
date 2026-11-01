@@ -23,14 +23,14 @@ async function signIn(page: Page, admin: boolean) {
   return user;
 }
 
-async function seedOrder(userId: string) {
+async function seedOrder(userId: string, email = 'cliente@exemple.test') {
   const id = `cs_test_${randomBytes(10).toString('hex')}`;
   const reference = `JJC-261030-${randomBytes(2).toString('hex').toUpperCase()}`;
   await db().doc(`orders/${id}`).set({
     userId, reference, status: 'paid', createdAt: Timestamp.now(),
     items: [{ productId: FIXTURE.buy.id, variantId: 'unique', sku: 'S', name: FIXTURE.buy.name, variantLabel: '', unitPriceCents: 6000, quantity: 1, image: '' }],
     amounts: { subtotalCents: 6000, deliveryCents: 690, totalCents: 6690 },
-    customer: { uid: userId, email: 'cliente@exemple.test', name: 'Camille Test', phone: '' },
+    customer: { uid: userId, email, name: 'Camille Test', phone: '' },
     shipping: { line1: '1 rue de la Paix', line2: '', zipCode: '75002', city: 'Paris', country: 'FR' },
     gift: { wrap: true, message: 'Bienvenue Lou' }, stripe: { sessionId: id, paymentIntentId: '', eventId: '' },
     tracking: null, refund: null, emails: { cliente: 'en_attente', boutique: 'en_attente' },
@@ -50,7 +50,8 @@ test('commande : préparation, expédition Colissimo (suivi visible par la clien
   const clientPage = await (await browser.newContext()).newPage();
   await clientPage.addInitScript(() => localStorage.setItem('jaellejc-cookies', 'none'));
   const client = await signIn(clientPage, false);
-  const { id, reference } = await seedOrder(client.uid);
+  const { id, reference } = await seedOrder(client.uid, client.email);
+  const inbox = async () => ((await (await fetch(`http://127.0.0.1:12111/__test/emails?to=${encodeURIComponent(client.email)}`)).json()) as { subject: string; html: string }[]).map((e) => e.subject);
 
   const page = await (await browser.newContext()).newPage();
   await page.addInitScript(() => localStorage.setItem('jaellejc-cookies', 'none'));
@@ -61,6 +62,8 @@ test('commande : préparation, expédition Colissimo (suivi visible par la clien
 
   await main(page).getByRole('button', { name: 'Passer en préparation' }).click();
   await expect.poll(async () => (await db().doc(`orders/${id}`).get()).get('status')).toBe('preparing');
+  // E-mail « en préparation » à la cliente (et ceux restés en attente, comme la confirmation).
+  await expect.poll(inbox).toContain(`Votre commande Jaelle & JC — ${reference} : en préparation`);
 
   const ship = main(page).getByRole('form', { name: 'Expédition' });
   await ship.getByLabel('Numéro de suivi').fill('<b>x</b>');
@@ -71,8 +74,11 @@ test('commande : préparation, expédition Colissimo (suivi visible par la clien
   await expect.poll(async () => (await db().doc(`orders/${id}`).get()).get('status')).toBe('shipped');
   expect((await db().doc(`orders/${id}`).get()).data()).toMatchObject({
     tracking: { carrier: 'Colissimo', number: '6A12345678901', url: 'https://www.laposte.fr/outils/suivre-vos-envois?code=6A12345678901' },
-    emails: { expedition: 'en_attente' },
+    emails: { cliente: 'envoye', boutique: 'envoye', preparation: 'envoye', expedition: 'envoye' },
   });
+  expect(await inbox()).toContain(`Votre colis est en route — ${reference}`);
+  await page.reload();
+  await expect(main(page).getByText('Colis en route : envoyé')).toBeVisible();
 
   // La cliente voit le suivi dans son compte.
   await clientPage.goto(`/compte/commandes/${id}`);
