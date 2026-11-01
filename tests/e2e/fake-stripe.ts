@@ -64,7 +64,17 @@ export function startFakeStripe(): Promise<Server> {
       return json(200, { id: id('re'), object: 'refund', status: 'succeeded', payment_intent: params.payment_intent });
     }
     if (req.method === 'POST' && url.pathname === '/v1/chat/completions') {
-      aiRequests.push(JSON.parse(await readBody(req)));
+      const request = JSON.parse(await readBody(req)) as { messages: { role: string; content: unknown }[] };
+      aiRequests.push(request);
+      // Textes du catalogue (Atelier) : un texte fixe par pièce reçue.
+      if (String(request.messages[0]?.content).includes('catalogue imprimé')) {
+        const facts = JSON.parse(String(request.messages[1]?.content).replace(/^FAITS : /, '')) as { id: string; nom: string }[];
+        const catalogue = JSON.stringify({
+          introduction: 'Des pièces cousues à l’atelier, choisies pour cette saison.',
+          pieces: facts.map((f) => ({ id: f.id, texte: `Texte de l’IA pour ${f.nom}.` })),
+        });
+        return json(200, { id: id('chatcmpl'), object: 'chat.completion', choices: [{ index: 0, message: { role: 'assistant', content: catalogue } }] });
+      }
       const content = JSON.stringify({
         nom: 'E2E créatrice cape de bain en gaze', univers: 'createur-e2e', famille: 'capes', prixEuros: 45.5,
         matieres: ['gaze de coton'], details: ['Cape : 80 × 80 cm'], entretien: 'Lavage à 30 °C.', serieLimitee: null,

@@ -240,3 +240,40 @@ test('aperçu privé d’un brouillon ; le brouillon reste introuvable pour le p
   expect((await db().doc(`produits/${id}`).get()).exists).toBe(false);
   expect((await db().doc(`produitsNotes/${id}`).get()).exists).toBe(false);
 });
+
+test('export Excel et catalogue PDF : réservés à l’administratrice', async ({ page, request }) => {
+  expect((await request.get('/api/createur/export-produits')).status()).toBe(401);
+  const anonymous = await request.post('/api/createur/catalogue', { data: { ids: ['x'], showPrices: true, intro: '', texts: {} } });
+  expect([401, 403]).toContain(anonymous.status());
+  await page.goto('/atelier/produits/catalogue');
+  await expect(page).toHaveURL(/\/atelier\/connexion$/);
+});
+
+test('export Excel : tableur de tous les produits ; catalogue : pièces en stock cochées, textes de l’IA relus, PDF téléchargé', async ({ page }) => {
+  await signInAdmin(page);
+  await page.goto('/atelier/produits');
+  const [xlsx] = await Promise.all([page.waitForEvent('download'), main(page).getByRole('link', { name: 'Exporter (Excel)' }).click()]);
+  expect(xlsx.suggestedFilename()).toMatch(/^produits-jaellejc-\d{4}-\d{2}-\d{2}\.xlsx$/);
+  const bytes = await (await import('node:fs/promises')).readFile((await xlsx.path())!);
+  expect(bytes.subarray(0, 2).toString()).toBe('PK'); // classeur Excel (archive zip)
+
+  await main(page).getByRole('link', { name: 'Générer un catalogue' }).click();
+  await expect(page).toHaveURL(/\/atelier\/produits\/catalogue$/);
+  const list = main(page).getByRole('list', { name: 'Pièces du catalogue' });
+  // Pièce en stock cochée d'office ; pièce épuisée non sélectionnable.
+  await expect(list.getByLabel(`Inclure ${FIXTURE.sizes.name}`)).toBeChecked();
+  await expect(list.getByLabel(`Inclure ${FIXTURE.soldOut.name}`)).toBeDisabled();
+  // On ne garde que deux pièces (la créatrice décoche le reste).
+  const checkedBoxes = list.getByRole('checkbox', { checked: true });
+  while (await checkedBoxes.count()) await checkedBoxes.first().uncheck();
+  await list.getByLabel(`Inclure ${FIXTURE.sizes.name}`).check();
+  await list.getByLabel(`Inclure ${FIXTURE.published.name}`).check();
+  await main(page).getByRole('button', { name: 'Rédiger avec l’IA' }).click();
+  await expect(list.getByLabel(`Texte du catalogue : ${FIXTURE.sizes.name}`)).toHaveValue(`Texte de l’IA pour ${FIXTURE.sizes.name}.`);
+  await list.getByLabel(`Texte du catalogue : ${FIXTURE.sizes.name}`).fill('Texte relu par la créatrice.');
+  const [pdf] = await Promise.all([page.waitForEvent('download'), main(page).getByRole('button', { name: 'Générer le PDF' }).click()]);
+  expect(pdf.suggestedFilename()).toMatch(/^catalogue-jaellejc-\d{4}-\d{2}-\d{2}\.pdf$/);
+  const file = await (await import('node:fs/promises')).readFile((await pdf.path())!);
+  expect(file.subarray(0, 5).toString()).toBe('%PDF-');
+  if (process.env.CATALOGUE_PDF_OUT) await pdf.saveAs(process.env.CATALOGUE_PDF_OUT); // relecture du rendu (rapport QA)
+});

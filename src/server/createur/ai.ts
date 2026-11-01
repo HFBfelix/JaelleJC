@@ -20,7 +20,7 @@ const env = (name: string) => process.env[name]?.trim() || null;
 export const aiEnabled = () => !!env('MISTRAL_API_KEY');
 
 // Quota par heure et par administratrice, tenu en transaction (collection serveur, règles : tout refusé).
-async function takeQuota(uid: string, kind: 'analyse' | 'dictee', limit: number): Promise<boolean> {
+export async function takeQuota(uid: string, kind: 'analyse' | 'dictee' | 'catalogue', limit: number): Promise<boolean> {
   const hour = new Date().toISOString().slice(0, 13).replace(/[-T]/g, '');
   const ref = adminDb().collection(COLLECTIONS.aiQuota).doc(kind === 'analyse' ? `${uid}_${hour}` : `${uid}_${kind}_${hour}`);
   return adminDb().runTransaction(async (tx) => {
@@ -31,7 +31,7 @@ async function takeQuota(uid: string, kind: 'analyse' | 'dictee', limit: number)
   });
 }
 
-function endpoint(path: string) {
+export function endpoint(path: string) {
   const fake = env('MISTRAL_API_HOST');
   if (fake) {
     if (env('VERCEL_ENV') || !env('FIRESTORE_EMULATOR_HOST')) throw new Error('MISTRAL_API_HOST réservé aux tests locaux.');

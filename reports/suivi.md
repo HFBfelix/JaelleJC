@@ -110,6 +110,12 @@ Dernière mise à jour : 2026-10-30, fin de l'étape 7 (espace créatrice). Chaq
 - Une teinte par coloris, choisie au nuancier (champ `colorHex` des variantes) ; fiche : pastilles « Couleur : … », tailles dans l'ordre de la grille, couleur ou taille épuisée barrée (`catalogue.spec.ts`).
 - Anciennes variantes : gardent leur taille d'origine (affichée après les tailles de grille) ; teinte grise tant qu'elle n'est pas choisie.
 
+## Retours de Jaelle (2026-11-01) : Atelier, export et catalogue
+- Espace créatrice renommé « Atelier », adresse `/atelier` (301 depuis `/createur`) ; cloche rouge et nombre de commandes payées jamais ouvertes sur l'onglet Commandes ; référence SKU unique par pièce (`connexion.spec.ts`, `createur-commandes.spec.ts`, `createur-produits.spec.ts`).
+- Onglet Produits : « Exporter (Excel) » (.xlsx, une ligne par variante) et « Générer un catalogue » (page intermédiaire : pièces en stock cochées, décochables, prix affichés ou non, textes rédigés par Mistral puis relus ; PDF A4 à la charte). Nouvelles dépendances accordées par Jaelle : `exceljs` 4.4.0, `@react-pdf/renderer` 4.9.0, `sharp` 0.35.5 (déjà installé par Next, désormais déclaré).
+- **Audit des dépendances** : `exceljs` ajoute 6 alertes « moyennes » (`uuid` < 11.1.1, `archiver`/`glob`/`minimatch`). Non atteignables ici : l'export n'est fabriqué que par le serveur, pour une administratrice, sans motif ni tampon fourni de l'extérieur. Les 6 alertes moyennes déjà présentes avant (chaîne `firebase-admin`/`google-gax`) restent inchangées. À revoir à l'étape 9 (mise à jour d'`exceljs` ou forçage d'`uuid`).
+- **Bascule (étape 10)** : supprimer les Cloud Functions de l'ancien site (`onUserSignup`…), qui renverraient les mêmes e-mails si une clé Brevo leur était redonnée.
+
 ## Étape 7 — espace créatrice (2026-10-30)
 
 - Décisions de Jaelle (2026-10-30) : expédition sans lien avec La Poste (numéro de suivi recopié) ; remboursement et annulation depuis Stripe ; photos réduites dans le navigateur ; trois livraisons (7a produits, 7b commandes et stocks, 7c le reste).

@@ -76,7 +76,7 @@ export function toAdminProduct(id: string, d: Record<string, unknown>): AdminPro
   };
 }
 
-function toAdminVariants(docs: FirebaseFirestore.QueryDocumentSnapshot[]): AdminVariant[] {
+export function toAdminVariants(docs: FirebaseFirestore.QueryDocumentSnapshot[]): AdminVariant[] {
   return docs.flatMap((v) => {
     const parsed = variante.safeParse(v.data());
     return parsed.success ? [{ id: v.id, ...parsed.data }] : [];
