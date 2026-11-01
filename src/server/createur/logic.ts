@@ -15,6 +15,8 @@ const slugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80);
 // Saisie d'une fiche (étapes 2, 3 et 5). Brouillon : champs vides permis ; la liste de contrôle décide de la publication.
 export const productFields = z.strictObject({
   name: text(120).min(1),
+  // Référence (SKU) : lettres, chiffres, tirets, points ; en capitales ; vide = pas encore saisie. Unicité vérifiée à l'enregistrement.
+  sku: z.string().trim().toUpperCase().regex(/^([A-Z0-9][A-Z0-9._-]{0,39})?$/).optional(),
   slug: slugSchema.optional(), // modifiable tant que la pièce n'a jamais été publiée
   categoryId: slugSchema.nullable(),
   subCategory: slugSchema.nullable(),

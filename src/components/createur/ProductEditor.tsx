@@ -26,10 +26,11 @@ const selectClass = (error: boolean) => `w-full bg-white border-[0.5px] ${error 
 
 const MESSAGES: Record<string, string> = {
   connexion: 'Votre session a expiré. Reconnectez-vous.',
-  invalide: 'Vérifiez la saisie (longueurs, prix).',
+  invalide: 'Vérifiez la saisie (longueurs, prix, référence SKU : lettres, chiffres, tirets).',
   erreur: 'Une erreur est survenue. Réessayez.',
   introuvable: 'Cette fiche n’existe plus.',
   'slug-pris': 'Cette adresse est déjà utilisée par une autre pièce : modifiez l’adresse de la page.',
+  'sku-pris': 'Cette référence (SKU) est déjà utilisée par une autre pièce.',
   incomplet: 'Une pièce en ligne doit rester complète : complétez ce qui est en rouge ou remettez-la en brouillon.',
   doublon: 'Deux variantes ont le même coloris et la même taille.',
   'hors-grille': 'Une nouvelle taille doit être choisie dans une grille (Femme, Bébé ou Enfant).',
@@ -46,7 +47,7 @@ const MESSAGES: Record<string, string> = {
 };
 
 type Fields = {
-  name: string; slug: string; categoryId: string; subCategory: string; price: string; accroche: string; histoire: string;
+  name: string; sku: string; slug: string; categoryId: string; subCategory: string; price: string; accroche: string; histoire: string;
   description: string; materials: string; entretien: string; details: string; limited: string; giftWrap: boolean;
   tags: string; usages: string; faq: { question: string; reponse: string }[];
 };
@@ -71,7 +72,7 @@ export default function ProductEditor({ product, variants, categories, notes: sa
   const [aiGenerated, setAiGenerated] = useState(!!product.aiDraft.generatedAt);
 
   const initialFields = (): Fields => ({
-    name: product.name, slug: product.slug, categoryId: product.categoryId ?? '', subCategory: product.subCategory ?? '',
+    name: product.name, sku: product.sku ?? '', slug: product.slug, categoryId: product.categoryId ?? '', subCategory: product.subCategory ?? '',
     price: centsToEuros(product.priceCents), accroche: product.accroche, histoire: product.histoire, description: product.description,
     materials: product.materials.join('\n'), entretien: product.entretien, details: product.details.join('\n'),
     limited: product.limitedEditionSize ? String(product.limitedEditionSize) : '', giftWrap: product.giftWrap,
@@ -143,7 +144,7 @@ export default function ProductEditor({ product, variants, categories, notes: sa
     const limited = fields.limited.trim() ? Number(fields.limited) : null;
     if (cents === null || (limited !== null && (!Number.isInteger(limited) || limited < 1))) return null;
     return {
-      name: fields.name.trim() || 'Nouvelle pièce', ...(product.publishedAt ? {} : { slug: fields.slug }),
+      name: fields.name.trim() || 'Nouvelle pièce', sku: fields.sku.trim(), ...(product.publishedAt ? {} : { slug: fields.slug }),
       categoryId: fields.categoryId || null, subCategory: fields.subCategory || null, priceCents: cents,
       accroche: fields.accroche, histoire: fields.histoire, description: fields.description,
       materials: lines(fields.materials), entretien: fields.entretien, details: lines(fields.details),
@@ -278,7 +279,7 @@ export default function ProductEditor({ product, variants, categories, notes: sa
   return (
     <div>
       <div className="flex flex-wrap items-center gap-4 mb-8">
-        <Link href="/createur/produits" className={`${label} hover:text-black`}>← Produits</Link>
+        <Link href="/atelier/produits" className={`${label} hover:text-black`}>← Produits</Link>
         <h1 className="font-serif text-3xl flex-1 min-w-0 truncate">{fields.name || 'Nouvelle pièce'}</h1>
         <StatusBadge status={product.status} />
       </div>
@@ -345,6 +346,8 @@ export default function ProductEditor({ product, variants, categories, notes: sa
               <h2 className="font-serif text-[22px] mb-6">L’essentiel</h2>
               <Input label="Nom de la pièce" value={fields.name} maxLength={120} ai={aiKeys.has('name')} onChange={(e) => set({ name: e.target.value })}
                 hint="Une seule capitale, en début de nom (« Cabas imprimé bleu »)." />
+              <Input label="Référence (SKU)" value={fields.sku} maxLength={40} onChange={(e) => set({ sku: e.target.value.toUpperCase() })}
+                hint="Votre référence pour cette pièce, unique dans la boutique (lettres, chiffres, tirets)." />
               {product.publishedAt ? (
                 <p className="text-[13px] text-neutral-500 mb-6">Adresse : /produits/{product.slug} (figée depuis la première mise en ligne)</p>
               ) : (
@@ -446,7 +449,7 @@ export default function ProductEditor({ product, variants, categories, notes: sa
                   {dirty ? 'Enregistrer et mettre en ligne' : 'Mettre en ligne'}
                 </Button>
               )}
-              <Link href={`/createur/apercu/${product.id}`} target="_blank" className="border-[0.5px] border-black bg-white px-6 py-3 text-center text-[11px] uppercase tracking-[0.12em]">
+              <Link href={`/atelier/apercu/${product.id}`} target="_blank" className="border-[0.5px] border-black bg-white px-6 py-3 text-center text-[11px] uppercase tracking-[0.12em]">
                 Aperçu privé
               </Link>
             </div>

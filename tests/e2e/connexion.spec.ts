@@ -5,7 +5,7 @@ import { PASSWORD, createUser, newEmail, removeAdminClaim, resetCodesFor, signIn
 import { FIXTURE, db } from './catalogue-fixture';
 
 const SIGN_IN_ERROR = "Nous n'avons pas pu vous connecter. Vérifiez votre e-mail et réessayez.";
-const NOT_ADMIN = "Ce compte n'a pas accès à l'espace créatrice.";
+const NOT_ADMIN = "Ce compte n'a pas accès à l'Atelier.";
 
 const noBanner = (page: Page) => page.addInitScript(() => localStorage.setItem('jaellejc-cookies', 'none'));
 const main = (page: Page) => page.getByRole('main');
@@ -215,8 +215,8 @@ test.describe('pages protégées', () => {
   test('anonyme : compte et espace créatrice redirigés vers la connexion', async ({ page }) => {
     await page.goto('/compte');
     await expect(page).toHaveURL(/\/connexion\?retour=\/compte$/);
-    await page.goto('/createur');
-    await expect(page).toHaveURL(/\/createur\/connexion$/);
+    await page.goto('/atelier');
+    await expect(page).toHaveURL(/\/atelier\/connexion$/);
     await expect(main(page).getByLabel('Votre e-mail')).toBeVisible();
   });
 
@@ -227,8 +227,8 @@ test.describe('pages protégées', () => {
     const forged = `${part({ alg: 'none' })}.${part({ admin: true, email_verified: true })}.`;
     await context.addCookies([{ name: '__session', value: forged, url: baseURL! }]);
     const page = await context.newPage();
-    await page.goto('/createur');
-    await expect(page).toHaveURL(/\/createur\/connexion$/);
+    await page.goto('/atelier');
+    await expect(page).toHaveURL(/\/atelier\/connexion$/);
     await page.goto('/compte');
     await expect(page).toHaveURL(/\/connexion/);
     await context.close();
@@ -236,24 +236,24 @@ test.describe('pages protégées', () => {
 
   test('cliente (non admin) : refusée à l’espace créatrice, message clair', async ({ page }) => {
     const user = await createUser();
-    await signInWithPassword(page, user.email, user.password, '/createur/connexion');
+    await signInWithPassword(page, user.email, user.password, '/atelier/connexion');
     await expect(main(page).getByText(NOT_ADMIN)).toBeVisible();
-    await page.goto('/createur');
-    await expect(page).toHaveURL(/\/createur\/connexion$/);
+    await page.goto('/atelier');
+    await expect(page).toHaveURL(/\/atelier\/connexion$/);
     await expect(main(page).getByText(NOT_ADMIN)).toBeVisible();
   });
 
   test('administratrice (revendication admin) : accès à l’espace créatrice', async ({ page }) => {
     const admin = await createUser({ admin: true });
-    await signInWithPassword(page, admin.email, admin.password, '/createur/connexion');
-    await expect(page).toHaveURL(/\/createur$/);
-    await expect(main(page).getByRole('heading', { level: 1, name: 'Espace créatrice' })).toBeVisible();
+    await signInWithPassword(page, admin.email, admin.password, '/atelier/connexion');
+    await expect(page).toHaveURL(/\/atelier$/);
+    await expect(main(page).getByRole('heading', { level: 1, name: 'Atelier' })).toBeVisible();
     await expect(main(page).getByRole('heading', { level: 2, name: 'À faire' })).toBeVisible(); // tableau de bord de l'espace créatrice (étape 7)
 
     // Droit retiré sans révocation (console) : refus immédiat, le cookie ne suffit plus.
     await removeAdminClaim(admin.uid);
-    await page.goto('/createur');
-    await expect(page).toHaveURL(/\/createur\/connexion$/);
+    await page.goto('/atelier');
+    await expect(page).toHaveURL(/\/atelier\/connexion$/);
   });
 
   test('retour après connexion vers un autre site : ignoré', async ({ page }) => {
@@ -278,7 +278,7 @@ test.describe('lien de connexion à l’espace créatrice', () => {
 
   async function askLink(page: Page, email: string) {
     await noBanner(page);
-    await page.goto('/createur/connexion');
+    await page.goto('/atelier/connexion');
     await main(page).getByLabel('Votre e-mail').fill(email);
     await main(page).getByRole('button', { name: 'Recevoir mon lien' }).click();
     await expect(main(page).getByText(SENT)).toBeVisible();
@@ -310,7 +310,7 @@ test.describe('lien de connexion à l’espace créatrice', () => {
     target.searchParams.set('mode', 'signIn');
     target.searchParams.set('apiKey', url.searchParams.get('apiKey') ?? 'fake-api-key');
     await page.goto(target.pathname + target.search);
-    await expect(page).toHaveURL(/\/createur$/);
+    await expect(page).toHaveURL(/\/atelier$/);
   });
 
   test('limite : au-delà de 3 demandes par quart d’heure, plus d’e-mail (même réponse)', async ({ page }) => {
@@ -319,4 +319,12 @@ test.describe('lien de connexion à l’espace créatrice', () => {
     await page.waitForTimeout(1500);
     expect((await inbox(admin.email)).length).toBe(3);
   });
+});
+
+test('ancienne adresse de l’espace créatrice : redirection permanente vers l’Atelier', async ({ request }) => {
+  for (const [from, to] of [['/createur', '/atelier'], ['/createur/commandes', '/atelier/commandes']]) {
+    const res = await request.get(from!, { maxRedirects: 0 });
+    expect(res.status()).toBe(301);
+    expect(new URL(res.headers().location!, 'http://x').pathname).toBe(to);
+  }
 });

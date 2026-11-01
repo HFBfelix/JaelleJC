@@ -5,7 +5,7 @@ import { requireAdmin } from '@/server/auth/session';
 import { listMessages, listNewsletter } from '@/server/createur/site';
 
 export default async function MessagesPage() {
-  if (!(await requireAdmin())) redirect('/createur/connexion');
+  if (!(await requireAdmin())) redirect('/atelier/connexion');
   const [messages, newsletter] = await Promise.all([listMessages(), listNewsletter()]);
   return (
     <>

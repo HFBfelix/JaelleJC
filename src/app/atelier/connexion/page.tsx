@@ -8,15 +8,15 @@ import { firebaseClientConfig } from '@/server/auth/client-config';
 import { getSessionUser, requireAdmin } from '@/server/auth/session';
 
 // Connexion dédiée à l'espace créatrice (BACKOFFICE.md §1) : message clair si le compte n'est pas administrateur.
-export const metadata: Metadata = { title: 'Espace créatrice | Jaelle & JC', robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: 'Atelier | Jaelle & JC', robots: { index: false, follow: false } };
 
 export default async function CreateurConnexionPage() {
-  // Même contrôle que /createur (droit relu sur le compte), sinon les deux pages se renverraient l'une à l'autre.
+  // Même contrôle que /atelier (droit relu sur le compte), sinon les deux pages se renverraient l'une à l'autre.
   const [user, admin] = await Promise.all([getSessionUser(), requireAdmin()]);
-  if (admin) redirect('/createur');
+  if (admin) redirect('/atelier');
   const config = firebaseClientConfig();
   return (
-    <AuthPage title="Espace créatrice">
+    <AuthPage title="Atelier">
       {user ? (
         <>
           <Notice>{NOT_ADMIN}</Notice>
@@ -25,7 +25,7 @@ export default async function CreateurConnexionPage() {
           </form>
         </>
       ) : config ? (
-        <SignInForm config={config} retour="/createur" adminOnly />
+        <SignInForm config={config} retour="/atelier" adminOnly />
       ) : (
         <Notice>La connexion est momentanément indisponible.</Notice>
       )}

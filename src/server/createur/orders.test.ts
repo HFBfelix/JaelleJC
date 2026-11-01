@@ -8,7 +8,7 @@ vi.mock('../firebase/admin', () => ({ adminDb: () => { throw new Error('base tou
 vi.mock('./products', () => ({ audit: vi.fn() }));
 vi.mock('../orders/notify', () => ({ sendPendingEmails: mocks.sendPendingEmails }));
 
-const { canMove, emailStates, shipInput, stockInput, trackingUrl } = await import('./orders');
+const { canMove, emailStates, isNew, shipInput, stockInput, trackingUrl } = await import('./orders');
 vi.doMock('./orders', async (orig) => ({ ...(await orig()), moveOrder: mocks.moveOrder, setStock: mocks.setStock }));
 const actions = await import('./orders-actions');
 
@@ -78,5 +78,14 @@ describe('e-mails de suivi', () => {
       { label: 'Confirmation', sent: true }, { label: 'Alerte boutique', sent: true }, { label: 'Colis en route', sent: false },
     ]);
     expect(emailStates(undefined)).toEqual([]);
+  });
+});
+
+describe('nouvelles commandes (cloche de l’Atelier)', () => {
+  it('payée, de la refonte, jamais ouverte : nouvelle ; sinon non', () => {
+    expect(isNew({ status: 'paid', reference: 'JJC-1' })).toBe(true);
+    expect(isNew({ status: 'paid', reference: 'JJC-1', seenAt: new Date() })).toBe(false);
+    expect(isNew({ status: 'preparing', reference: 'JJC-1' })).toBe(false);
+    expect(isNew({ status: 'paid' })).toBe(false); // commande de l'ancien site
   });
 });

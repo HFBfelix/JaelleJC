@@ -37,8 +37,8 @@ const SiteLayout = ({ categories, children }: { categories: NavCategory[]; child
 
   // Espace créatrice (étape 7) : hors du gabarit du site, comme l'ancien Dashboard. Sa connexion et l'aperçu privé
   // des fiches gardent le gabarit.
-  const inSiteFrame = pathname === '/createur/connexion' || pathname.startsWith('/createur/apercu/');
-  if (pathname.startsWith('/createur') && !inSiteFrame) return <>{children}</>;
+  const inSiteFrame = pathname === '/atelier/connexion' || pathname.startsWith('/atelier/apercu/');
+  if (pathname.startsWith('/atelier') && !inSiteFrame) return <>{children}</>;
 
   return (
     <div className="min-h-screen bg-white flex flex-col relative">

@@ -18,8 +18,8 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       { source: '/:path*', headers: securityHeaders },
-      // Micro autorisé pour ce site seulement dans l'espace créatrice (dictée de la fiche) ; refusé partout ailleurs.
-      { source: '/createur/:path*', headers: [{ key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' }] },
+      // Micro autorisé pour ce site seulement dans l'Atelier (dictée de la fiche) ; refusé partout ailleurs.
+      { source: '/atelier/:path*', headers: [{ key: 'Permissions-Policy', value: 'camera=(), microphone=(self), geolocation=()' }] },
     ];
   },
   // Photos produits servies par Firebase Storage (production et projet de test).
@@ -30,8 +30,13 @@ const nextConfig: NextConfig = {
     ],
   },
   // Anciennes adresses du journal (/blog/<numéro>) : redirection permanente vers l'adresse lisible.
+  // Espace créatrice renommé « Atelier » (décision de Jaelle, 2026-11-01) : /createur → /atelier.
   async redirects() {
-    return ARTICLES.map((a) => ({ source: `/blog/${a.legacyId}`, destination: `/blog/${a.slug}`, statusCode: 301 as const }));
+    return [
+      ...ARTICLES.map((a) => ({ source: `/blog/${a.legacyId}`, destination: `/blog/${a.slug}`, statusCode: 301 as const })),
+      { source: '/createur', destination: '/atelier', statusCode: 301 as const },
+      { source: '/createur/:path*', destination: '/atelier/:path*', statusCode: 301 as const },
+    ];
   },
 };
 

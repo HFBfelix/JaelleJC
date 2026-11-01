@@ -5,20 +5,24 @@ import { Card, label } from '@/components/createur/ui';
 import { formatDate } from '@/components/account/OrdersList';
 import { requireAdmin } from '@/server/auth/session';
 import { formatEuros } from '@/server/catalog/mapping';
-import { orderAdmin } from '@/server/createur/orders';
+import RefreshOnce from '@/components/createur/RefreshOnce';
+import { markOrderSeen, orderAdmin } from '@/server/createur/orders';
 
 type Props = { params: Promise<{ id: string }> };
 
 export default async function CommandeAdminPage({ params }: Props) {
-  if (!(await requireAdmin())) redirect('/createur/connexion');
+  if (!(await requireAdmin())) redirect('/atelier/connexion');
   const { id } = await params;
   if (!/^[A-Za-z0-9_-]{1,200}$/.test(id)) notFound();
   const order = await orderAdmin(id);
   if (!order) notFound();
+  // Première ouverture : la commande n'est plus « nouvelle » (cloche de l'onglet Commandes mise à jour).
+  if (order.isNew) await markOrderSeen(id);
 
   return (
     <>
-      <Link href="/createur/commandes" className={`${label} hover:text-black`}>← Commandes</Link>
+      {order.isNew && <RefreshOnce />}
+      <Link href="/atelier/commandes" className={`${label} hover:text-black`}>← Commandes</Link>
       <h1 className="font-serif text-3xl mt-4 mb-2">Commande {order.reference}</h1>
       <p className={`${label} mb-8`}>{formatDate(order.createdAt)} · {order.statusLabel}{order.legacy ? ' · ancien site' : ''}</p>
 

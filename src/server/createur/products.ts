@@ -51,6 +51,7 @@ export function toAdminProduct(id: string, d: Record<string, unknown>): AdminPro
     id,
     slug: str(d.slug, id.toLowerCase()),
     name: str(d.name),
+    sku: typeof d.sku === 'string' && d.sku ? d.sku : null,
     categoryId: typeof d.categoryId === 'string' ? d.categoryId : null,
     subCategory: typeof d.subCategory === 'string' ? d.subCategory : null,
     status,
@@ -87,7 +88,7 @@ const checklistOf = (p: AdminProduct, variants: Variante[], categories: { slug: 
   checklist({ ...p, aiDraft: { generatedAt: p.aiDraft.generatedAt ? now() : null, reviewed: p.aiDraft.reviewed } }, variants, categories);
 
 export type ProductRow = {
-  id: string; name: string; status: AdminProduct['status']; priceCents: number; cover: string | null;
+  id: string; name: string; sku: string | null; status: AdminProduct['status']; priceCents: number; cover: string | null;
   categoryId: string | null; stock: number; missing: number;
 };
 
@@ -97,7 +98,7 @@ export async function listProductsAdmin(): Promise<ProductRow[]> {
     const p = toAdminProduct(d.id, d.data());
     const variants = toAdminVariants((await d.ref.collection(COLLECTIONS.variantes).get()).docs);
     return {
-      id: d.id, name: p.name, status: p.status, priceCents: p.priceCents, cover: p.images[0]?.url ?? null, categoryId: p.categoryId,
+      id: d.id, name: p.name, sku: p.sku ?? null, status: p.status, priceCents: p.priceCents, cover: p.images[0]?.url ?? null, categoryId: p.categoryId,
       stock: variants.filter((v) => v.active).reduce((s, v) => s + v.stock, 0),
       missing: checklistOf(p, variants, categories).filter((i) => !i.ok).length,
     };
@@ -114,6 +115,11 @@ export async function loadProductAdmin(id: string) {
   const variants = toAdminVariants(variantsSnap.docs);
   const notes = str(notesSnap.get('notes'));
   return { product, variants, categories, notes, checklist: checklistOf(product, variants, categories) };
+}
+
+async function skuTaken(sku: string, exceptId: string) {
+  const snap = await products().where('sku', '==', sku).limit(2).get();
+  return snap.docs.some((d) => d.id !== exceptId);
 }
 
 async function slugTaken(slug: string, exceptId: string | null) {
@@ -157,7 +163,7 @@ export async function createProduct(uid: string, name: string, from?: AdminProdu
   return ref.id;
 }
 
-export type SaveResult = 'ok' | 'introuvable' | 'slug-pris' | 'incomplet';
+export type SaveResult = 'ok' | 'introuvable' | 'slug-pris' | 'sku-pris' | 'incomplet';
 
 // Enregistrement des champs. Un produit en ligne ne peut pas être enregistré dans un état incomplet
 // (il disparaîtrait du site) : il faut d'abord le remettre en brouillon.
@@ -165,7 +171,11 @@ export async function saveFields(uid: string, id: string, fields: ProductFields)
   const loaded = await loadProductAdmin(id);
   if (!loaded) return { status: 'introuvable' };
   const { product, variants, categories } = loaded;
-  const { slug: wantedSlug, ...rest } = fields;
+  const { slug: wantedSlug, sku: wantedSku, ...fieldsRest } = fields;
+  // SKU unique dans la boutique (une seule créatrice : la vérification avant écriture suffit).
+  const sku = wantedSku === undefined ? product.sku : wantedSku || null;
+  if (sku && sku !== product.sku && (await skuTaken(sku, id))) return { status: 'sku-pris' };
+  const rest = { ...fieldsRest, sku };
   let slug = product.slug;
   if (wantedSlug && wantedSlug !== product.slug) {
     if (product.publishedAt) return { status: 'incomplet' }; // slug figé après la première publication (adresses publiques)

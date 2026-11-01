@@ -14,12 +14,12 @@ test.beforeEach(async ({ page }, info) => {
 
 async function signIn(page: Page, admin: boolean) {
   const user = await createUser({ admin });
-  await page.goto(admin ? '/createur/connexion' : '/connexion');
+  await page.goto(admin ? '/atelier/connexion' : '/connexion');
   await main(page).getByLabel('Votre e-mail').fill(user.email);
   await main(page).getByRole('button', { name: 'Utiliser un mot de passe' }).click();
   await main(page).getByLabel('Mot de passe').fill(user.password);
   await main(page).getByRole('button', { name: 'Se connecter' }).click();
-  await expect(page).toHaveURL(admin ? /\/createur$/ : /\/compte$/);
+  await expect(page).toHaveURL(admin ? /\/atelier$/ : /\/compte$/);
   return user;
 }
 
@@ -40,9 +40,9 @@ async function seedOrder(userId: string, email = 'cliente@exemple.test') {
 
 test('cliente ordinaire : ni les commandes ni les stocks de la boutique', async ({ page }) => {
   await signIn(page, false);
-  for (const path of ['/createur/commandes', '/createur/commandes/cs_test_x', '/createur/stocks']) {
+  for (const path of ['/atelier/commandes', '/atelier/commandes/cs_test_x', '/atelier/stocks']) {
     await page.goto(path);
-    await expect(page).toHaveURL(/\/createur\/connexion$/);
+    await expect(page).toHaveURL(/\/atelier\/connexion$/);
   }
 });
 
@@ -56,8 +56,15 @@ test('commande : préparation, expédition Colissimo (suivi visible par la clien
   const page = await (await browser.newContext()).newPage();
   await page.addInitScript(() => localStorage.setItem('jaellejc-cookies', 'none'));
   await signIn(page, true);
-  await page.goto('/createur/commandes');
+  await page.goto('/atelier/commandes');
+  // Cloche rouge de l'onglet Commandes : nombre de commandes payées jamais ouvertes (celle-ci comprise).
+  const bell = page.getByRole('navigation', { name: 'Atelier' }).getByLabel(/nouvelles? commandes?$/);
+  const count = async () => ((await bell.count()) ? Number((await bell.getAttribute('aria-label'))!.split(' ')[0]) : 0);
+  const before = await count();
+  expect(before).toBeGreaterThanOrEqual(1);
   await main(page).getByRole('link', { name: new RegExp(reference) }).click();
+  await expect.poll(async () => !!(await db().doc(`orders/${id}`).get()).get('seenAt')).toBe(true);
+  await expect.poll(count).toBe(before - 1); // ouverte : n'est plus nouvelle
   await expect(main(page).getByText('Emballage cadeau — message à joindre : « Bienvenue Lou »')).toBeVisible();
 
   await main(page).getByRole('button', { name: 'Passer en préparation' }).click();
@@ -97,7 +104,7 @@ test('stocks : modification en ligne, vente pendant la saisie jamais écrasée',
   await signIn(page, true);
   const ref = db().doc(`produits/${FIXTURE.published.id}/variantes/unique`);
   const before = (await ref.get()).get('stock') as number;
-  await page.goto('/createur/stocks');
+  await page.goto('/atelier/stocks');
   const input = main(page).getByLabel(`Stock ${FIXTURE.published.name} Unique`);
   await input.fill(String(before + 5));
   await main(page).getByRole('button', { name: `Enregistrer le stock ${FIXTURE.published.name} Unique` }).click();

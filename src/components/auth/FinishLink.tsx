@@ -64,7 +64,7 @@ export default function FinishLink({ config, retour, adminOnly }: { config: Fire
     return (
       <>
         <p role="alert" className="text-[14px] mb-8">{message}</p>
-        <Link href={adminOnly ? '/createur/connexion' : `/connexion?retour=${retour}`}
+        <Link href={adminOnly ? '/atelier/connexion' : `/connexion?retour=${retour}`}
           className="text-[11px] uppercase tracking-[0.12em] border-b-[0.5px] border-black pb-1">
           Recevoir un nouveau lien
         </Link>

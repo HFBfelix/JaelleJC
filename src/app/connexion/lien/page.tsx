@@ -19,7 +19,7 @@ export default async function LienPage({ searchParams }: Props) {
   return (
     <AuthPage title="Connexion">
       {config
-        ? <FinishLink config={config} retour={retour} adminOnly={retour === '/createur'} />
+        ? <FinishLink config={config} retour={retour} adminOnly={retour === '/atelier'} />
         : <Notice>La connexion est momentanément indisponible.</Notice>}
     </AuthPage>
   );

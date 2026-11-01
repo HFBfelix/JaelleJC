@@ -55,7 +55,7 @@ describe('ouverture de session', () => {
 
   it('le droit admin vient de la session vérifiée, jamais de l’entrée', async () => {
     mocks.openSession.mockResolvedValueOnce({ uid: 'u1', email: 'a@b.fr', admin: false, authTime: nowS() });
-    expect(await signInAction({ idToken: 't', retour: '/createur' })).toMatchObject({ ok: true, admin: false });
+    expect(await signInAction({ idToken: 't', retour: '/atelier' })).toMatchObject({ ok: true, admin: false });
   });
 });
 

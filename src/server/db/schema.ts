@@ -40,6 +40,8 @@ export const productImage = z.object({
 export const produit = z.object({
   slug,
   name: shortText(120).min(1),
+  // Référence de la pièce (SKU) donnée par Jaelle, unique dans la boutique ; vide tant qu'elle n'est pas saisie.
+  sku: shortText(40).nullable().optional(),
   categoryId: slug.nullable(),
   subCategory: slug.nullable(),
   status: productStatus,

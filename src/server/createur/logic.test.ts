@@ -25,7 +25,14 @@ describe('saisie d’une fiche', () => {
     ['catégorie piégée', { categoryId: '../x' }],
     ['nom vide', { name: ' ' }],
     ['accroche trop longue', { accroche: 'x'.repeat(201) }],
+    ['SKU avec espace ou balise', { sku: 'CAPE 01' }],
+    ['SKU piégé', { sku: '<b>x</b>' }],
+    ['SKU trop long', { sku: 'A'.repeat(41) }],
   ])('%s : refusée', (_, over) => expect(productFields.safeParse({ ...fields, ...over }).success).toBe(false));
+  it('SKU : en capitales ; vide permis (pas encore saisi)', () => {
+    expect(productFields.parse({ ...fields, sku: ' cape-ecru.01 ' }).sku).toBe('CAPE-ECRU.01');
+    expect(productFields.parse({ ...fields, sku: '' }).sku).toBe('');
+  });
 });
 
 describe('variantes', () => {

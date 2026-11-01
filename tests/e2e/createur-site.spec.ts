@@ -12,12 +12,12 @@ test.beforeEach(async ({ page }, info) => {
   test.skip(info.project.name !== 'ordinateur', 'espace créatrice : ordinateur');
   await page.addInitScript(() => localStorage.setItem('jaellejc-cookies', 'none'));
   const admin = await createUser({ admin: true });
-  await page.goto('/createur/connexion');
+  await page.goto('/atelier/connexion');
   await main(page).getByLabel('Votre e-mail').fill(admin.email);
   await main(page).getByRole('button', { name: 'Utiliser un mot de passe' }).click();
   await main(page).getByLabel('Mot de passe').fill(admin.password);
   await main(page).getByRole('button', { name: 'Se connecter' }).click();
-  await expect(page).toHaveURL(/\/createur$/);
+  await expect(page).toHaveURL(/\/atelier$/);
 });
 
 test('tableau de bord : un message non lu apparaît dans « À faire », puis disparaît une fois lu ; export CSV neutralisé', async ({ page }) => {
@@ -31,7 +31,7 @@ test('tableau de bord : un message non lu apparaît dans « À faire », puis di
   const before = Number((await unread.textContent())!.match(/\d+/)![0]);
   expect(before).toBeGreaterThanOrEqual(1);
 
-  await page.goto('/createur/messages');
+  await page.goto('/atelier/messages');
   const card = main(page).getByRole('listitem').filter({ hasText: 'Camille E2E' });
   await expect(card.getByText(/=HYPERLINK/)).toBeVisible(); // texte brut, jamais interprété
   const [download] = await Promise.all([page.waitForEvent('download'), main(page).getByRole('button', { name: 'Exporter les messages' }).click()]);
@@ -40,14 +40,14 @@ test('tableau de bord : un message non lu apparaît dans « À faire », puis di
 
   await card.getByRole('button', { name: 'Marquer comme lu' }).click();
   await expect.poll(async () => (await db().doc(`contacts/${id}`).get()).get('status')).toBe('read');
-  await page.goto('/createur');
+  await page.goto('/atelier');
   await expect(main(page).getByRole('link', { name: /message\(s\) non lu\(s\)/ })).toContainText(String(before - 1));
   await db().doc(`contacts/${id}`).delete();
 });
 
 test('réglages : frais de livraison enregistrés en centimes et journalisés', async ({ page }) => {
   const ref = db().doc('settings/delivery');
-  await page.goto('/createur/reglages');
+  await page.goto('/atelier/reglages');
   const form = main(page).getByRole('form', { name: 'Livraison' });
   await form.getByLabel('Frais de livraison (€)').fill('7,90');
   await form.getByRole('button', { name: 'Enregistrer la livraison' }).click();
@@ -61,7 +61,7 @@ test('réglages : frais de livraison enregistrés en centimes et journalisés', 
 
 test('catégories : nouvel univers avec une famille ; adresse figée', async ({ page }) => {
   const name = `E2E univers ${randomBytes(3).toString('hex')}`;
-  await page.goto('/createur/categories');
+  await page.goto('/atelier/categories');
   const form = main(page).getByRole('form', { name: 'Nouvelle catégorie' });
   await form.getByLabel('Nom').fill(name);
   await form.getByRole('button', { name: 'Ajouter une famille' }).click();

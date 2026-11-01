@@ -26,21 +26,21 @@ test.beforeEach(async ({ page }, info) => {
 
 async function signInAdmin(page: Page) {
   const admin = await createUser({ admin: true });
-  await page.goto('/createur/connexion');
+  await page.goto('/atelier/connexion');
   await main(page).getByLabel('Votre e-mail').fill(admin.email);
   await main(page).getByRole('button', { name: 'Utiliser un mot de passe' }).click();
   await main(page).getByLabel('Mot de passe').fill(admin.password);
   await main(page).getByRole('button', { name: 'Se connecter' }).click();
-  await expect(page).toHaveURL(/\/createur$/);
+  await expect(page).toHaveURL(/\/atelier$/);
   return admin;
 }
 
 async function newProduct(page: Page) {
   const name = `${E2E_PRODUCT_PREFIX} cape ${randomBytes(3).toString('hex')}`;
-  await page.goto('/createur/produits');
+  await page.goto('/atelier/produits');
   await main(page).getByRole('textbox', { name: 'Nouvelle pièce' }).fill(name);
   await main(page).getByRole('button', { name: 'Créer la fiche' }).click();
-  await expect(page).toHaveURL(/\/createur\/produits\/[A-Za-z0-9]+$/);
+  await expect(page).toHaveURL(/\/atelier\/produits\/[A-Za-z0-9]+$/);
   return { name, id: page.url().split('/').pop()! };
 }
 
@@ -50,23 +50,23 @@ const save = async (page: Page) => {
 };
 
 test('anonyme et cliente ordinaire : l’espace créatrice, l’aperçu, les photos et la dictée sont refusés', async ({ page }) => {
-  for (const path of ['/createur/produits', '/createur/produits/e2e-publie', '/createur/apercu/e2e-brouillon']) {
+  for (const path of ['/atelier/produits', '/atelier/produits/e2e-publie', '/atelier/apercu/e2e-brouillon']) {
     await page.goto(path);
-    await expect(page).toHaveURL(/\/createur\/connexion$/);
+    await expect(page).toHaveURL(/\/atelier\/connexion$/);
   }
   const origin = new URL(page.url()).origin;
   const audio = { audio: { name: 'dictee.webm', mimeType: 'audio/webm', buffer: WEBM } };
   expect((await page.request.post('/api/createur/dictee', { multipart: audio, headers: { origin } })).status()).toBe(401);
 
   const user = await createUser();
-  await page.goto('/createur/connexion');
+  await page.goto('/atelier/connexion');
   await main(page).getByLabel('Votre e-mail').fill(user.email);
   await main(page).getByRole('button', { name: 'Utiliser un mot de passe' }).click();
   await main(page).getByLabel('Mot de passe').fill(user.password);
   await main(page).getByRole('button', { name: 'Se connecter' }).click();
-  for (const path of ['/createur/produits', '/createur/apercu/e2e-brouillon']) {
+  for (const path of ['/atelier/produits', '/atelier/apercu/e2e-brouillon']) {
     await page.goto(path);
-    await expect(page).toHaveURL(/\/createur\/connexion$/);
+    await expect(page).toHaveURL(/\/atelier\/connexion$/);
   }
   // Envoi de photo et dictée : cliente connectée refusée, autre site refusé, sans rien écrire ni rien envoyer à l'IA.
   const before = (await db().doc('produits/e2e-publie').get()).get('images');
@@ -163,7 +163,7 @@ test('fiche : photo, dictée, analyse IA qui préremplit sans enregistrer, véri
   expect(audit.docs.map((d) => d.get('action'))).toEqual(expect.arrayContaining(['produit.cree', 'produit.analyse-ia', 'stock.modifie', 'produit.publie']));
 
   // Pièce en ligne : impossible de l'enregistrer incomplète ; le champ vidé passe en rouge.
-  await page.goto(`/createur/produits/${id}`);
+  await page.goto(`/atelier/produits/${id}`);
   await main(page).getByLabel(/Accroche/).fill('');
   await expect(main(page).getByLabel(/Accroche/)).toHaveAttribute('aria-invalid', 'true');
   await panel(page).getByRole('button', { name: 'Enregistrer', exact: true }).click();
@@ -205,6 +205,20 @@ test('variantes : tailles cochées dans une grille, une teinte par coloris, enre
   expect(variants.every((v) => v.colorHex === '#1f3a5f')).toBe(true);
 });
 
+test('référence (SKU) : enregistrée en capitales, unique dans la boutique', async ({ page }) => {
+  await signInAdmin(page);
+  const sku = `E2E-${randomBytes(3).toString('hex').toUpperCase()}`;
+  const first = await newProduct(page);
+  await main(page).getByLabel('Référence (SKU)').fill(sku.toLowerCase());
+  await save(page);
+  expect((await db().doc(`produits/${first.id}`).get()).get('sku')).toBe(sku);
+  const second = await newProduct(page);
+  await main(page).getByLabel('Référence (SKU)').fill(sku);
+  await panel(page).getByRole('button', { name: 'Enregistrer', exact: true }).click();
+  await expect(panel(page).getByText('Cette référence (SKU) est déjà utilisée par une autre pièce.')).toBeVisible();
+  expect((await db().doc(`produits/${second.id}`).get()).get('sku') ?? null).toBeNull();
+});
+
 test('aperçu privé d’un brouillon ; le brouillon reste introuvable pour le public', async ({ page }) => {
   await signInAdmin(page);
   const { id } = await newProduct(page);
@@ -212,17 +226,17 @@ test('aperçu privé d’un brouillon ; le brouillon reste introuvable pour le p
   await save(page);
   const slug = (await db().doc(`produits/${id}`).get()).get('slug');
 
-  await page.goto(`/createur/apercu/${id}`);
+  await page.goto(`/atelier/apercu/${id}`);
   await expect(page.getByText(/Aperçu privé — pièce non publiée/)).toBeVisible();
   await expect(page.getByText('Aperçu : l’ajout à la sélection est désactivé.').first()).toBeAttached();
   expect((await page.goto(`/produits/${slug}`))?.status()).toBe(404);
 
   // Brouillon jamais publié : supprimable, avec son texte libre.
   await db().doc(`produitsNotes/${id}`).set({ notes: 'Cape' });
-  await page.goto(`/createur/produits/${id}`);
+  await page.goto(`/atelier/produits/${id}`);
   page.once('dialog', (d) => d.accept());
   await panel(page).getByRole('button', { name: 'Supprimer le brouillon' }).click();
-  await expect(page).toHaveURL(/\/createur\/produits$/);
+  await expect(page).toHaveURL(/\/atelier\/produits$/);
   expect((await db().doc(`produits/${id}`).get()).exists).toBe(false);
   expect((await db().doc(`produitsNotes/${id}`).get()).exists).toBe(false);
 });

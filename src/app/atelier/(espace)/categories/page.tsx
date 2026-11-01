@@ -5,7 +5,7 @@ import { requireAdmin } from '@/server/auth/session';
 import { listCategoriesAdmin } from '@/server/createur/site';
 
 export default async function CategoriesPage() {
-  if (!(await requireAdmin())) redirect('/createur/connexion');
+  if (!(await requireAdmin())) redirect('/atelier/connexion');
   const categories = await listCategoriesAdmin();
   return (
     <>

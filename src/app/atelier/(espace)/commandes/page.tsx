@@ -5,7 +5,7 @@ import { requireAdmin } from '@/server/auth/session';
 import { listOrdersAdmin } from '@/server/createur/orders';
 
 export default async function CommandesPage() {
-  if (!(await requireAdmin())) redirect('/createur/connexion');
+  if (!(await requireAdmin())) redirect('/atelier/connexion');
   const orders = await listOrdersAdmin();
   return (
     <>

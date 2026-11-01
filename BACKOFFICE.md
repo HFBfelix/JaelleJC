@@ -9,7 +9,7 @@ Utilisatrice : une seule personne (Jaelle), surtout sur ordinateur. Pas de gesti
 1. `/createur` renvoie vers `/login` tout visiteur non admin, et `/login` plante (`useEffect` non importé dans `Auth.tsx`). Le bouton « S'identifier » du Dashboard n'est jamais atteint.
 2. L'accès exige un document `autorisations/<e-mail>` avec `actif: true`. S'il manque ou si l'e-mail diffère, la personne est déconnectée sans explication.
 
-Dans la refonte : page de connexion dédiée `/createur/connexion`, message clair si le compte n'est pas administrateur, droit admin porté par une revendication `admin: true` (plus de collection `autorisations` lisible publiquement).
+Dans la refonte : page de connexion dédiée `/atelier/connexion` (ex-`/createur/connexion`), message clair si le compte n'est pas administrateur, droit admin porté par une revendication `admin: true` (plus de collection `autorisations` lisible publiquement).
 
 ## 2. Nouvelle base de données (Firestore)
 
@@ -64,7 +64,7 @@ Lecture publique des seuls produits `published` et de leurs variantes actives ; 
 
 ## 3. Écrans du back-office
 
-1. **Connexion** `/createur/connexion` : lien magique ou mot de passe. Message explicite si le compte n'est pas administrateur.
+1. **Connexion** `/atelier/connexion` : lien magique ou mot de passe. Message explicite si le compte n'est pas administrateur.
 2. **Tableau de bord** : « À faire » (commandes à expédier, produits en brouillon, stocks bas, messages non lus).
 3. **Produits** : liste avec recherche et filtre par statut ; actions Modifier, Dupliquer, Archiver. Pas de suppression définitive d'un produit déjà commandé.
 4. **Fiche produit** : voir section 4.

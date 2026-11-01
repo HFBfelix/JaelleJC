@@ -38,7 +38,7 @@ export async function createProductAction(input: unknown): Promise<Denied> {
   if (!parsed.success) return INVALID;
   const result = await run('création', (uid) => createProduct(uid, parsed.data.name || 'Nouvelle pièce'));
   if (typeof result !== 'string') return result;
-  redirect(`/createur/produits/${result}`);
+  redirect(`/atelier/produits/${result}`);
 }
 
 export async function duplicateProductAction(input: unknown): Promise<Denied | { status: 'introuvable' }> {
@@ -50,7 +50,7 @@ export async function duplicateProductAction(input: unknown): Promise<Denied | {
     return createProduct(uid, `${loaded.product.name} (copie)`, loaded.product, loaded.variants);
   });
   if (typeof result !== 'string') return result;
-  redirect(`/createur/produits/${result}`);
+  redirect(`/atelier/produits/${result}`);
 }
 
 export async function saveFieldsAction(input: unknown) {
@@ -96,7 +96,7 @@ export async function deleteDraftAction(input: unknown): Promise<StatusResult | 
   if (!parsed.success) return INVALID;
   const result = await run('suppression', (uid) => deleteDraft(uid, parsed.data.productId));
   if (result.status !== 'ok') return result;
-  redirect('/createur/produits');
+  redirect('/atelier/produits');
 }
 
 // « Envoyer » : le texte libre (tapé ou dicté) et les photos partent à l'IA, qui propose de quoi préremplir la fiche.

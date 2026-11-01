@@ -5,7 +5,7 @@ import { requireAdmin } from '@/server/auth/session';
 import { listCategoriesAdmin, listProductsAdmin } from '@/server/createur/products';
 
 export default async function ProduitsPage() {
-  if (!(await requireAdmin())) redirect('/createur/connexion');
+  if (!(await requireAdmin())) redirect('/atelier/connexion');
   const [rows, categories] = await Promise.all([listProductsAdmin(), listCategoriesAdmin()]);
   return (
     <>

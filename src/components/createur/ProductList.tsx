@@ -24,7 +24,7 @@ export default function ProductList({ rows, categories }: { rows: ProductRow[]; 
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return rows.filter((r) => (filter === 'tous' || r.status === filter) && (!q || r.name.toLowerCase().includes(q)));
+    return rows.filter((r) => (filter === 'tous' || r.status === filter) && (!q || r.name.toLowerCase().includes(q) || (r.sku ?? '').toLowerCase().includes(q)));
   }, [rows, query, filter]);
 
   const onCreate = async (e: FormEvent) => {
@@ -61,7 +61,7 @@ export default function ProductList({ rows, categories }: { rows: ProductRow[]; 
             </button>
           ))}
         </div>
-        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher" aria-label="Rechercher un produit"
+        <input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Nom ou SKU" aria-label="Rechercher un produit"
           className="bg-transparent border-b-[0.5px] border-neutral-400 focus:border-black py-2 outline-none text-[14px] md:w-64" />
       </div>
 
@@ -71,11 +71,11 @@ export default function ProductList({ rows, categories }: { rows: ProductRow[]; 
         <ul className="grid gap-3">
           {shown.map((r) => (
             <li key={r.id}>
-              <Link href={`/createur/produits/${r.id}`} className="bg-white border-[0.5px] border-neutral-300 hover:border-black p-3 flex items-center gap-4 transition-colors">
+              <Link href={`/atelier/produits/${r.id}`} className="bg-white border-[0.5px] border-neutral-300 hover:border-black p-3 flex items-center gap-4 transition-colors">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 {r.cover ? <img src={r.cover} alt="" className="w-14 h-16 object-cover bg-neutral-100" /> : <span className="w-14 h-16 bg-neutral-100" />}
                 <span className="flex-1 min-w-0">
-                  <span className={`${label} block`}>{categories.find((c) => c.slug === r.categoryId)?.name ?? 'Sans univers'}</span>
+                  <span className={`${label} block`}>{categories.find((c) => c.slug === r.categoryId)?.name ?? 'Sans univers'}{r.sku ? ` · ${r.sku}` : ''}</span>
                   <span className="block font-serif text-[18px] truncate">{r.name || 'Sans nom'}</span>
                   <span className="block text-[13px] text-neutral-600">
                     {r.priceCents ? `${formatEuros(r.priceCents)} €` : 'Prix à saisir'} · {r.stock === 0 ? 'Épuisé' : `Stock : ${r.stock}`}

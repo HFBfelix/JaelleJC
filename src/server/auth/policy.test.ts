@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { PASSWORD_MIN, emailSchema, isRecent, passwordSchema, safeReturn } from './policy';
 
 describe('retour après connexion : liste fermée', () => {
-  it.each(['/panier', '/compte', '/createur'])('%s accepté', (path) => expect(safeReturn(path)).toBe(path));
+  it.each(['/panier', '/compte', '/atelier'])('%s accepté', (path) => expect(safeReturn(path)).toBe(path));
 
   it.each([
     undefined, '', '/', '//evil.example', 'https://evil.example', '/panier?x=1', '/compte/../createur',

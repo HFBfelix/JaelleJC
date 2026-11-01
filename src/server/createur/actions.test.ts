@@ -70,7 +70,7 @@ describe('administratrice', () => {
     mocks.createProduct.mockResolvedValue('p9');
     await actions.createProductAction({});
     expect(mocks.createProduct).toHaveBeenCalledWith('admin-uid', 'Nouvelle pièce');
-    expect(mocks.redirect).toHaveBeenCalledWith('/createur/produits/p9');
+    expect(mocks.redirect).toHaveBeenCalledWith('/atelier/produits/p9');
   });
 
   it('analyse : l’uid de la session et les notes reçues, rien d’autre', async () => {

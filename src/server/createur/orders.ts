@@ -11,7 +11,7 @@ import { audit } from './products';
 
 const db = () => adminDb();
 
-export type AdminOrder = OrderDetail & { customerEmail: string; customerPhone: string; legacy: boolean; emails: { label: string; sent: boolean }[] };
+export type AdminOrder = OrderDetail & { customerEmail: string; customerPhone: string; legacy: boolean; emails: { label: string; sent: boolean }[]; isNew: boolean };
 
 // État des e-mails d'une commande, pour la fiche de l'espace créatrice (renvoi possible de ce qui est en attente).
 export const EMAIL_LABELS = { cliente: 'Confirmation', boutique: 'Alerte boutique', preparation: 'En préparation', expedition: 'Colis en route' } as const;
@@ -32,13 +32,27 @@ function toAdminOrder(id: string, d: Record<string, unknown>): AdminOrder {
   const detail = orderDetail(id, d);
   return {
     ...detail, customerEmail: detail.contact.email, customerPhone: detail.contact.phone, legacy: !!d.legacy,
-    emails: d.reference ? emailStates(d.emails) : [],
+    emails: d.reference ? emailStates(d.emails) : [], isNew: isNew(d),
   };
 }
 
 export async function orderAdmin(id: string): Promise<AdminOrder | null> {
   const snap = await db().collection(COLLECTIONS.orders).doc(id).get();
   return snap.exists ? toAdminOrder(id, snap.data()!) : null;
+}
+
+// Nouvelle commande : payée, jamais ouverte dans l'Atelier (cloche rouge de l'onglet « Commandes »).
+// Seules les commandes de la refonte comptent (les commandes migrées de l'ancien site n'ont pas de référence).
+export const isNew = (d: Record<string, unknown>) => d.status === 'paid' && !!d.reference && !d.seenAt;
+
+export async function countNewOrders(): Promise<number> {
+  const snap = await db().collection(COLLECTIONS.orders).where('status', '==', 'paid').get();
+  return snap.docs.filter((d) => isNew(d.data())).length;
+}
+
+// Première ouverture de la fiche d'une commande : elle n'est plus « nouvelle ».
+export async function markOrderSeen(id: string) {
+  await db().collection(COLLECTIONS.orders).doc(id).update({ seenAt: FieldValue.serverTimestamp() });
 }
 
 // Expédition : transporteur et numéro de suivi saisis par Jaelle (Colissimo surtout, sans lien avec La Poste).

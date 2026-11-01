@@ -10,7 +10,7 @@ import { Field, Notice, PrimaryButton, SecondaryButton, TextButton } from './ui'
 // Parcours « e-mail d'abord » (EDITORIAL.md §5) : un seul champ, puis lien de connexion ou mot de passe.
 // Les messages sont identiques que le compte existe ou non.
 export const SIGN_IN_ERROR = "Nous n'avons pas pu vous connecter. Vérifiez votre e-mail et réessayez.";
-export const NOT_ADMIN = "Ce compte n'a pas accès à l'espace créatrice.";
+export const NOT_ADMIN = "Ce compte n'a pas accès à l'Atelier.";
 
 type Step = 'email' | 'password' | 'link-sent' | 'reset-sent';
 const noSubscribe = () => () => {};

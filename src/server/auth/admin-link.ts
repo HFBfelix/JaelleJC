@@ -19,7 +19,7 @@ export async function sendAdminLink(email: string, origin: string): Promise<void
     return; // adresse inconnue : rien n'est envoyé
   }
   if (!admin) return;
-  const url = `${origin}/connexion/lien?retour=${encodeURIComponent('/createur')}`;
+  const url = `${origin}/connexion/lien?retour=${encodeURIComponent('/atelier')}`;
   const link = await adminAuth().generateSignInWithEmailLink(email, { url, handleCodeInApp: true });
   if ((await sendEmail(signInLink(email, link))) !== 'envoye') console.error('espace créatrice : lien de connexion non envoyé');
 }

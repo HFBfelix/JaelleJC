@@ -62,7 +62,7 @@ export default function StockTable({ rows }: { rows: StockRow[] }) {
               const name = `${r.productName} ${r.label}`;
               return (
                 <tr key={k} className={`border-t-[0.5px] border-neutral-200 ${r.active ? '' : 'text-neutral-400'}`}>
-                  <td className="p-3"><Link href={`/createur/produits/${r.productId}`} className="hover:underline">{r.productName || 'Sans nom'}</Link></td>
+                  <td className="p-3"><Link href={`/atelier/produits/${r.productId}`} className="hover:underline">{r.productName || 'Sans nom'}</Link></td>
                   <td className="p-3">{r.label}{r.active ? '' : ' (inactive)'}</td>
                   <td className="p-3 text-neutral-500">{r.sku}</td>
                   <td className="p-3">

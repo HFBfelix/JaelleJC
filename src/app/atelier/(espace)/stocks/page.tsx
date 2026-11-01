@@ -5,7 +5,7 @@ import { requireAdmin } from '@/server/auth/session';
 import { listStocks } from '@/server/createur/orders';
 
 export default async function StocksPage() {
-  if (!(await requireAdmin())) redirect('/createur/connexion');
+  if (!(await requireAdmin())) redirect('/atelier/connexion');
   return (
     <>
       <AdminTitle>Stocks</AdminTitle>

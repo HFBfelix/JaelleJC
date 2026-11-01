@@ -6,18 +6,18 @@ import { todo } from '@/server/createur/site';
 
 // Tableau de bord « À faire » (BACKOFFICE.md §3) : droit admin vérifié à chaque requête.
 export default async function CreateurPage() {
-  if (!(await requireAdmin())) redirect('/createur/connexion');
+  if (!(await requireAdmin())) redirect('/atelier/connexion');
   const t = await todo();
   const items = [
-    { n: t.toShip, text: 'commande(s) à préparer ou expédier', href: '/createur/commandes' },
-    { n: t.lowStock, text: 'variante(s) en ligne avec un stock de 1 ou moins', href: '/createur/stocks' },
-    { n: t.unread, text: 'message(s) non lu(s)', href: '/createur/messages' },
-    { n: t.drafts, text: 'brouillon(s)', href: '/createur/produits' },
-    { n: t.incomplete, text: 'fiche(s) à compléter', href: '/createur/produits' },
+    { n: t.toShip, text: 'commande(s) à préparer ou expédier', href: '/atelier/commandes' },
+    { n: t.lowStock, text: 'variante(s) en ligne avec un stock de 1 ou moins', href: '/atelier/stocks' },
+    { n: t.unread, text: 'message(s) non lu(s)', href: '/atelier/messages' },
+    { n: t.drafts, text: 'brouillon(s)', href: '/atelier/produits' },
+    { n: t.incomplete, text: 'fiche(s) à compléter', href: '/atelier/produits' },
   ];
   return (
     <>
-      <h1 className="font-serif text-3xl mb-8">Espace créatrice</h1>
+      <h1 className="font-serif text-3xl mb-8">Atelier</h1>
       <h2 className={`${label} mb-4`}>À faire</h2>
       <ul className="grid md:grid-cols-2 gap-4">
         {items.map((i) => (

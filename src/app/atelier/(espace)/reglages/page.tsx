@@ -5,7 +5,7 @@ import { requireAdmin } from '@/server/auth/session';
 import { readSettings } from '@/server/createur/site';
 
 export default async function ReglagesPage() {
-  if (!(await requireAdmin())) redirect('/createur/connexion');
+  if (!(await requireAdmin())) redirect('/atelier/connexion');
   const settings = await readSettings();
   return (
     <>

@@ -16,7 +16,7 @@ Périmètre : France, euros, petit catalogue, livraison à domicile, emballage c
 Le rendu visuel actuel est la référence. La refonte change l'architecture, pas l'apparence, à une exception près : la typographie « Atelier » décidée par Jaelle le 28/10/2026.
 - Polices (direction « Atelier ») : Crimson Pro 400 droit (titres) et Source Sans 3 400/600 (texte), chargées par `next/font`. Corps de texte 14 px / interligne 1.7. Pas d'italique.
 - Règles de taille : aucun texte sous 11 px ; petites capitales espacées de 0,12 em au plus ; la police à empattements seulement à partir de 18 px (en dessous, Source Sans 3).
-- Couleurs : blanc, noir, gris galerie `#F7F7F7`, fond de confirmation `#F5F2EE`. Aucune couleur ajoutée. Seule exception (décision de Jaelle, 31/10/2026) : le rouge `red-700` dans l'espace créatrice `/createur`, uniquement pour signaler ce qui manque avant la mise en ligne d'une pièce. Jamais sur le site public.
+- Couleurs : blanc, noir, gris galerie `#F7F7F7`, fond de confirmation `#F5F2EE`. Aucune couleur ajoutée. Seule exception (décision de Jaelle, 31/10/2026) : le rouge `red-700` dans l'Atelier `/atelier` (ex-espace créatrice), uniquement pour signaler ce qui manque avant la mise en ligne d'une pièce et, depuis le 01/11/2026, la cloche des nouvelles commandes. Jamais sur le site public.
 - Bordures 0,5 px, rayon d'arrondi 0 partout (sauf éléments déjà ronds aujourd'hui).
 - Petites capitales (`uppercase tracking-[0.12em]`), lignes fines, beaucoup d'espace.
 - Logos et images : `public/assets/` tels quels. Ne jamais les redessiner, recolorer ni recadrer.
@@ -80,7 +80,7 @@ Le rendu visuel actuel est la référence. La refonte change l'architecture, pas
 - Tout le reste : refusé par défaut. Les règles ont des tests automatisés (émulateur).
 
 ### Back-office et base de données (détails dans `BACKOFFICE.md`)
-- Espace créatrice : `/createur`, connexion dédiée, droit `admin` vérifié côté serveur à chaque action. Une seule utilisatrice, surtout sur ordinateur.
+- Atelier (ex-espace créatrice, renommé le 01/11/2026) : `/atelier`, connexion dédiée, droit `admin` vérifié côté serveur à chaque action. Une seule utilisatrice, surtout sur ordinateur.
 - Modèle : `produits` + sous-collection `variantes` (coloris × tailles, stock par variante), `categories` avec familles à slug, prix en centimes, statut `draft` / `published` / `archived`.
 - Le navigateur n'écrit jamais dans `produits`, `variantes`, `orders`, `carts`. Tout passe par des Server Actions validées avec Zod.
 - Un produit ne se publie que si la liste de contrôle est complète (photos avec texte alternatif, prix, variante en stock, accroche, description, brouillon IA relu).

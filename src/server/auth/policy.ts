@@ -17,7 +17,7 @@ export const passwordSchema = z.string().min(PASSWORD_MIN).max(PASSWORD_MAX);
 export const emailSchema = z.string().trim().toLowerCase().email().max(254);
 
 // Pages où renvoyer après la connexion : liste fermée (jamais une adresse fournie telle quelle, ni un autre site).
-const RETURN_PATHS = ['/panier', '/compte', '/createur'] as const;
+const RETURN_PATHS = ['/panier', '/compte', '/atelier'] as const;
 export type ReturnPath = (typeof RETURN_PATHS)[number];
 
 export const safeReturn = (value: unknown, fallback: ReturnPath = '/compte'): ReturnPath =>

@@ -39,7 +39,7 @@ export default function OrderList({ orders }: { orders: Row[] }) {
         <ul className="grid gap-3">
           {shown.map((o) => (
             <li key={o.id}>
-              <Link href={`/createur/commandes/${o.id}`} className="bg-white border-[0.5px] border-neutral-300 hover:border-black p-4 flex flex-wrap items-center gap-4 transition-colors">
+              <Link href={`/atelier/commandes/${o.id}`} className="bg-white border-[0.5px] border-neutral-300 hover:border-black p-4 flex flex-wrap items-center gap-4 transition-colors">
                 <span className="flex-1 min-w-0">
                   <span className={`${label} block`}>Réf. {o.reference} · {date(o.createdAt)}</span>
                   <span className="block text-[14px]">{o.name || 'Cliente'} · {o.items} pièce{o.items > 1 ? 's' : ''}</span>

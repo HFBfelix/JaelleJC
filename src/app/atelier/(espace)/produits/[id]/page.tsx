@@ -7,7 +7,7 @@ import { loadProductAdmin } from '@/server/createur/products';
 type Props = { params: Promise<{ id: string }> };
 
 export default async function FicheProduitPage({ params }: Props) {
-  if (!(await requireAdmin())) redirect('/createur/connexion');
+  if (!(await requireAdmin())) redirect('/atelier/connexion');
   const { id } = await params;
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(id)) notFound();
   const loaded = await loadProductAdmin(id);
