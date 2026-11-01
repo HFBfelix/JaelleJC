@@ -9,7 +9,14 @@ const mocks = vi.hoisted(() => ({
   updateUser: vi.fn(),
   closeAllSessions: vi.fn(),
   redirect: vi.fn(),
+  takeRateLimit: vi.fn(),
+  after: vi.fn(),
+  sendAdminLink: vi.fn(),
 }));
+vi.mock('../http/origin', () => ({ siteOrigin: async () => 'http://localhost:3000' }));
+vi.mock('../http/rate-limit', () => ({ takeRateLimit: mocks.takeRateLimit, clientIp: async () => '203.0.113.7' }));
+vi.mock('./admin-link', () => ({ LINK_LIMIT_PER_EMAIL: 3, LINK_LIMIT_PER_IP: 10, LINK_WINDOW_MS: 900_000, sendAdminLink: mocks.sendAdminLink }));
+vi.mock('next/server', () => ({ after: mocks.after }));
 vi.mock('./session', () => ({
   openSession: mocks.openSession, closeSession: mocks.closeSession, getSessionUser: mocks.getSessionUser, closeAllSessions: mocks.closeAllSessions,
 }));
@@ -17,7 +24,7 @@ vi.mock('../cart/service', () => ({ attachGuestCart: mocks.attachGuestCart }));
 vi.mock('../firebase/admin', () => ({ adminAuth: () => ({ updateUser: mocks.updateUser }) }));
 vi.mock('next/navigation', () => ({ redirect: mocks.redirect }));
 
-const { setPasswordAction, signInAction } = await import('./actions');
+const { requestAdminLinkAction, setPasswordAction, signInAction } = await import('./actions');
 const nowS = () => Math.floor(Date.now() / 1000);
 
 beforeEach(() => vi.clearAllMocks());
@@ -77,5 +84,32 @@ describe('choix du mot de passe', () => {
     expect(mocks.redirect).toHaveBeenCalledWith('/connexion?retour=/compte&info=mot-de-passe');
     expect(mocks.updateUser).toHaveBeenCalledWith('u1', { password: 'a'.repeat(12) });
     expect(mocks.closeAllSessions).toHaveBeenCalledWith('u1'); // tous les appareils déconnectés
+  });
+});
+
+describe('lien de l’espace créatrice', () => {
+  it('adresse invalide ou champ en trop : refusé avant tout appel', async () => {
+    for (const input of [{ email: 'pas-un-email' }, { email: 'a@b.fr', admin: true }, null]) {
+      expect(await requestAdminLinkAction(input)).toEqual({ status: 'invalide' });
+    }
+    expect(mocks.takeRateLimit).not.toHaveBeenCalled();
+  });
+
+  it('même réponse que la limite soit atteinte ou non ; envoi seulement sous la limite, après la réponse', async () => {
+    mocks.takeRateLimit.mockResolvedValue(true);
+    mocks.sendAdminLink.mockResolvedValue(undefined);
+    expect(await requestAdminLinkAction({ email: ' Admin@Exemple.test ' })).toEqual({ status: 'ok' });
+    expect(mocks.after).toHaveBeenCalledTimes(1);
+    expect(mocks.sendAdminLink).not.toHaveBeenCalled(); // pas avant la réponse
+    await mocks.after.mock.calls[0]![0]();
+    expect(mocks.sendAdminLink).toHaveBeenCalledWith('admin@exemple.test', 'http://localhost:3000');
+
+    vi.clearAllMocks();
+    mocks.takeRateLimit.mockResolvedValueOnce(true).mockResolvedValueOnce(false); // limite par adresse IP atteinte
+    expect(await requestAdminLinkAction({ email: 'admin@exemple.test' })).toEqual({ status: 'ok' });
+    expect(mocks.after).not.toHaveBeenCalled();
+
+    mocks.takeRateLimit.mockRejectedValue(new Error('base indisponible'));
+    expect(await requestAdminLinkAction({ email: 'admin@exemple.test' })).toEqual({ status: 'ok' });
   });
 });

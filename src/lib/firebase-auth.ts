@@ -23,7 +23,7 @@ function auth(config: FirebaseClientConfig): Auth {
 // Adresse gardée le temps d'ouvrir le lien (méthode prévue par Firebase), une heure au plus : au-delà, ou
 // sur un autre appareil, elle est redemandée.
 const EMAIL_MAX_AGE_MS = 60 * 60 * 1000;
-const remember = (email: string) => {
+export const remember = (email: string) => {
   try { localStorage.setItem(EMAIL_KEY, JSON.stringify({ email, at: Date.now() })); } catch { /* stockage refusé */ }
 };
 export const forgetEmail = () => { try { localStorage.removeItem(EMAIL_KEY); } catch { /* stockage refusé */ } };

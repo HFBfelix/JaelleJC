@@ -2,8 +2,8 @@
 
 import { useState, useSyncExternalStore, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { forgetEmail, passwordSignIn, resetPassword, sendLink, type FirebaseClientConfig } from '@/lib/firebase-auth';
-import { signInAction } from '@/server/auth/actions';
+import { forgetEmail, passwordSignIn, remember, resetPassword, sendLink, type FirebaseClientConfig } from '@/lib/firebase-auth';
+import { requestAdminLinkAction, signInAction } from '@/server/auth/actions';
 import type { ReturnPath } from '@/server/auth/policy';
 import { Field, Notice, PrimaryButton, SecondaryButton, TextButton } from './ui';
 
@@ -63,8 +63,14 @@ export default function SignInForm({ config, retour, adminOnly = false }: {
     return value;
   };
 
+  // Espace créatrice : lien envoyé par le serveur, aux seules administratrices (même réponse pour toute adresse).
   const onLink = (address: string) => run(async () => {
-    await sendLink(config, address, retour);
+    if (adminOnly) {
+      if ((await requestAdminLinkAction({ email: address })).status !== 'ok') throw new Error('adresse invalide');
+      remember(address);
+    } else {
+      await sendLink(config, address, retour);
+    }
     setStep('link-sent');
   });
 
@@ -99,7 +105,7 @@ export default function SignInForm({ config, retour, adminOnly = false }: {
       <>
         <Notice>
           {step === 'link-sent'
-            ? "Un lien vient de vous être envoyé. Il ne sert qu'une fois."
+            ? adminOnly ? "Si cette adresse est autorisée, un lien vient de lui être envoyé. Il ne sert qu'une fois." : "Un lien vient de vous être envoyé. Il ne sert qu'une fois."
             : 'Si un compte existe pour cette adresse, un e-mail pour choisir un nouveau mot de passe vient de vous être envoyé.'}
         </Notice>
         <TextButton onClick={restart}>Utiliser une autre adresse</TextButton>

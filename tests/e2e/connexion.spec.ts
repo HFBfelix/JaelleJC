@@ -262,3 +262,61 @@ test.describe('pages protégées', () => {
     await expect(page).toHaveURL(/\/compte$/);
   });
 });
+
+// Espace créatrice (étape 7bis) : lien envoyé par le serveur, seulement aux administratrices ; même réponse partout.
+test.describe('lien de connexion à l’espace créatrice', () => {
+  test.beforeEach(async ({}, info) => {
+    test.skip(info.project.name !== 'ordinateur', 'un seul navigateur suffit');
+    // Tous les tests partagent l'adresse IP locale : limites remises à zéro (émulateur seulement).
+    const limits = await db().collection('rateLimits').get();
+    await Promise.all(limits.docs.map((d) => d.ref.delete()));
+  });
+  test.describe.configure({ mode: 'serial' });
+  const FAKE = 'http://127.0.0.1:12111';
+  const SENT = "Si cette adresse est autorisée, un lien vient de lui être envoyé. Il ne sert qu'une fois.";
+  const inbox = async (to: string) => (await (await fetch(`${FAKE}/__test/emails?to=${encodeURIComponent(to)}`)).json()) as { subject: string; html: string; text: string }[];
+
+  async function askLink(page: Page, email: string) {
+    await noBanner(page);
+    await page.goto('/createur/connexion');
+    await main(page).getByLabel('Votre e-mail').fill(email);
+    await main(page).getByRole('button', { name: 'Recevoir mon lien' }).click();
+    await expect(main(page).getByText(SENT)).toBeVisible();
+  }
+
+  test('cliente et adresse inconnue : même réponse, aucun e-mail, aucun lien créé', async ({ page }) => {
+    const user = await createUser();
+    const unknown = newEmail();
+    for (const email of [user.email, unknown]) {
+      await askLink(page, email);
+      await page.waitForTimeout(1500); // l'envoi éventuel part après la réponse
+      expect(await inbox(email)).toEqual([]);
+      expect((await signInLinkFor(email, 'http://x').catch(() => null))).toBeNull();
+    }
+  });
+
+  test('administratrice : lien reçu par e-mail, connexion à l’espace créatrice', async ({ page }) => {
+    const admin = await createUser({ admin: true });
+    await askLink(page, admin.email);
+    await expect.poll(async () => (await inbox(admin.email)).length).toBe(1);
+    const [mail] = await inbox(admin.email);
+    expect(mail!.subject).toBe('Votre lien de connexion Jaelle & JC');
+    expect(mail!.text).toContain("Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.");
+    const link = /https?:\/\/\S+/.exec(mail!.text)![0];
+    const url = new URL(link);
+    // Lien de l'émulateur : il renvoie vers la page du site (continueUrl), comme en production.
+    const target = new URL(url.searchParams.get('continueUrl') ?? link);
+    target.searchParams.set('oobCode', url.searchParams.get('oobCode')!);
+    target.searchParams.set('mode', 'signIn');
+    target.searchParams.set('apiKey', url.searchParams.get('apiKey') ?? 'fake-api-key');
+    await page.goto(target.pathname + target.search);
+    await expect(page).toHaveURL(/\/createur$/);
+  });
+
+  test('limite : au-delà de 3 demandes par quart d’heure, plus d’e-mail (même réponse)', async ({ page }) => {
+    const admin = await createUser({ admin: true });
+    for (let i = 0; i < 4; i++) await askLink(page, admin.email);
+    await page.waitForTimeout(1500);
+    expect((await inbox(admin.email)).length).toBe(3);
+  });
+});

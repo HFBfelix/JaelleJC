@@ -4,11 +4,36 @@
 // son jeton d'identité, échangé contre un cookie de session. Entrées validées avec Zod ; mêmes réponses quel que
 // soit le motif d'échec (aucune information sur l'existence d'un compte).
 import { redirect } from 'next/navigation';
+import { after } from 'next/server';
 import { z } from 'zod';
 import { attachGuestCart } from '../cart/service';
 import { adminAuth } from '../firebase/admin';
-import { SENSITIVE_ACTION_SECONDS, isRecent, passwordSchema, safeReturn } from './policy';
+import { siteOrigin } from '../http/origin';
+import { clientIp, takeRateLimit } from '../http/rate-limit';
+import { LINK_LIMIT_PER_EMAIL, LINK_LIMIT_PER_IP, LINK_WINDOW_MS, sendAdminLink } from './admin-link';
+import { SENSITIVE_ACTION_SECONDS, emailSchema, isRecent, passwordSchema, safeReturn } from './policy';
 import { closeAllSessions, closeSession, getSessionUser, openSession } from './session';
+
+// Espace créatrice : « Recevoir mon lien ». Même réponse pour toute adresse valide (autorisée ou non, limite
+// atteinte ou non) ; l'e-mail part après la réponse, seulement vers un compte administrateur.
+export async function requestAdminLinkAction(input: unknown): Promise<{ status: 'ok' | 'invalide' }> {
+  const parsed = z.strictObject({ email: emailSchema }).safeParse(input);
+  if (!parsed.success) return { status: 'invalide' };
+  const { email } = parsed.data;
+  try {
+    const [byEmail, byIp] = await Promise.all([
+      takeRateLimit('lien-createur-email', email, LINK_LIMIT_PER_EMAIL, LINK_WINDOW_MS),
+      takeRateLimit('lien-createur-ip', await clientIp(), LINK_LIMIT_PER_IP, LINK_WINDOW_MS),
+    ]);
+    if (byEmail && byIp) {
+      const origin = await siteOrigin();
+      after(() => sendAdminLink(email, origin).catch(() => console.error('espace créatrice : lien de connexion non envoyé')));
+    }
+  } catch {
+    console.error('espace créatrice : demande de lien impossible'); // même réponse à l'écran
+  }
+  return { status: 'ok' };
+}
 
 const signInInput = z.strictObject({ idToken: z.string().min(1).max(4096), retour: z.string().max(40).optional() });
 

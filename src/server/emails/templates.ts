@@ -82,3 +82,14 @@ ${itemsTable(order)}${giftBlock(order)}
   const text = `${refunded ? 'Commande remboursée' : 'Nouvelle commande'} ${order.reference} : ${euros(order.amounts.totalCents)} €.`;
   return { to: shopEmail, subject: oneLine(`${refunded ? 'Remboursement' : 'Nouvelle commande'} — ${order.reference}`), html, text };
 }
+
+// Lien de connexion envoyé par le serveur (espace créatrice) : texte d'EDITORIAL.md §6.
+export function signInLink(to: string, link: string): EmailMessage {
+  const html = layout(`
+<h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">Votre lien de connexion</h1>
+<p>Voici votre lien pour vous connecter. Il ne fonctionne qu'une fois.</p>
+<p style="margin:32px 0;"><a href="${escapeHtml(link)}" style="background:#000;color:#fff;text-decoration:none;padding:16px 32px;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;">Me connecter</a></p>
+<p style="color:#666;">Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.</p>`);
+  const text = `Voici votre lien pour vous connecter. Il ne fonctionne qu'une fois.\n${link}\nSi vous n'êtes pas à l'origine de cette demande, ignorez ce message.`;
+  return { to, subject: 'Votre lien de connexion Jaelle & JC', html, text };
+}
