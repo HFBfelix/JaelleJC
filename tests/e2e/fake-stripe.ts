@@ -20,6 +20,8 @@ const CUSTOMER_PATH = /^\/v1\/customers\/(cus_[A-Za-z0-9]+)$/;
 const aiRequests: unknown[] = [];
 export type FakeEmail = { to: string; subject: string; html: string; text: string };
 const emails: FakeEmail[] = [];
+// Contacts de la liste Brevo de la newsletter (ajout, retrait).
+const contacts = new Map<string, { email: string; listIds: number[] }>();
 const STREETS = [
   { postcode: '75002', match: /rue de la p/i, name: 'Rue de la Paix', city: 'Paris' },
   { postcode: '78000', match: /place du m/i, name: 'Place du Marché', city: 'Versailles' },
@@ -105,6 +107,17 @@ export function startFakeStripe(): Promise<Server> {
       for (const t of body.to) emails.push({ to: t.email, subject: body.subject, html: body.htmlContent, text: body.textContent });
       return json(201, { messageId: `<${id('msg')}@smtp-relay.mailin.fr>` });
     }
+    if (req.method === 'POST' && url.pathname === '/v3/contacts') {
+      const body = JSON.parse(await readBody(req)) as { email: string; listIds: number[] };
+      contacts.set(body.email, { email: body.email, listIds: body.listIds });
+      return json(201, { id: contacts.size });
+    }
+    if (req.method === 'POST' && /^\/v3\/contacts\/lists\/\d+\/contacts\/remove$/.test(url.pathname)) {
+      const body = JSON.parse(await readBody(req)) as { emails: string[] };
+      for (const e of body.emails) contacts.delete(e);
+      return json(201, { contacts: { success: body.emails } });
+    }
+    if (req.method === 'GET' && url.pathname === '/__test/contacts') return json(200, [...contacts.values()]);
     // E-mails reçus par une adresse (les plus récents en dernier).
     if (req.method === 'GET' && url.pathname === '/__test/emails') {
       const to = url.searchParams.get('to');

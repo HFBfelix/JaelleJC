@@ -95,7 +95,8 @@ La section « Les défis de l'industrie » (4 puces génériques) est supprimée
 - **Lien de connexion** : objet `Votre lien de connexion Jaelle & JC` ; corps : *Voici votre lien pour vous connecter. Il ne fonctionne qu'une fois. Si vous n'êtes pas à l'origine de cette demande, ignorez ce message.*
 - **Confirmation de commande** : objet `Votre commande Jaelle & JC — [référence]` ; ton actuel conservé.
 - **Expédition** : objet `Votre colis est en route — [référence]` ; numéro de suivi + lien du transporteur.
-- **Bienvenue** : conserver le texte actuel, retirer « vestiaire de l'essentiel » pour rester cohérent avec la promesse n°1.
+- **Bienvenue** : conserver le texte actuel, retirer « vestiaire de l'essentiel » pour rester cohérent avec la promesse n°1. Rédigé (7bis) : objet `Bienvenue dans l'univers Jaelle & JC` ; *Bienvenue à l'Atelier. Nous sommes ravis de vous compter parmi nous. L'Atelier Jaelle & JC est né d'une envie simple : que chaque pièce raconte une histoire de transmission et de savoir-faire français.* + bouton *Explorer la collection* + *« De belles matières, l'amour de l'artisanat. »*
+- **Inscription newsletter** (7bis) : objet `Votre inscription à la lettre Jaelle & JC` ; *Merci pour votre inscription. Vous recevrez la lettre de Jaelle & JC une fois par mois : les nouvelles pièces et les coulisses de l'atelier.* + lien *se désinscrire*.
 - Tout nom ou message saisi par un client est échappé avant insertion dans le HTML.
 
 ## 7. Questions fréquentes du site (page livraison et retours, `FAQPage`)

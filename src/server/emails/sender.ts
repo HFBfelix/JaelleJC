@@ -45,3 +45,29 @@ export async function sendEmail(message: EmailMessage): Promise<SendResult> {
 }
 
 export const shopNotificationAddress = () => process.env.SHOP_NOTIFICATION_EMAIL?.trim() || 'contact@jaellejc.com';
+
+// Liste Brevo de la newsletter mensuelle (envoyée par Jaelle depuis Brevo) : les inscrites du site y sont ajoutées,
+// les désinscrites retirées. Sans BREVO_NEWSLETTER_LIST_ID : rien n'est synchronisé (inscription gardée sur le site).
+export async function syncNewsletterContact(email: string, subscribed: boolean): Promise<SendResult> {
+  const key = env('BREVO_API_KEY');
+  const listId = Number(env('BREVO_NEWSLETTER_LIST_ID'));
+  if (!key || !Number.isInteger(listId) || listId <= 0) return 'non-configure';
+  const base = endpoint().replace(/\/smtp\/email$/, '');
+  const [url, body] = subscribed
+    ? [`${base}/contacts`, { email, listIds: [listId], updateEnabled: true }]
+    : [`${base}/contacts/lists/${listId}/contacts/remove`, { emails: [email] }];
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'api-key': key, 'content-type': 'application/json', accept: 'application/json' },
+      body: JSON.stringify(body), signal: AbortSignal.timeout(TIMEOUT_MS), cache: 'no-store',
+    });
+    // Désinscription d'une adresse absente de la liste : déjà fait.
+    if (res.ok || (!subscribed && res.status === 400)) return 'envoye';
+    console.error(`newsletter : liste Brevo non mise à jour (${res.status})`);
+    return 'echec';
+  } catch {
+    console.error('newsletter : Brevo injoignable');
+    return 'echec';
+  }
+}

@@ -11,6 +11,7 @@ import { adminAuth } from '../firebase/admin';
 import { siteOrigin } from '../http/origin';
 import { clientIp, takeRateLimit } from '../http/rate-limit';
 import { LINK_LIMIT_PER_EMAIL, LINK_LIMIT_PER_IP, LINK_WINDOW_MS, sendAdminLink } from './admin-link';
+import { sendWelcome } from './welcome';
 import { SENSITIVE_ACTION_SECONDS, emailSchema, isRecent, passwordSchema, safeReturn } from './policy';
 import { closeAllSessions, closeSession, getSessionUser, openSession } from './session';
 
@@ -48,6 +49,15 @@ export async function signInAction(input: unknown): Promise<SignInResult> {
     await attachGuestCart(user.uid);
   } catch {
     console.error('connexion : fusion du panier impossible'); // la connexion reste valable
+  }
+  // Compte tout juste créé : e-mail de bienvenue, après la réponse (la connexion n'attend pas l'envoi).
+  if (!user.admin) {
+    try {
+      const origin = await siteOrigin();
+      after(() => sendWelcome(user.uid, origin).catch(() => console.error('compte : e-mail de bienvenue non envoyé')));
+    } catch {
+      console.error('compte : e-mail de bienvenue non préparé');
+    }
   }
   return { ok: true, redirect: safeReturn(parsed.data.retour), admin: user.admin };
 }

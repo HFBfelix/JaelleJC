@@ -17,6 +17,7 @@ vi.mock('../http/origin', () => ({ siteOrigin: async () => 'http://localhost:300
 vi.mock('../http/rate-limit', () => ({ takeRateLimit: mocks.takeRateLimit, clientIp: async () => '203.0.113.7' }));
 vi.mock('./admin-link', () => ({ LINK_LIMIT_PER_EMAIL: 3, LINK_LIMIT_PER_IP: 10, LINK_WINDOW_MS: 900_000, sendAdminLink: mocks.sendAdminLink }));
 vi.mock('next/server', () => ({ after: mocks.after }));
+vi.mock('./welcome', () => ({ sendWelcome: vi.fn(async () => {}) }));
 vi.mock('./session', () => ({
   openSession: mocks.openSession, closeSession: mocks.closeSession, getSessionUser: mocks.getSessionUser, closeAllSessions: mocks.closeAllSessions,
 }));

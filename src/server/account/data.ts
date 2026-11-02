@@ -68,6 +68,8 @@ export async function deleteAccount(uid: string): Promise<DeleteResult> {
   for (const d of (await userRef.collection(COLLECTIONS.adresses).get()).docs) track(writer.delete(d.ref));
   track(writer.delete(userRef));
   track(writer.delete(db.collection(COLLECTIONS.carts).doc(accountKey(uid).id)));
+  // Marques des e-mails automatiques déjà envoyés (bienvenue, relances) : rattachées au compte.
+  for (const d of (await db.collection(COLLECTIONS.emailMarks).where('uid', '==', uid).get()).docs) track(writer.delete(d.ref));
   // Seuls les paiements traités ou expirés sont effacés : un paiement dont le webhook arrive en retard
   // retrouve son instantané (sinon il serait remboursé sans explication). TTL d'une semaine pour les autres.
   for (const d of checkouts.docs) if (['traite', 'expire'].includes(d.get('status'))) track(writer.delete(d.ref));

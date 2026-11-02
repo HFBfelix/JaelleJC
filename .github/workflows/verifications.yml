@@ -50,6 +50,7 @@ jobs:
           # E-mails : API Brevo simulée par le même faux serveur (aucun e-mail réel).
           export BREVO_API_KEY="test-$(openssl rand -hex 16)"
           export BREVO_API_URL="http://127.0.0.1:12111"
+          export BREVO_NEWSLETTER_LIST_ID="7"
           npx firebase emulators:exec --only firestore,auth,storage --project demo-jaellejc "npm run test:e2e"
       # Les captures de référence sont prises sous Windows : la comparaison visuelle se lance en local
       # (npm run test:visual), le rendu des polices différant sous Linux.

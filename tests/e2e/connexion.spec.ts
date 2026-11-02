@@ -328,3 +328,25 @@ test('ancienne adresse de l’espace créatrice : redirection permanente vers l�
     expect(new URL(res.headers().location!, 'http://x').pathname).toBe(to);
   }
 });
+
+test('nouveau compte : e-mail de bienvenue après la première connexion, une seule fois ; jamais pour l’administratrice', async ({ page, context }, info) => {
+  test.skip(info.project.name !== 'ordinateur', 'un seul navigateur suffit');
+  const inbox = async (to: string) => ((await (await fetch(`http://127.0.0.1:12111/__test/emails?to=${encodeURIComponent(to)}`)).json()) as { subject: string }[])
+    .filter((e) => e.subject === "Bienvenue dans l'univers Jaelle & JC");
+  const user = await createUser();
+  await signInWithPassword(page, user.email, user.password);
+  await expect(page).toHaveURL(/\/compte$/);
+  await expect.poll(async () => (await inbox(user.email)).length).toBe(1);
+  await context.clearCookies();
+  await signInWithPassword(page, user.email, user.password);
+  await expect(page).toHaveURL(/\/compte$/);
+  await page.waitForTimeout(1000);
+  expect((await inbox(user.email)).length).toBe(1);
+
+  const admin = await createUser({ admin: true });
+  await context.clearCookies();
+  await signInWithPassword(page, admin.email, admin.password, '/atelier/connexion');
+  await expect(page).toHaveURL(/\/atelier$/);
+  await page.waitForTimeout(1000);
+  expect(await inbox(admin.email)).toEqual([]);
+});

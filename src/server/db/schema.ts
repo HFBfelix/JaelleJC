@@ -20,6 +20,7 @@ export const COLLECTIONS = {
   stripeCustomers: 'stripeCustomers', // client Stripe de chaque compte (préremplissage de l'adresse) : serveur uniquement
   aiQuota: 'aiQuota', // appels à l'IA par heure (espace créatrice) : serveur uniquement, TTL `expiresAt`
   rateLimits: 'rateLimits', // limites des formulaires publics (clés hachées) : serveur uniquement, TTL `expiresAt`
+  emailMarks: 'emailMarks', // e-mails automatiques déjà partis (bienvenue, relances…) : un seul envoi ; serveur uniquement
   produitsNotes: 'produitsNotes', // texte libre de la créatrice par pièce (analyse IA) : serveur uniquement, jamais public
 } as const;
 

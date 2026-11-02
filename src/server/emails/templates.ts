@@ -126,3 +126,25 @@ ${link ? `<p style="margin:16px 0 0;"><a href="${escapeHtml(link)}" style="color
   const text = [`Votre colis est en route (${order.reference}).`, `${carrier} — numéro de suivi : ${number}`, link].filter(Boolean).join('\n');
   return { to: order.customer.email, subject: oneLine(`Votre colis est en route — ${order.reference}`), html, text };
 }
+
+// Bienvenue (création de compte) : texte de l'ancien site conservé, sans « vestiaire de l'essentiel » (EDITORIAL.md §6).
+export function welcome(to: string, origin: string): EmailMessage {
+  const html = layout(`
+<h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">Bienvenue à l'Atelier</h1>
+<p>Bonjour,</p>
+<p>Nous sommes ravis de vous compter parmi nous. L'Atelier Jaelle &amp; JC est né d'une envie simple : que chaque pièce raconte une histoire de transmission et de savoir-faire français.</p>
+<p style="margin:32px 0;"><a href="${escapeHtml(`${origin}/collection`)}" style="background:#000;color:#fff;text-decoration:none;padding:16px 32px;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;">Explorer la collection</a></p>
+<p style="color:#666;">« De belles matières, l'amour de l'artisanat. »</p>`);
+  const text = `Bienvenue à l'Atelier.\nNous sommes ravis de vous compter parmi nous. L'Atelier Jaelle & JC est né d'une envie simple : que chaque pièce raconte une histoire de transmission et de savoir-faire français.\n${origin}/collection`;
+  return { to, subject: "Bienvenue dans l'univers Jaelle & JC", html, text };
+}
+
+// Inscription à la newsletter : confirmation et lien de désinscription (un clic, puis confirmation sur le site).
+export function newsletterWelcome(to: string, unsubscribeUrl: string): EmailMessage {
+  const html = layout(`
+<h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">Merci pour votre inscription.</h1>
+<p>Vous recevrez la lettre de Jaelle &amp; JC une fois par mois : les nouvelles pièces et les coulisses de l'atelier.</p>
+<p style="color:#666;font-size:13px;margin-top:32px;">Vous pouvez vous désinscrire à tout moment : <a href="${escapeHtml(unsubscribeUrl)}" style="color:#666;">se désinscrire</a>.</p>`);
+  const text = `Merci pour votre inscription. Vous recevrez la lettre de Jaelle & JC une fois par mois : les nouvelles pièces et les coulisses de l'atelier.\nSe désinscrire : ${unsubscribeUrl}`;
+  return { to, subject: 'Votre inscription à la lettre Jaelle & JC', html, text };
+}
