@@ -116,6 +116,11 @@ Dernière mise à jour : 2026-10-30, fin de l'étape 7 (espace créatrice). Chaq
 - **Audit des dépendances** : `exceljs` apportait 6 alertes « moyennes » (`uuid`, `archiver`/`glob`/`minimatch`) ; retiré au profit du CSV (décision de Jaelle), l'audit revient aux 6 alertes moyennes d'avant (chaîne `firebase-admin`/`google-gax`, `npm audit --omit=dev`), à revoir à l'étape 9.
 - **Bascule (étape 10)** : supprimer les Cloud Functions de l'ancien site (`onUserSignup`…), qui renverraient les mêmes e-mails si une clé Brevo leur était redonnée.
 
+## Étape 7bis — e-mails (2026-11-02 au 2026-11-04)
+- Lot 1 : lien de connexion à l'Atelier envoyé par le serveur aux seules administratrices (`connexion.spec.ts`). Lot 2 : « en préparation », « colis en route », renvoi (`createur-commandes.spec.ts`). Lot 3 : bienvenue (comptes de moins de 24 h) ; newsletter : e-mail épuré validé par Jaelle, liste Brevo n°5 « Newsletter site » (`BREVO_NEWSLETTER_LIST_ID`), désinscription (`site-public.spec.ts`).
+- Lot 4 : envois quotidiens (Vercel Cron `/api/cron/envois`, 8 h UTC, production seulement ; bouton « Lancer les envois maintenant » dans Réglages) : relances de panier J+1/J+3/J+5 (comptes seulement), « colis arrivé ? » (délai réglable, 3 jours), avis à J+14 ; préférence « ne plus recevoir ces messages » (`emailPrefs`, adresse hachée) (`envois-automatiques.spec.ts`, `automations-logic.test.ts`).
+- **Production (étape 10)** : variable `CRON_SECRET` (secret aléatoire) à créer dans Vercel Production, sinon le cron est refusé ; `BREVO_API_KEY` (nouvelle clé) et `BREVO_NEWSLETTER_LIST_ID` en Production ; règles TTL `rateLimits.expiresAt`, `checkouts.expiresAt`, `aiQuota.expiresAt` sur le projet de production.
+
 ## Étape 7 — espace créatrice (2026-10-30)
 
 - Décisions de Jaelle (2026-10-30) : expédition sans lien avec La Poste (numéro de suivi recopié) ; remboursement et annulation depuis Stripe ; photos réduites dans le navigateur ; trois livraisons (7a produits, 7b commandes et stocks, 7c le reste).

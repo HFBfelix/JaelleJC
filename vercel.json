@@ -1,5 +1,6 @@
 {
   "framework": "nextjs",
   "installCommand": "npm ci",
-  "buildCommand": "next build"
+  "buildCommand": "next build",
+  "crons": [{ "path": "/api/cron/envois", "schedule": "0 8 * * *" }]
 }

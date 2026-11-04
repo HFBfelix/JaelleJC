@@ -180,3 +180,46 @@ ${piece?.image ? `<tr><td style="padding:32px 32px 0;"><a href="${escapeHtml(pie
   ].join('\n');
   return { to, subject: 'Bienvenue dans la lettre Jaelle & JC', html, text };
 }
+
+// --- Envois automatiques (lot 4) : relances de panier, « colis arrivé ? », avis à J+14 ---
+// Chaque message porte un lien « ne plus recevoir ces messages » (préférence gardée côté serveur).
+const followUp = (body: string, optOutUrl: string) => layout(`${body}
+<p style="font-size:11px;color:#999;line-height:1.6;margin-top:40px;">Vous recevez ce message à la suite de votre visite ou de votre commande sur jaellejc.com. <a href="${escapeHtml(optOutUrl)}" style="color:#999;">Ne plus recevoir ces messages</a></p>`);
+const h1 = (t: string) => `<h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;line-height:1.2;margin:8px 0 16px;">${t}</h1>`;
+const button = (href: string, label: string) =>
+  `<p style="margin:32px 0;"><a href="${escapeHtml(href)}" style="background:#000;color:#fff;text-decoration:none;padding:16px 32px;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;">${label}</a></p>`;
+
+export type ReminderLine = { name: string; variantLabel: string; image: string | null };
+const REMINDERS = {
+  1: { subject: 'Votre sélection vous attend', title: 'Votre sélection vous attend.', text: 'Vous avez laissé quelques pièces dans votre sélection. Elle vous attend, telle que vous l’avez laissée.' },
+  2: { subject: 'Votre sélection est toujours là', title: 'Votre sélection est toujours là.', text: 'Nos pièces sont cousues main, en petite série : votre sélection vous attend encore quelques jours.' },
+  3: { subject: 'Votre sélection sera retirée dans 2 jours', title: 'Votre sélection sera retirée dans 2 jours.', text: 'Sans commande de votre part, les pièces de votre sélection seront retirées dans 2 jours.' },
+} as const;
+
+export function cartReminder(stage: 1 | 2 | 3, to: string, lines: ReminderLine[], origin: string, optOutUrl: string): EmailMessage {
+  const r = REMINDERS[stage];
+  const list = lines.slice(0, 6).map((l) => `<tr>
+<td width="72" style="padding:8px 12px 8px 0;">${l.image ? `<img src="${escapeHtml(l.image)}" alt="" width="64" style="display:block;border:0;background:#F7F7F7;">` : ''}</td>
+<td style="padding:8px 0;">${escapeHtml(l.name)}${l.variantLabel ? `<br><span style="color:#666;font-size:13px;">${escapeHtml(l.variantLabel)}</span>` : ''}</td></tr>`).join('');
+  const html = followUp(`${h1(r.title)}<p>${r.text}</p>
+<table width="100%" cellpadding="0" cellspacing="0" style="border-top:0.5px solid #eee;margin-top:16px;">${list}</table>
+${button(`${origin}/panier`, 'Retrouver ma sélection')}`, optOutUrl);
+  const text = [r.text, ...lines.slice(0, 6).map((l) => `- ${l.name}${l.variantLabel ? ` (${l.variantLabel})` : ''}`), `${origin}/panier`, `Ne plus recevoir ces messages : ${optOutUrl}`].join('\n');
+  return { to, subject: r.subject, html, text };
+}
+
+export function arrivalCheck(to: string, reference: string, optOutUrl: string): EmailMessage {
+  const body = `Votre commande ${escapeHtml(reference)} est partie de l'atelier il y a quelques jours. Est-elle bien arrivée ?`;
+  const html = followUp(`${h1('Votre colis est-il bien arrivé ?')}<p>${body}</p>
+<p>En cas de souci, répondez simplement à cet e-mail : nous nous en occupons.</p>`, optOutUrl);
+  const text = `Votre commande ${reference} est partie de l'atelier il y a quelques jours. Est-elle bien arrivée ? En cas de souci, répondez simplement à cet e-mail.\nNe plus recevoir ces messages : ${optOutUrl}`;
+  return { to, subject: oneLine(`Votre colis est-il bien arrivé ? — ${reference}`), html, text };
+}
+
+export function reviewRequest(to: string, reference: string, optOutUrl: string): EmailMessage {
+  const html = followUp(`${h1('Comment se passe la vie avec votre pièce ?')}
+<p>Il y a deux semaines, votre commande ${escapeHtml(reference)} arrivait chez vous. Nous aimerions savoir comment elle a été accueillie.</p>
+<p>Répondez simplement à cet e-mail : chaque mot est lu à l'atelier.</p>`, optOutUrl);
+  const text = `Il y a deux semaines, votre commande ${reference} arrivait chez vous. Nous aimerions savoir comment elle a été accueillie : répondez simplement à cet e-mail.\nNe plus recevoir ces messages : ${optOutUrl}`;
+  return { to, subject: 'Comment se passe la vie avec votre pièce ?', html, text };
+}

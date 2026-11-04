@@ -23,7 +23,7 @@ const cartRef = (key: CartKey) => adminDb().collection(COLLECTIONS.carts).doc(ke
 // Identifiants venus du navigateur : validés par l'action (Zod) avant d'arriver ici.
 // Lecture hors transaction : les documents de stock ne sont jamais verrouillés par un panier (le paiement, lui,
 // revérifiera et décrémentera le stock en transaction). Le plafond affiché peut donc avoir une seconde de retard.
-async function readOffers(targets: Target[]): Promise<Map<string, Offer>> {
+export async function readOffers(targets: Target[]): Promise<Map<string, Offer>> {
   const unique = [...new Map(targets.map((t) => [lineKey(t.productId, t.variantId), t])).values()];
   const offers = new Map<string, Offer>();
   if (!unique.length) return offers;

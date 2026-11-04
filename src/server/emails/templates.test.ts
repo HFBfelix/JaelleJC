@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { NewOrder } from '../checkout/logic';
-import { escapeHtml, newsletterWelcome, orderConfirmation, orderPreparing, orderShipped, shopNotification, stockApology } from './templates';
+import { arrivalCheck, cartReminder, escapeHtml, newsletterWelcome, reviewRequest, orderConfirmation, orderPreparing, orderShipped, shopNotification, stockApology } from './templates';
 
 const order = (over: Partial<NewOrder> = {}): NewOrder => ({
   userId: 'u1',
@@ -82,5 +82,22 @@ describe('e-mail d’inscription à la newsletter', () => {
     expect(m.html).toContain('href="https://www.jaellejc.com/newsletter/desinscription?id=1&amp;t=2"');
     expect(m.html).toContain('https://www.instagram.com/jaellejc/');
     expect(newsletterWelcome('a@exemple.fr', 'u', 'https://www.jaellejc.com').html).not.toContain('firebasestorage');
+  });
+});
+
+describe('envois automatiques', () => {
+  it('relances : objet par étape, pièces échappées, lien du panier et de désinscription', () => {
+    const lines = [{ name: '<i>Cape</i>', variantLabel: 'Écru · 3M', image: null }];
+    expect(cartReminder(1, 'a@exemple.fr', lines, 'https://www.jaellejc.com', 'https://x/opt').subject).toBe('Votre sélection vous attend');
+    const last = cartReminder(3, 'a@exemple.fr', lines, 'https://www.jaellejc.com', 'https://x/opt');
+    expect(last.subject).toBe('Votre sélection sera retirée dans 2 jours');
+    expect(last.html).toContain('&lt;i&gt;Cape&lt;/i&gt;');
+    expect(last.html).toContain('href="https://www.jaellejc.com/panier"');
+    expect(last.html).toContain('href="https://x/opt"');
+  });
+  it('colis arrivé et avis : référence échappée, lien de désinscription', () => {
+    expect(arrivalCheck('a@exemple.fr', 'JJC-1', 'https://x/opt').subject).toBe('Votre colis est-il bien arrivé ? — JJC-1');
+    expect(reviewRequest('a@exemple.fr', '<b>', 'https://x/opt').html).toContain('&lt;b&gt;');
+    expect(reviewRequest('a@exemple.fr', 'JJC-1', 'https://x/opt').text).toContain('https://x/opt');
   });
 });
