@@ -30,7 +30,7 @@ test('newsletter : inscription enregistrée par le serveur, une seule fois par a
   const contacts = async () => (await (await fetch(`${FAKE}/__test/contacts`)).json()) as { email: string; listIds: number[] }[];
   await expect.poll(async () => (await inbox()).length).toBe(1);
   const [mail] = await inbox();
-  expect(mail!.subject).toBe('Votre inscription à la lettre Jaelle & JC');
+  expect(mail!.subject).toBe('Bienvenue dans la lettre Jaelle & JC');
   await expect.poll(contacts).toContainEqual({ email, listIds: [7] });
 
   // Lien de l'e-mail : désinscription en un clic, inscription effacée, adresse retirée de la liste.

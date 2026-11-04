@@ -139,12 +139,44 @@ export function welcome(to: string, origin: string): EmailMessage {
   return { to, subject: "Bienvenue dans l'univers Jaelle & JC", html, text };
 }
 
-// Inscription à la newsletter : confirmation et lien de désinscription (un clic, puis confirmation sur le site).
-export function newsletterWelcome(to: string, unsubscribeUrl: string): EmailMessage {
-  const html = layout(`
-<h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">Merci pour votre inscription.</h1>
-<p>Vous recevrez la lettre de Jaelle &amp; JC une fois par mois : les nouvelles pièces et les coulisses de l'atelier.</p>
-<p style="color:#666;font-size:13px;margin-top:32px;">Vous pouvez vous désinscrire à tout moment : <a href="${escapeHtml(unsubscribeUrl)}" style="color:#666;">se désinscrire</a>.</p>`);
-  const text = `Merci pour votre inscription. Vous recevrez la lettre de Jaelle & JC une fois par mois : les nouvelles pièces et les coulisses de l'atelier.\nSe désinscrire : ${unsubscribeUrl}`;
-  return { to, subject: 'Votre inscription à la lettre Jaelle & JC', html, text };
+// Inscription à la newsletter (décision de Jaelle, 2026-11-04, sur le modèle épuré d'une grande maison) : remerciement
+// centré, une seule grande photo d'une pièce en stock, lien vers la collection, « À bientôt. » ; pied de page gris :
+// services (emballage cadeau, livraison), Instagram, contact, et la désinscription, obligatoire mais discrète.
+export type MailPiece = { name: string; priceCents: number; image: string | null; url: string };
+export const INSTAGRAM_URL = 'https://www.instagram.com/jaellejc/';
+
+export function newsletterWelcome(to: string, unsubscribeUrl: string, origin: string, piece: MailPiece | null = null): EmailMessage {
+  const serif = "font-family:'Crimson Pro',Georgia,serif;font-weight:400;color:#000;";
+  const small = 'font-size:11px;text-transform:uppercase;letter-spacing:0.12em;';
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;background:#F7F7F7;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F7F7;"><tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;font-family:'Source Sans 3',Arial,sans-serif;font-size:14px;line-height:1.7;color:#333;text-align:center;">
+<tr><td style="padding:44px 32px 8px;"><a href="${escapeHtml(origin)}"><img src="${escapeHtml(`${origin}/assets/Logo%20noir%20Jaelle%26JC_V2.png`)}" alt="Jaelle &amp; JC" width="170" style="display:inline-block;border:0;"></a></td></tr>
+<tr><td style="padding:24px 40px 8px;">
+<h1 style="${serif}font-size:30px;line-height:1.2;margin:0 0 20px;">Bienvenue</h1>
+<p style="margin:0 0 8px;">Nous vous remercions de votre inscription à la lettre Jaelle &amp; JC et de l'intérêt que vous portez à notre atelier.</p>
+<p style="margin:0;">Chaque pièce y est cousue main, en Île-de-France, en petite série. Nous vous écrirons quelques fois par an, quand une nouvelle pièce sort de l'atelier.</p>
+</td></tr>
+${piece?.image ? `<tr><td style="padding:32px 32px 0;"><a href="${escapeHtml(piece.url)}"><img src="${escapeHtml(piece.image)}" alt="${escapeHtml(piece.name)}" width="536" style="display:block;width:100%;height:auto;border:0;background:#F7F7F7;"></a>
+<p style="margin:12px 0 0;color:#999;font-size:13px;">${escapeHtml(piece.name)}</p></td></tr>` : ''}
+<tr><td style="padding:28px 40px 0;"><p style="margin:0;color:#999;">Découvrez dès à présent <a href="${escapeHtml(`${origin}/collection`)}" style="color:#999;">la collection</a> sur jaellejc.com.</p></td></tr>
+<tr><td style="padding:28px 40px 48px;"><p style="${serif}font-size:22px;margin:0;">À bientôt.</p></td></tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;font-family:'Source Sans 3',Arial,sans-serif;color:#666;text-align:center;">
+<tr><td style="padding:32px 24px 8px;${serif}font-size:16px;color:#333;">Emballage cadeau avec un mot pour la naissance &nbsp;·&nbsp; Livraison à domicile en France</td></tr>
+<tr><td style="padding:16px 24px;"><a href="${INSTAGRAM_URL}" style="color:#333;${small}text-decoration:none;">Instagram</a></td></tr>
+<tr><td style="padding:0 24px 8px;font-size:13px;"><a href="mailto:contact@jaellejc.com" style="color:#666;">contact@jaellejc.com</a> &nbsp;·&nbsp; <a href="${escapeHtml(origin)}" style="color:#666;">jaellejc.com</a></td></tr>
+<tr><td style="padding:8px 24px 40px;font-size:11px;color:#999;line-height:1.6;">Vous recevez cet e-mail car vous vous êtes inscrit(e) sur jaellejc.com. <a href="${escapeHtml(unsubscribeUrl)}" style="color:#999;">Se désinscrire</a></td></tr>
+</table>
+</td></tr></table></body></html>`;
+  const text = [
+    'Bienvenue',
+    "Nous vous remercions de votre inscription à la lettre Jaelle & JC et de l'intérêt que vous portez à notre atelier.",
+    "Chaque pièce y est cousue main, en Île-de-France, en petite série. Nous vous écrirons quelques fois par an, quand une nouvelle pièce sort de l'atelier.",
+    `Découvrez dès à présent la collection : ${origin}/collection`,
+    'À bientôt.',
+    `Instagram : ${INSTAGRAM_URL} — contact@jaellejc.com`,
+    `Se désinscrire : ${unsubscribeUrl}`,
+  ].join('\n');
+  return { to, subject: 'Bienvenue dans la lettre Jaelle & JC', html, text };
 }

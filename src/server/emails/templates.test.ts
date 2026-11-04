@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { NewOrder } from '../checkout/logic';
-import { escapeHtml, orderConfirmation, orderPreparing, orderShipped, shopNotification, stockApology } from './templates';
+import { escapeHtml, newsletterWelcome, orderConfirmation, orderPreparing, orderShipped, shopNotification, stockApology } from './templates';
 
 const order = (over: Partial<NewOrder> = {}): NewOrder => ({
   userId: 'u1',
@@ -70,5 +70,17 @@ describe('e-mails de suivi de commande', () => {
     expect(m.html).toContain('href="https://www.laposte.fr/outils/suivre-vos-envois?code=6A12345678901"');
     const bad = orderShipped({ ...shipped, tracking: { ...shipped.tracking, url: 'javascript:alert(1)' } });
     expect(bad.html).not.toContain('javascript:');
+  });
+});
+
+describe('e-mail d’inscription à la newsletter', () => {
+  it('pièce échappée, lien de désinscription, Instagram ; sans pièce : pas de photo', () => {
+    const m = newsletterWelcome('a@exemple.fr', 'https://www.jaellejc.com/newsletter/desinscription?id=1&t=2', 'https://www.jaellejc.com',
+      { name: '<b>Cabas</b>', priceCents: 6500, image: 'https://firebasestorage.googleapis.com/x.jpg', url: 'https://www.jaellejc.com/produits/cabas' });
+    expect(m.subject).toBe('Bienvenue dans la lettre Jaelle & JC');
+    expect(m.html).toContain('&lt;b&gt;Cabas&lt;/b&gt;');
+    expect(m.html).toContain('href="https://www.jaellejc.com/newsletter/desinscription?id=1&amp;t=2"');
+    expect(m.html).toContain('https://www.instagram.com/jaellejc/');
+    expect(newsletterWelcome('a@exemple.fr', 'u', 'https://www.jaellejc.com').html).not.toContain('firebasestorage');
   });
 });

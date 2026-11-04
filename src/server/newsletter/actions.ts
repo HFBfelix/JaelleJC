@@ -14,6 +14,7 @@ import { emailSchema } from '../auth/policy';
 import { COLLECTIONS } from '../db/schema';
 import { sendEmail, syncNewsletterContact } from '../emails/sender';
 import { newsletterWelcome } from '../emails/templates';
+import { featuredPiece } from '../emails/featured';
 import { adminDb } from '../firebase/admin';
 import { siteOrigin } from '../http/origin';
 import { clientIp, takeRateLimit } from '../http/rate-limit';
@@ -44,9 +45,11 @@ export async function subscribeNewsletterAction(raw: unknown): Promise<Newslette
     const created = await ref.create({ email, source: 'footer_site', consentAt: FieldValue.serverTimestamp(), unsubscribeToken: token })
       .then(() => true, (e: { code?: number }) => { if (e?.code !== 6) throw e; return false; }); // 6 = déjà inscrite
     if (created) {
-      const url = `${await siteOrigin()}/newsletter/desinscription?id=${ref.id}&t=${token}`;
+      const origin = await siteOrigin();
+      const url = `${origin}/newsletter/desinscription?id=${ref.id}&t=${token}`;
       after(async () => {
-        if ((await sendEmail(newsletterWelcome(email, url))) === 'echec') console.error('newsletter : confirmation non envoyée');
+        const piece = await featuredPiece(origin).catch(() => null); // sans photo : l'e-mail part quand même
+        if ((await sendEmail(newsletterWelcome(email, url, origin, piece))) === 'echec') console.error('newsletter : confirmation non envoyée');
         await syncNewsletterContact(email, true);
       });
     }
