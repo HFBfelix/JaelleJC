@@ -40,7 +40,7 @@ describe('lecture de la réponse', () => {
 
   it('prix et stock douteux : null, jamais devinés', () => {
     for (const prixEuros of [-5, 0, 'quarante', 1e9]) expect(parseAnalysis(reply({ prixEuros }), categories, 0)!.priceCents).toBeNull();
-    const a = parseAnalysis(reply({ variantes: [{ coloris: 'rose', stock: -2 }, { coloris: 'bleu', stock: 2.5 }, { coloris: 'vert', stock: '3' }] }), categories, 0)!;
+    const a = parseAnalysis(reply({ variantes: [{ coloris: 'rose', taille: '3M', stock: -2 }, { coloris: 'rose', taille: '6M', stock: 2.5 }, { coloris: 'rose', taille: '9M', stock: '3' }] }), categories, 0)!;
     expect(a.variants.map((v) => v.stock)).toEqual([null, null, null]);
   });
 
@@ -54,6 +54,12 @@ describe('lecture de la réponse', () => {
     expect(a.name.length).toBeLessThanOrEqual(120);
     expect(a.name.endsWith('mot')).toBe(true);
     expect(a.usages).toEqual(['cadeau de naissance pour une amie très']);
+  });
+
+  it('une fiche, une couleur : la première gardée, les autres signalées', () => {
+    const a = parseAnalysis(reply({ variantes: [{ coloris: 'écru', taille: '3M' }, { coloris: 'rose', taille: '3M' }, { coloris: 'Écru', taille: '6M' }] }), categories, 0)!;
+    expect(a.variants.map((v) => `${v.color} ${v.size}`)).toEqual(['écru 3M', 'Écru 6M']);
+    expect(a.missing).toContain('Une fiche par couleur : « rose » à créer dans une autre fiche, reliée au même modèle');
   });
 
   it('variantes en double ou vides retirées', () => {

@@ -8,7 +8,7 @@ import { isGridSize } from '../catalog/sizes';
 import { adminDb } from '../firebase/admin';
 import { deletePhotoFile, savePhoto } from '../firebase/storage';
 import {
-  PHOTOS_MAX, PHOTO_MAX_BYTES, canPublish, checklist, imageType, inStockOf, publishable, skuFor, slugify, variantIdFor,
+  PHOTOS_MAX, PHOTO_MAX_BYTES, activeColors, canPublish, checklist, colorsAllowed, imageType, inStockOf, publishable, skuFor, slugify, variantIdFor,
   type ChecklistItem, type ProductFields, type VariantRow,
 } from './logic';
 
@@ -52,6 +52,7 @@ export function toAdminProduct(id: string, d: Record<string, unknown>): AdminPro
     slug: str(d.slug, id.toLowerCase()),
     name: str(d.name),
     sku: typeof d.sku === 'string' && d.sku ? d.sku : null,
+    modelId: typeof d.modelId === 'string' && d.modelId ? d.modelId : null,
     categoryId: typeof d.categoryId === 'string' ? d.categoryId : null,
     subCategory: typeof d.subCategory === 'string' ? d.subCategory : null,
     status,
@@ -203,7 +204,7 @@ function publicDoc(p: AdminProduct, variants: Variante[]) {
   return { ...rest, status: 'published', inStock: inStockOf(variants), aiDraft: { generatedAt: aiDraft.generatedAt ? now() : null, reviewed: aiDraft.reviewed } };
 }
 
-export type VariantsResult = { status: 'ok' } | { status: 'introuvable' | 'doublon' | 'hors-grille' } | { status: 'stock-modifie'; variants: string[] };
+export type VariantsResult = { status: 'ok' } | { status: 'introuvable' | 'doublon' | 'hors-grille' | 'plusieurs-couleurs' } | { status: 'stock-modifie'; variants: string[] };
 
 // Variantes : stock tenu par variante, écrit en transaction. Une variante retirée de la grille est désactivée
 // (jamais supprimée : paniers et commandes y font référence).
@@ -218,6 +219,9 @@ export async function saveVariants(uid: string, id: string, rows: VariantRow[]):
     if (new Set(ids).size !== ids.length) return { status: 'doublon' };
     // Nouvelle variante : taille prise dans une grille (les anciennes gardent la leur).
     if (rows.some((r, i) => !existing.has(ids[i]!) && r.size && !isGridSize(r.size))) return { status: 'hors-grille' };
+    // Une fiche, une couleur : une fiche ancienne à plusieurs couleurs garde les siennes, sans en gagner.
+    const before = [...existing.values()].map((d) => ({ color: typeof d.color === 'string' ? d.color : null, active: d.active !== false }));
+    if (!colorsAllowed(rows.map((r) => ({ color: r.color || null, active: r.active })), before)) return { status: 'plusieurs-couleurs' };
 
     const conflicts = rows.flatMap((r, i) => {
       const current = existing.get(ids[i]!);
@@ -252,6 +256,52 @@ export async function saveVariants(uid: string, id: string, rows: VariantRow[]):
   if (result.status === 'ok' && result.changes?.length) await audit(uid, 'stock.modifie', id, { changes: result.changes });
   if (result.status === 'stock-modifie') return { status: 'stock-modifie', variants: result.variants };
   return { status: result.status } as VariantsResult;
+}
+
+// --- Modèle : fiches d'une même pièce en plusieurs couleurs ---
+
+export type ModelMember = { id: string; name: string; status: AdminProduct['status']; color: string };
+
+// Fiches du même modèle (autres que celle-ci), avec leur couleur, pour l'Atelier.
+export async function listModelMembers(id: string, modelId: string | null): Promise<ModelMember[]> {
+  if (!modelId) return [];
+  const snap = await products().where('modelId', '==', modelId).get();
+  return Promise.all(snap.docs.filter((d) => d.id !== id).map(async (d) => {
+    const p = toAdminProduct(d.id, d.data());
+    const variants = toAdminVariants((await d.ref.collection(COLLECTIONS.variantes).get()).docs);
+    return { id: d.id, name: p.name, status: p.status, color: activeColors(variants).join(', ') };
+  })).then((rows) => rows.sort((a, b) => a.name.localeCompare(b.name, 'fr')));
+}
+
+// Toutes les autres fiches, pour le choix « Même modèle que… ».
+export async function listModelCandidates(id: string): Promise<{ id: string; name: string }[]> {
+  const snap = await products().select('name').get();
+  return snap.docs.filter((d) => d.id !== id)
+    .map((d) => ({ id: d.id, name: str(d.get('name')) || 'Sans nom' }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+}
+
+// Relie la fiche au modèle d'une autre (le modèle de l'autre, sinon un nouveau modèle à son identifiant) ;
+// `withId` null : la fiche quitte son modèle. En transaction : deux liens simultanés ne créent pas deux modèles.
+export async function setModel(uid: string, id: string, withId: string | null): Promise<'ok' | 'introuvable' | 'invalide'> {
+  if (withId === id) return 'invalide';
+  const ref = products().doc(id);
+  const result = await db().runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return { status: 'introuvable' as const };
+    if (!withId) {
+      tx.update(ref, { modelId: null, updatedAt: FieldValue.serverTimestamp(), updatedBy: uid });
+      return { status: 'ok' as const, modelId: null };
+    }
+    const other = await tx.get(products().doc(withId));
+    if (!other.exists) return { status: 'introuvable' as const };
+    const modelId = toAdminProduct(other.id, other.data()!).modelId ?? other.id;
+    if (!other.get('modelId')) tx.update(other.ref, { modelId, updatedAt: FieldValue.serverTimestamp(), updatedBy: uid });
+    tx.update(ref, { modelId, updatedAt: FieldValue.serverTimestamp(), updatedBy: uid });
+    return { status: 'ok' as const, modelId };
+  });
+  if (result.status === 'ok') await audit(uid, 'produit.modele', id, { modele: result.modelId });
+  return result.status;
 }
 
 export type PhotoResult = 'ok' | 'introuvable' | 'type' | 'taille' | 'plein' | 'derniere';

@@ -44,6 +44,9 @@ export const produit = z.object({
   name: shortText(120).min(1),
   // Référence de la pièce (SKU) donnée par Jaelle, unique dans la boutique ; vide tant qu'elle n'est pas saisie.
   sku: shortText(40).nullable().optional(),
+  // Modèle (décision de Jaelle, 2026-11-04) : une fiche par couleur ; les fiches d'un même modèle partagent cet
+  // identifiant et affichent les pastilles des autres couleurs. Absent ou null : fiche seule.
+  modelId: z.string().regex(/^[A-Za-z0-9_-]{1,128}$/).nullable().optional(),
   categoryId: slug.nullable(),
   subCategory: slug.nullable(),
   status: productStatus,

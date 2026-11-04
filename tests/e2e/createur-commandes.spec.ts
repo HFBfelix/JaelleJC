@@ -79,6 +79,8 @@ test('commande : préparation, expédition Colissimo (suivi visible par la clien
   await ship.getByLabel('Numéro de suivi').fill('6a 1234 5678 901');
   await ship.getByRole('button', { name: 'Marquer comme expédiée' }).click();
   await expect.poll(async () => (await db().doc(`orders/${id}`).get()).get('status')).toBe('shipped');
+  // L'e-mail part juste après le changement de statut (paragraphe personnalisé demandé d'abord, lot 5).
+  await expect.poll(async () => (await db().doc(`orders/${id}`).get()).get('emails.expedition')).toBe('envoye');
   expect((await db().doc(`orders/${id}`).get()).data()).toMatchObject({
     tracking: { carrier: 'Colissimo', number: '6A12345678901', url: 'https://www.laposte.fr/outils/suivre-vos-envois?code=6A12345678901' },
     emails: { cliente: 'envoye', boutique: 'envoye', preparation: 'envoye', expedition: 'envoye' },

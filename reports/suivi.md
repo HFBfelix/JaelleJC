@@ -110,6 +110,11 @@ Dernière mise à jour : 2026-10-30, fin de l'étape 7 (espace créatrice). Chaq
 - Une teinte par coloris, choisie au nuancier (champ `colorHex` des variantes) ; fiche : pastilles « Couleur : … », tailles dans l'ordre de la grille, couleur ou taille épuisée barrée (`catalogue.spec.ts`).
 - Anciennes variantes : gardent leur taille d'origine (affichée après les tailles de grille) ; teinte grise tant qu'elle n'est pas choisie.
 
+## Décisions de Jaelle (2026-11-04) : une fiche par couleur, choix de la pièce
+- **Une fiche par couleur**, reliées dans l'Atelier (« Même modèle que… », champ `modelId` des produits, facultatif, sans migration) : chaque fiche affiche les pastilles des autres couleurs du modèle (fiches en ligne seulement), qui mènent à leur fiche et à leurs photos (`modele.spec.ts`, `catalogue.spec.ts`, `mapping.test.ts`).
+- Une fiche ne peut plus gagner de seconde couleur (serveur ; l'IA garde la première couleur et signale les autres). Une fiche créée avant avec plusieurs couleurs est signalée en rouge dans l'Atelier, jamais découpée sans décision de Jaelle (`logic.test.ts`, `analysis.test.ts`).
+- **Choix de la pièce** : rien n'est coché d'office, sauf une possibilité unique (couleur de la fiche, taille seule en stock) ; sans couleur ou taille choisie, rien ne part au panier et un message dit ce qui manque ; changement de couleur : taille gardée si en stock, sinon décochée avec un message (`choice.test.ts`, `catalogue.spec.ts`).
+
 ## Retours de Jaelle (2026-11-01) : Atelier, export et catalogue
 - Espace créatrice renommé « Atelier », adresse `/atelier` (301 depuis `/createur`) ; cloche rouge et nombre de commandes payées jamais ouvertes sur l'onglet Commandes ; référence SKU unique par pièce (`connexion.spec.ts`, `createur-commandes.spec.ts`, `createur-produits.spec.ts`).
 - Onglet Produits : « Exporter (Excel) » (CSV ouvert par Excel, une ligne par variante ; le .xlsx a été abandonné par Jaelle le 2026-11-01) et « Générer un catalogue » (page intermédiaire : pièces en stock cochées, décochables, prix affichés ou non, textes rédigés par Mistral puis relus ; PDF A4 à la charte). Nouvelles dépendances accordées par Jaelle : `@react-pdf/renderer` 4.9.0, `sharp` 0.35.5 (déjà installé par Next, désormais déclaré).

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ChangeEvent } from 'react';
+import { useState, type ChangeEvent, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { resizeImage } from '@/lib/resize-image';
@@ -18,7 +18,8 @@ import Dictation from './Dictation';
 import { Button, Card, Input, Message, StatusBadge, TextArea, centsToEuros, eurosToCents, label, missingText } from './ui';
 
 type Category = { slug: string; name: string; subs: { slug: string; name: string }[] };
-type Props = { product: AdminProduct; variants: AdminVariant[]; categories: Category[]; notes: string; aiEnabled: boolean };
+// `model` : encadré « Modèle » (fiches des autres couleurs), affiché sous les variantes.
+type Props = { product: AdminProduct; variants: AdminVariant[]; categories: Category[]; notes: string; aiEnabled: boolean; model?: ReactNode };
 type Photo = { path: string; url: string; alt: string };
 
 const lines = (v: string) => v.split('\n').map((s) => s.trim()).filter(Boolean);
@@ -34,6 +35,7 @@ const MESSAGES: Record<string, string> = {
   incomplet: 'Une pièce en ligne doit rester complète : complétez ce qui est en rouge ou remettez-la en brouillon.',
   doublon: 'Deux variantes ont le même coloris et la même taille.',
   'hors-grille': 'Une nouvelle taille doit être choisie dans une grille (Femme, Bébé ou Enfant).',
+  'plusieurs-couleurs': 'Une seule couleur par fiche : pour une autre couleur, dupliquez la fiche et reliez-la au même modèle.',
   'stock-modifie': 'Une vente a modifié le stock pendant votre saisie. Les variantes ont été rechargées : vérifiez puis enregistrez de nouveau.',
   type: 'Format refusé : JPEG, PNG ou WebP seulement.',
   taille: 'Photo trop lourde, même réduite.',
@@ -61,7 +63,7 @@ const toPhotos = (p: AdminProduct): Photo[] => p.images.map((i) => ({ path: i.pa
 // Fiche d'une pièce sur une seule page : 1) photos et description libre (tapée ou dictée), envoyées à l'IA qui
 // préremplit tout ; 2) la fiche à vérifier ; à droite, ce qui manque (en rouge) et les boutons. Rien n'est écrit en
 // base avant « Enregistrer » (sauf les photos, enregistrées dès l'envoi, et le texte libre, gardé à l'analyse).
-export default function ProductEditor({ product, variants, categories, notes: savedNotes, aiEnabled }: Props) {
+export default function ProductEditor({ product, variants, categories, notes: savedNotes, aiEnabled, model }: Props) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
@@ -401,6 +403,8 @@ export default function ProductEditor({ product, variants, categories, notes: sa
               setRows={(next) => { setRows(next); setRowsDirty(true); unmark(['variantes']); }} />
           </Card>
 
+          {model}
+
           <Card>
             <section aria-label="Textes">
               <h2 className="font-serif text-[22px] mb-6">Textes</h2>
@@ -503,7 +507,7 @@ function VariantsSection({ rows, setRows, priceCents, error, ai, categoryId }:
     <section aria-label="Variantes et stock">
       <h2 className="font-serif text-[22px] mb-2">Variantes et stock{ai && <span className="ml-3 align-middle text-[11px] font-sans text-neutral-500 border-[0.5px] border-neutral-400 px-1.5">proposé par l’IA · à vérifier</span>}</h2>
       <p className="text-[14px] text-neutral-600 mb-6">Le stock est tenu par variante (coloris × taille). Une variante retirée n’est jamais supprimée : décochez « Active ».</p>
-      <Input label="Ajouter des coloris" value={colors} onChange={(e) => setColors(e.target.value)} hint="Séparés par des virgules." />
+      <Input label="Ajouter des coloris" value={colors} onChange={(e) => setColors(e.target.value)} hint="Une seule couleur par fiche : pour une autre couleur, dupliquez la fiche et reliez-la au même modèle." />
       <label className="block mb-4">
         <span className={`${label} block mb-2`}>Grille de tailles</span>
         <select value={grid} onChange={(e) => { setChosenGrid(e.target.value as SizeGrid | ''); setChecked([]); }}

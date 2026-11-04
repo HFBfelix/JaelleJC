@@ -4,7 +4,7 @@ import 'server-only';
 import { cache } from 'react';
 import { FieldPath } from 'firebase-admin/firestore';
 import { adminDb } from '../firebase/admin';
-import { isValidSlug, toCategoryView, toProductCard, toProductView } from './mapping';
+import { isValidSlug, otherColorsOf, toCategoryView, toProductCard, toProductView } from './mapping';
 import type { CategoryView, ProductCardView, ProductView } from './types';
 
 export const listCategories = cache(async (): Promise<CategoryView[]> => {
@@ -44,7 +44,15 @@ export const getProductBySlug = cache(async (slug: string): Promise<ProductView 
   const doc = snap.docs[0];
   if (!doc) return null;
   const [variants, categories] = await Promise.all([doc.ref.collection('variantes').get(), listCategories()]);
-  return toProductView(doc.id, doc.data(), variants.docs.map((v) => ({ id: v.id, data: v.data() })), categories);
+  const view = toProductView(doc.id, doc.data(), variants.docs.map((v) => ({ id: v.id, data: v.data() })), categories);
+  const modelId = doc.get('modelId');
+  if (!view || typeof modelId !== 'string' || !modelId) return view;
+  // Autres couleurs du même modèle : fiches publiées seulement.
+  const siblings = await adminDb().collection('produits').where('modelId', '==', modelId).where('status', '==', 'published').limit(20).get();
+  const withVariants = await Promise.all(siblings.docs.filter((s) => s.id !== doc.id).map(async (s) => ({
+    id: s.id, data: s.data(), variants: (await s.ref.collection('variantes').get()).docs.map((v) => ({ id: v.id, data: v.data() })),
+  })));
+  return { ...view, otherColors: otherColorsOf(view, modelId, withVariants) };
 });
 
 // Anciennes adresses /product/<identifiant> : slug du produit publié, sinon null (404).

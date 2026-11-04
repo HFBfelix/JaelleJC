@@ -12,7 +12,7 @@ import { breadcrumbJsonLd, productJsonLd } from '@/server/seo/jsonld';
 // Seuls les produits publiés existent pour le public (brouillon ou archive : 404).
 export const dynamic = 'force-dynamic';
 
-type Props = { params: Promise<{ slug: string }> };
+type Props = { params: Promise<{ slug: string }>; searchParams?: Promise<{ taille?: string | string[] }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = await getProductBySlug((await params).slug);
@@ -27,9 +27,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function ProductPage({ params }: Props) {
+export default async function ProductPage({ params, searchParams }: Props) {
   const product = await getProductBySlug((await params).slug);
   if (!product) notFound();
+  // Taille choisie sur la fiche d'une autre couleur du modèle (lien de la pastille) ; vérifiée par la fiche.
+  const taille = (await searchParams)?.taille;
+  const wantedSize = typeof taille === 'string' ? taille.slice(0, 40) : '';
   const similarProducts = await listRelated(product);
   const path = `/produits/${product.slug}`;
   const category = product.categorySlug ? { name: product.categoryName, path: `/collection?category=${product.categorySlug}` } : null;
@@ -43,7 +46,7 @@ export default async function ProductPage({ params }: Props) {
         ...(category ? [category] : []),
         { name: product.name, path },
       ])} />
-      <ProductDetail product={product} buy={<BuyButton productId={product.id} variants={product.variants} />} />
+      <ProductDetail product={product} buy={<BuyButton productId={product.id} variants={product.variants} otherColors={product.otherColors} wantedSize={wantedSize} />} />
 
       {/* ── SECTION RÉSONANCES ESTHÉTIQUES ── */}
       {similarProducts.length > 0 && (

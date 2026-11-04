@@ -127,27 +127,71 @@ test('une seule fiche pour toutes les tailles : pastilles de couleur, tailles da
     await colors.locator('[title="Épuisé"]').hover();
     await expect(colors.getByText('Épuisé', { exact: true })).toBeVisible();
   }
-  // Première variante en stock choisie d'office : Écru, 3M ; 6M épuisé en écru. Ordre de la grille : 3M avant 6M.
-  await expect(colors).toContainText('Couleur : Écru');
-  await expect(colors.getByRole('button', { name: 'Écru' })).toHaveAttribute('aria-pressed', 'true');
+  // Rien de choisi d'office (2026-11-04) : ni couleur ni taille ; ordre de la grille : 3M avant 6M.
+  await expect(colors.getByRole('button', { name: 'Écru' })).toHaveAttribute('aria-pressed', 'false');
   await expect(sizes.getByRole('button')).toHaveText(['3M', '6M']);
-  await expect(sizes.getByRole('button', { name: '3M' })).toHaveAttribute('aria-pressed', 'true');
-  // Taille épuisée : barrée, « Épuisé » au survol (souris seulement).
+  await expect(sizes.getByRole('button', { name: '3M' })).toHaveAttribute('aria-pressed', 'false');
+  // Sans choix : rien ne part au panier, la cliente sait ce qui manque.
+  await page.getByRole('button', { name: 'Ajouter à la sélection' }).click();
+  await expect(colors.getByRole('alert')).toHaveText('Choisissez une couleur et une taille.');
+  await expect(page.getByRole('dialog', { name: 'Votre sélection' })).toHaveCount(0);
+  // Écru : 6M épuisé en écru, barré, « Épuisé » au survol (souris seulement).
+  await colors.getByRole('button', { name: 'Écru' }).click();
+  await expect(colors).toContainText('Couleur : Écru');
   await expect(sizes.getByRole('button', { name: '6M (épuisé)' })).toBeDisabled();
   if (!test.info().project.use.isMobile) {
     await sizes.locator('[title="Épuisé"]').hover();
     await expect(sizes.getByText('Épuisé', { exact: true })).toBeVisible();
   }
-  await expect(sizes.getByRole('button', { name: '6M' })).toBeDisabled();
-  // Rose : le 3M est épuisé, la taille passe d'elle-même au 6M.
+  await page.getByRole('button', { name: 'Ajouter à la sélection' }).click();
+  await expect(sizes.getByRole('alert')).toHaveText('Choisissez une taille.');
+  // 3M choisi puis Rose, où le 3M est épuisé : la taille est décochée (jamais remplacée), message.
+  await sizes.getByRole('button', { name: '3M' }).click();
+  await expect(sizes).toContainText('Taille : 3M');
   await colors.getByRole('button', { name: 'Rose' }).click();
   await expect(colors).toContainText('Couleur : Rose');
-  await expect(sizes.getByRole('button', { name: '3M' })).toBeDisabled();
-  await expect(sizes.getByRole('button', { name: '6M' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(sizes.getByRole('button', { name: '3M (épuisé)' })).toBeDisabled();
+  await expect(sizes.getByRole('alert')).toHaveText('Taille 3M épuisée dans cette couleur : choisissez une autre taille.');
+  await expect(sizes.getByRole('button', { name: '6M' })).toHaveAttribute('aria-pressed', 'false');
+  await sizes.getByRole('button', { name: '6M' }).click();
   await page.getByRole('button', { name: 'Ajouter à la sélection' }).click();
   const drawer = page.getByRole('dialog', { name: 'Votre sélection' });
   await expect(drawer.getByRole('status')).toHaveText('Ajouté à votre sélection');
   await expect(drawer.getByText('Rose · 6M')).toBeVisible();
+});
+
+test('une fiche par couleur : couleur de la fiche cochée, autres couleurs du modèle en lien, taille à choisir puis gardée', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('jaellejc-cookies', 'none'));
+  await page.goto(`/produits/${FIXTURE.modelNoir.slug}`);
+  const colors = page.getByRole('group', { name: 'Couleur' });
+  const sizes = page.getByRole('group', { name: 'Taille' });
+  // Couleur de la fiche cochée ; l'autre couleur du modèle est un lien vers sa fiche ; aucune taille cochée.
+  await expect(colors).toContainText('Couleur : Noir');
+  await expect(colors.getByRole('button', { name: 'Noir' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(colors.getByRole('link', { name: 'Bleu' })).toHaveAttribute('href', `/produits/${FIXTURE.modelBleu.slug}`);
+  await expect(sizes.getByRole('button', { name: 'L (épuisé)' })).toBeDisabled();
+  await expect(sizes.getByRole('button', { name: 'S', exact: true })).toHaveAttribute('aria-pressed', 'false');
+  await page.getByRole('button', { name: 'Ajouter à la sélection' }).click();
+  await expect(sizes.getByRole('alert')).toHaveText('Choisissez une taille.');
+  await expect(page.getByRole('dialog', { name: 'Votre sélection' })).toHaveCount(0);
+
+  // S choisi puis Bleu : fiche bleue (ses photos), S épuisé en bleu → décoché avec un message.
+  await sizes.getByRole('button', { name: 'S', exact: true }).click();
+  await expect(colors.getByRole('link', { name: 'Bleu' })).toHaveAttribute('href', `/produits/${FIXTURE.modelBleu.slug}?taille=S`);
+  await colors.getByRole('link', { name: 'Bleu' }).click();
+  await expect(page).toHaveURL(new RegExp(`/produits/${FIXTURE.modelBleu.slug}\\?taille=S$`));
+  await expect(page.getByRole('heading', { level: 1, name: FIXTURE.modelBleu.name })).toBeAttached();
+  await expect(colors).toContainText('Couleur : Bleu');
+  await expect(sizes.getByRole('alert')).toHaveText('Taille S épuisée dans cette couleur : choisissez une autre taille.');
+
+  // M choisi puis retour au noir : M gardé (en stock en noir), ajout de « Noir · M ».
+  await sizes.getByRole('button', { name: 'M', exact: true }).click();
+  await colors.getByRole('link', { name: 'Noir' }).click();
+  await expect(page).toHaveURL(new RegExp(`/produits/${FIXTURE.modelNoir.slug}\\?taille=M$`));
+  await expect(sizes.getByRole('button', { name: 'M', exact: true })).toHaveAttribute('aria-pressed', 'true');
+  await page.getByRole('button', { name: 'Ajouter à la sélection' }).click();
+  const drawer = page.getByRole('dialog', { name: 'Votre sélection' });
+  await expect(drawer.getByText('Noir · M')).toBeVisible();
 });
 
 test('pièce sans taille ni coloris : aucun choix, ajout direct', async ({ page }) => {

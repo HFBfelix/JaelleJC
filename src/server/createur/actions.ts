@@ -10,7 +10,7 @@ import { NOTES_MAX } from './analysis';
 import { photosInput, productFields, productId, variantsInput } from './logic';
 import {
   audit, createProduct, deleteDraft, loadProductAdmin, publishProduct, removePhoto, saveFields, saveVariants,
-  setProductStatus, updatePhotos, type PhotoResult, type SaveResult, type StatusResult, type VariantsResult,
+  setModel, setProductStatus, updatePhotos, type PhotoResult, type SaveResult, type StatusResult, type VariantsResult,
 } from './products';
 import { adminDb } from '../firebase/admin';
 import { COLLECTIONS } from '../db/schema';
@@ -63,6 +63,13 @@ export async function saveVariantsAction(input: unknown): Promise<VariantsResult
   const parsed = variantsInput.safeParse(input);
   if (!parsed.success) return INVALID;
   return run('variantes', (uid) => saveVariants(uid, parsed.data.productId, parsed.data.rows));
+}
+
+// « Même modèle que… » : `withId` null pour retirer la fiche de son modèle.
+export async function setModelAction(input: unknown): Promise<{ status: 'ok' | 'introuvable' | 'invalide' } | Denied> {
+  const parsed = z.strictObject({ productId, withId: productId.nullable() }).safeParse(input);
+  if (!parsed.success) return INVALID;
+  return run('modèle', async (uid) => ({ status: await setModel(uid, parsed.data.productId, parsed.data.withId) }));
 }
 
 // Envoi de photo : route dédiée src/app/api/createur/photos (limite de corps propre).

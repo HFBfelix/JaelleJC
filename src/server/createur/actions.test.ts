@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   requireAdmin: vi.fn(),
   saveFields: vi.fn(), saveVariants: vi.fn(), addPhoto: vi.fn(), publishProduct: vi.fn(), setProductStatus: vi.fn(),
   deleteDraft: vi.fn(), createProduct: vi.fn(), updatePhotos: vi.fn(), removePhoto: vi.fn(), loadProductAdmin: vi.fn(),
-  audit: vi.fn(), analyzeProduct: vi.fn(), redirect: vi.fn(),
+  audit: vi.fn(), analyzeProduct: vi.fn(), redirect: vi.fn(), setModel: vi.fn(),
 }));
 vi.mock('../auth/session', () => ({ requireAdmin: mocks.requireAdmin }));
 vi.mock('./products', () => mocks);
@@ -40,6 +40,8 @@ describe('cliente ordinaire, anonyme ou droit retiré (requireAdmin → null)', 
       actions.analyzeAction({ productId: 'p1', notes: 'Cape en gaze' }),
       actions.reviewAiAction({ productId: 'p1' }),
       actions.reviewAiAction({ productId: 'p1', reviewed: false }),
+      actions.setModelAction({ productId: 'p1', withId: 'p2' }),
+      actions.setModelAction({ productId: 'p1', withId: null }),
     ]);
     for (const r of results) expect(r).toEqual({ status: 'connexion' });
     for (const [name, fn] of Object.entries(mocks)) if (name !== 'requireAdmin') expect(fn).not.toHaveBeenCalled();
@@ -57,6 +59,8 @@ describe('administratrice', () => {
     ['stock négatif', () => actions.saveVariantsAction({ productId: 'p1', rows: [{ ...row, stock: -3 }] })],
     ['notes trop longues pour l’IA', () => actions.analyzeAction({ productId: 'p1', notes: 'x'.repeat(6001) })],
     ['analyse sur un identifiant piégé', () => actions.analyzeAction({ productId: '../orders/x', notes: 'Cape' })],
+    ['modèle : fiche piégée', () => actions.setModelAction({ productId: 'p1', withId: '../orders/x' })],
+    ['modèle : champ manquant', () => actions.setModelAction({ productId: 'p1' })],
   ])('%s : refusé avant la base', async (_, call) => {
     expect(await call()).toEqual({ status: 'invalide' });
     expect(mocks.publishProduct).not.toHaveBeenCalled();
@@ -64,6 +68,13 @@ describe('administratrice', () => {
     expect(mocks.saveFields).not.toHaveBeenCalled();
     expect(mocks.saveVariants).not.toHaveBeenCalled();
     expect(mocks.analyzeProduct).not.toHaveBeenCalled();
+    expect(mocks.setModel).not.toHaveBeenCalled();
+  });
+
+  it('modèle : relié au nom de l’administratrice', async () => {
+    mocks.setModel.mockResolvedValue('ok');
+    expect(await actions.setModelAction({ productId: 'p1', withId: 'p2' })).toEqual({ status: 'ok' });
+    expect(mocks.setModel).toHaveBeenCalledWith('admin-uid', 'p1', 'p2');
   });
 
   it('nouvelle pièce sans nom : « Nouvelle pièce », l’IA proposera le nom', async () => {

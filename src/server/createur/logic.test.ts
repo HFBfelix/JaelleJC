@@ -93,3 +93,21 @@ describe('type réel des photos', () => {
     for (const s of ['<svg xmlns="http://www.w3.org/2000/svg">', '<html><script>', '%PDF-1.7']) expect(imageType(new TextEncoder().encode(s))).toBeNull();
   });
 });
+
+describe('une fiche, une couleur (2026-11-04)', () => {
+  const r = (color: string | null, active = true) => ({ color, active });
+  it('nouvelle fiche : une couleur au plus ; ancienne fiche à plusieurs couleurs : garde les siennes sans en gagner', async () => {
+    const { colorsAllowed } = await import('./logic');
+    expect(colorsAllowed([r('Noir'), r('Noir')], [])).toBe(true);
+    expect(colorsAllowed([r('Noir'), r('Bleu')], [r(null)])).toBe(false);
+    expect(colorsAllowed([r('Noir'), r('Bleu', false)], [r('Bleu')])).toBe(true); // couleur changée : l'ancienne désactivée
+    expect(colorsAllowed([r('Écru'), r('Rose')], [r('Écru'), r('Rose')])).toBe(true);
+    expect(colorsAllowed([r('Écru'), r('Rose'), r('Bleu')], [r('Écru'), r('Rose')])).toBe(false);
+  });
+  it('alertes rouges : plusieurs couleurs ; fiche d’un modèle sans couleur', async () => {
+    const { colorWarnings } = await import('./logic');
+    expect(colorWarnings([r('Écru'), r('Rose')], null)).toHaveLength(1);
+    expect(colorWarnings([r(null)], 'm1')[0]).toMatch(/indiquez sa couleur/);
+    expect(colorWarnings([r('Noir')], 'm1')).toEqual([]);
+  });
+});

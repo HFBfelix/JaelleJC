@@ -107,3 +107,33 @@ describe('affichage', () => {
     expect(productSections(bare).map((s) => s.label)).toEqual(['Livraison & Retours']);
   });
 });
+
+describe('modèle : une fiche par couleur, pastilles des autres fiches', () => {
+  const own = toProductView('noir', produit({ slug: 't-shirt-noir', modelId: 'm1' }), [variante(2, true, { color: 'Noir', size: 'M' })], categories)!;
+  const sibling = (id: string, over: Record<string, unknown>, variants: ReturnType<typeof variante>[]) =>
+    ({ id, data: produit({ modelId: 'm1', ...over }), variants });
+
+  it('autres fiches publiées du même modèle : une pastille par couleur, avec teinte, fiche et disponibilité', async () => {
+    const { otherColorsOf } = await import('./mapping');
+    const colors = otherColorsOf(own, 'm1', [
+      sibling('bleu', { slug: 't-shirt-bleu' }, [variante(0, true, { color: 'Bleu', colorHex: '#1f3a5f', size: 'S' }), variante(3, true, { color: 'Bleu', size: 'M' })]),
+      sibling('ecru', { slug: 't-shirt-ecru' }, [variante(0, true, { color: 'Écru', size: 'M' })]),
+    ]);
+    expect(colors).toEqual([
+      { name: 'Bleu', slug: 't-shirt-bleu', hex: '#1f3a5f', inStock: true },
+      { name: 'Écru', slug: 't-shirt-ecru', hex: null, inStock: false },
+    ]);
+  });
+
+  it('brouillon, autre modèle, fiche sans couleur, même couleur que la fiche, variante inactive : pas de pastille', async () => {
+    const { otherColorsOf } = await import('./mapping');
+    expect(otherColorsOf(own, 'm1', [
+      sibling('brouillon', { slug: 'b', status: 'draft' }, [variante(1, true, { color: 'Rose' })]),
+      sibling('autre', { slug: 'a', modelId: 'm2' }, [variante(1, true, { color: 'Vert' })]),
+      sibling('sans', { slug: 's' }, [variante(1)]),
+      sibling('double', { slug: 'd' }, [variante(1, true, { color: 'Noir' })]),
+      sibling('inactive', { slug: 'i' }, [variante(1, false, { color: 'Gris' })]),
+      { id: 'noir', data: produit({ slug: 't-shirt-noir', modelId: 'm1' }), variants: [variante(1, true, { color: 'Noir' })] },
+    ])).toEqual([]);
+  });
+});

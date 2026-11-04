@@ -122,7 +122,9 @@ test('fiche : photo, dictée, analyse IA qui préremplit sans enregistrer, véri
   await expect(main(page).getByLabel(/Cas d’usage/)).toHaveValue('naissance\nbaptême');
   await expect(main(page).getByLabel(/Texte alternatif de la photo 1/)).toHaveValue('Cape de bain écrue pliée');
   await expect(main(page).getByLabel('Stock écru')).toHaveValue('3');
-  await expect(main(page).getByLabel('Stock rose')).toHaveValue('0');
+  // Une fiche, une couleur (2026-11-04) : la seconde couleur proposée n'est pas ajoutée, elle est signalée.
+  await expect(main(page).getByLabel('Stock rose')).toHaveCount(0);
+  await expect(main(page).getByText('Une fiche par couleur : « rose » à créer dans une autre fiche, reliée au même modèle')).toBeVisible();
   await expect(main(page).getByText('Stock du coloris rose non indiqué')).toBeVisible();
   await expect(main(page).getByText('proposé par l’IA · à vérifier').first()).toBeVisible();
   const stored = (await db().doc(`produits/${id}`).get()).data()!;

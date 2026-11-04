@@ -2,7 +2,7 @@
 // Un document qui ne respecte pas le schéma n'est jamais affiché : mieux vaut une pièce absente
 // qu'un prix ou un stock faux. Seuls les champs affichables sortent d'ici (aucun stock exact ni date interne).
 import { categorie, produit, variante } from '../db/schema';
-import type { CategoryView, ProductCardView, ProductSection, ProductView } from './types';
+import type { CategoryView, OtherColorView, ProductCardView, ProductSection, ProductView } from './types';
 
 // Photos acceptées : buckets Firebase de la boutique (production et test), les seuls autorisés par
 // next.config.ts. Une autre adresse est ignorée plutôt que de faire échouer toute la page.
@@ -47,6 +47,42 @@ export function toProductCard(id: string, data: unknown, categories: CategoryVie
   };
 }
 
+// Variantes actives seulement ; disponibilité sans le nombre exact en stock.
+function activeVariants(variants: { id: string; data: unknown }[]) {
+  return variants
+    .flatMap((v) => {
+      const parsed = variante.safeParse(v.data);
+      return parsed.success && parsed.data.active ? [{ id: v.id, ...parsed.data }] : [];
+    })
+    .sort((a, b) => a.order - b.order);
+}
+
+// Pastilles des autres fiches du même modèle (publiées, valides, même modèle) : une par couleur, sauf celles de
+// la fiche affichée ; une fiche sans couleur n'a pas de pastille. Ordre alphabétique des couleurs.
+export function otherColorsOf(
+  own: ProductView,
+  modelId: string,
+  siblings: { id: string; data: unknown; variants: { id: string; data: unknown }[] }[],
+): OtherColorView[] {
+  const taken = new Set(own.variants.map((v) => v.color).filter(Boolean));
+  const out: OtherColorView[] = [];
+  for (const s of siblings) {
+    const p = produit.safeParse(s.data);
+    if (s.id === own.id || !p.success || p.data.status !== 'published' || p.data.modelId !== modelId) continue;
+    const active = activeVariants(s.variants);
+    for (const name of [...new Set(active.map((v) => v.color).filter((c): c is string => !!c))]) {
+      if (taken.has(name)) continue;
+      taken.add(name);
+      out.push({
+        name, slug: p.data.slug,
+        hex: active.find((v) => v.color === name && v.colorHex)?.colorHex ?? null,
+        inStock: active.some((v) => v.color === name && v.stock > 0),
+      });
+    }
+  }
+  return out.sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+}
+
 export function toProductView(
   id: string,
   data: unknown,
@@ -56,15 +92,10 @@ export function toProductView(
   const card = toProductCard(id, data, categories);
   if (!card) return null;
   const p = produit.parse(data);
-  // Variantes actives seulement ; disponibilité sans le nombre exact en stock.
-  const active = variants
-    .flatMap((v) => {
-      const parsed = variante.safeParse(v.data);
-      return parsed.success && parsed.data.active ? [{ id: v.id, ...parsed.data }] : [];
-    })
-    .sort((a, b) => a.order - b.order);
+  const active = activeVariants(variants);
   return {
     ...card,
+    otherColors: [],
     inStock: active.some((v) => v.stock > 0),
     variants: active.map((v) => ({
       id: v.id, label: [v.color, v.size].filter(Boolean).join(' · '), color: v.color ?? '', colorHex: v.colorHex ?? null, size: v.size ?? '', inStock: v.stock > 0,

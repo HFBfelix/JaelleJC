@@ -42,6 +42,7 @@ RÈGLES ABSOLUES
 - N'utilise que ce que disent les NOTES. N'ajoute jamais une matière, un label, une dimension, un lieu de fabrication,
   une vertu écologique ou une propriété (lavable, hypoallergénique…) absents des NOTES.
 - Les photos servent seulement à ce qui se voit : coloris et texte alternatif. Jamais à deviner une matière ou une taille.
+- Une fiche = une seule couleur : si plusieurs couleurs sont décrites, garde la première dans "variantes".
 - Prix et stock : seulement s'ils sont écrits clairement dans les NOTES ; sinon null. Ne devine jamais.
 - Univers et famille : choisis uniquement parmi la liste fournie (slugs exacts), sinon null.
 - Ce qui manque ou reste incertain va dans "manquants" (phrases courtes : « Prix non indiqué », « Entretien non précisé »).
@@ -112,7 +113,7 @@ export function parseAnalysis(content: string, categories: AnalysisCategory[], p
 
   const seen = new Set<string>();
   const offGrid: string[] = []; // tailles hors grille : écartées, signalées à la créatrice
-  const variants = (r.variantes ?? []).flatMap((v): AnalysisVariant[] => {
+  const proposed = (r.variantes ?? []).flatMap((v): AnalysisVariant[] => {
     if (!v || typeof v !== 'object') return [];
     const o = v as Record<string, unknown>;
     const color = clip(o.coloris, 40);
@@ -124,6 +125,10 @@ export function parseAnalysis(content: string, categories: AnalysisCategory[], p
     seen.add(key);
     return [{ color, size, stock: wholeNumber(o.stock, 9999), priceCents: cents(typeof o.prixEuros === 'number' ? o.prixEuros : null) }];
   }).slice(0, 40);
+  // Une fiche, une couleur (2026-11-04) : la première couleur proposée est gardée, les autres sont signalées.
+  const firstColor = proposed.find((v) => v.color)?.color.toLowerCase() ?? '';
+  const variants = proposed.filter((v) => !v.color || v.color.toLowerCase() === firstColor);
+  const otherColors = [...new Set(proposed.filter((v) => !variants.includes(v)).map((v) => v.color))];
 
   const faq = (r.faq ?? []).flatMap((f) => {
     if (!f || typeof f !== 'object') return [];
@@ -154,7 +159,8 @@ export function parseAnalysis(content: string, categories: AnalysisCategory[], p
     variants,
     alts: (r.textesAlternatifs ?? []).slice(0, photoCount).map((a) => clip(a, 200)),
     missing: [...strings(r.manquants, 12, 160),
-      ...[...new Set(offGrid)].slice(0, 4).map((s) => clip(`Taille « ${s} » hors des grilles : à choisir dans la grille`, 160))],
+      ...[...new Set(offGrid)].slice(0, 4).map((s) => clip(`Taille « ${s} » hors des grilles : à choisir dans la grille`, 160)),
+      ...otherColors.slice(0, 4).map((c) => clip(`Une fiche par couleur : « ${c} » à créer dans une autre fiche, reliée au même modèle`, 160))],
   };
 }
 

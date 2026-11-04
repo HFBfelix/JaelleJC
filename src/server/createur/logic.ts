@@ -68,6 +68,22 @@ export function skuFor(slug: string, color: string, size: string): string {
     .filter(Boolean).join('-').slice(0, 40);
 }
 
+// Une fiche, une couleur (décision de Jaelle, 2026-11-04). Une fiche créée avant garde ses couleurs (signalée en
+// rouge dans l'Atelier, jamais découpée seule) mais ne peut pas en gagner.
+export const activeColors = (rows: { color: string | null; active: boolean }[]) =>
+  [...new Set(rows.filter((r) => r.active && r.color).map((r) => r.color!))];
+export const colorsAllowed = (next: { color: string | null; active: boolean }[], before: { color: string | null; active: boolean }[]) =>
+  activeColors(next).length <= Math.max(1, activeColors(before).length);
+
+// Alertes de l'Atelier sur une fiche (rouge, sans bloquer l'enregistrement).
+export function colorWarnings(variants: { color: string | null; active: boolean }[], modelId: string | null): string[] {
+  const colors = activeColors(variants);
+  return [
+    ...(colors.length > 1 ? ['Plusieurs couleurs sur cette fiche : à séparer en une fiche par couleur (dupliquez-la puis reliez les fiches au même modèle).'] : []),
+    ...(modelId && !colors.length ? ['Cette fiche fait partie d’un modèle : indiquez sa couleur pour que sa pastille s’affiche.'] : []),
+  ];
+}
+
 // Grille coloris × tailles : une ligne par case ; sans coloris ni taille, une variante « Unique ».
 export function gridRows(colors: string[], sizes: string[]): Pick<VariantRow, 'color' | 'size'>[] {
   const cs = colors.length ? colors : [''];

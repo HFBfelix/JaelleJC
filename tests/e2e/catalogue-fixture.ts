@@ -24,7 +24,15 @@ export const FIXTURE = {
   last: { id: 'e2e-zderniere', slug: 'veste-e2e-derniere', name: 'Veste E2E dernière', priceCents: 7000, stock: 1 },
   // Une seule fiche, couleurs × tailles (stock par variante) : pastilles « Couleur » puis « Taille » (grille bébé).
   sizes: { id: 'e2e-ztailles', slug: 'gilet-e2e-tailles', name: 'Gilet E2E tailles', priceCents: 5200 },
+  // Modèle (2026-11-04) : une fiche par couleur, reliées ; pastilles des autres couleurs sur chaque fiche.
+  modelNoir: { id: 'e2e-zmodele-noir', slug: 't-shirt-e2e-noir', name: 'T-shirt E2E noir', priceCents: 3500 },
+  modelBleu: { id: 'e2e-zmodele-bleu', slug: 't-shirt-e2e-bleu', name: 'T-shirt E2E bleu', priceCents: 3500 },
 };
+// Noir : S et M en stock, L vendu. Bleu : S vendu, M et L en stock.
+const MODEL_VARIANTS = {
+  modelNoir: { color: 'Noir', colorHex: '#111111', stock: { S: 2, M: 1, L: 0 } },
+  modelBleu: { color: 'Bleu', colorHex: '#1f3a5f', stock: { S: 0, M: 3, L: 1 } },
+} as const;
 // Ordre de saisie volontairement mélangé (6M avant 3M) : la fiche suit l'ordre de la grille. Bleu : tout est vendu.
 const SIZE_VARIANTS = [
   { id: 'ecru-6m', color: 'Écru', colorHex: '#f3ead8', size: '6M', stock: 0 },
@@ -100,6 +108,13 @@ export async function seed() {
     { ...base(FIXTURE.sizes.slug, FIXTURE.sizes.name, 'published', FIXTURE.sizes.priceCents), categoryId: FIXTURE.paymentCategory.slug });
   SIZE_VARIANTS.forEach(({ id, color, colorHex, size, stock }, order) => batch.set(d.doc(`produits/${FIXTURE.sizes.id}/variantes/${id}`),
     { ...variant(stock), sku: `E2E-${id}`, color, colorHex, size, order }));
+  for (const key of ['modelNoir', 'modelBleu'] as const) {
+    const f = FIXTURE[key];
+    const { color, colorHex, stock } = MODEL_VARIANTS[key];
+    batch.set(d.doc(`produits/${f.id}`), { ...base(f.slug, f.name, 'published', f.priceCents), categoryId: FIXTURE.paymentCategory.slug, modelId: FIXTURE.modelNoir.id });
+    Object.entries(stock).forEach(([size, n], order) => batch.set(d.doc(`produits/${f.id}/variantes/${size.toLowerCase()}`),
+      { ...variant(n), sku: `E2E-${key}-${size}`, color, colorHex, size, order }));
+  }
   await batch.commit();
 }
 
@@ -124,7 +139,7 @@ export async function clean() {
     }
   }
   for (const { id } of [FIXTURE.published, FIXTURE.soldOut, FIXTURE.draft, FIXTURE.archived, FIXTURE.invalid, FIXTURE.html,
-    FIXTURE.cabas, FIXTURE.priced, FIXTURE.withdrawn, FIXTURE.buy, FIXTURE.last, FIXTURE.sizes]) {
+    FIXTURE.cabas, FIXTURE.priced, FIXTURE.withdrawn, FIXTURE.buy, FIXTURE.last, FIXTURE.sizes, FIXTURE.modelNoir, FIXTURE.modelBleu]) {
     for (const v of (await d.collection(`produits/${id}/variantes`).get()).docs) batch.delete(v.ref);
     batch.delete(d.doc(`produits/${id}`));
   }

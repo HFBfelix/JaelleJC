@@ -28,8 +28,12 @@ export type ProductCardView = {
 // Variante proposée au panier : identifiant, libellé (coloris · taille) et disponibilité, jamais le stock exact.
 export type VariantView = { id: string; label: string; color: string; colorHex: string | null; size: string; inStock: boolean };
 
+// Couleur d'une autre fiche du même modèle : pastille qui mène à sa fiche (disponibilité sans stock exact).
+export type OtherColorView = { name: string; hex: string | null; slug: string; inStock: boolean };
+
 export type ProductView = ProductCardView & {
   variants: VariantView[];
+  otherColors: OtherColorView[];
   accroche: string;
   description: string;
   details: string[];
