@@ -207,6 +207,42 @@ test('variantes : tailles cochées dans une grille, une teinte par coloris, enre
   expect(variants.every((v) => v.colorHex === '#1f3a5f')).toBe(true);
 });
 
+test('variantes : retirer une ligne ajoutée par erreur, retirer une couleur (désactivée, jamais effacée), la rétablir', async ({ page }) => {
+  await signInAdmin(page);
+  const { id } = await newProduct(page);
+  const section = main(page).getByRole('region', { name: 'Variantes et stock' });
+  const variant = (vid: string) => db().doc(`produits/${id}/variantes/${vid}`).get();
+  await section.getByLabel('Ajouter des coloris').fill('Rose');
+  await section.getByLabel('Grille de tailles').selectOption('bebe');
+  await section.getByRole('group', { name: 'Tailles à ajouter' }).getByLabel('3M', { exact: true }).check();
+  await section.getByRole('group', { name: 'Tailles à ajouter' }).getByLabel('6M', { exact: true }).check();
+  await section.getByRole('button', { name: 'Ajouter', exact: true }).click();
+
+  // Ligne pas encore enregistrée : enlevée tout de suite, rien en base.
+  await section.getByRole('button', { name: 'Retirer Rose 6M' }).click();
+  await expect(section.getByLabel('Stock Rose 6M')).toHaveCount(0);
+  await section.getByLabel('Stock Rose 3M').fill('2');
+  await save(page);
+  expect((await variant('rose-3m')).get('active')).toBe(true);
+  expect((await variant('rose-6m')).exists).toBe(false);
+
+  // Couleur enregistrée avec du stock : confirmation, puis désactivée en base (jamais effacée) et rangée à part.
+  page.once('dialog', (d) => { expect(d.message()).toBe('La couleur Rose a encore 2 pièces en stock : la retirer quand même ?'); void d.accept(); });
+  await section.getByRole('button', { name: 'Retirer la couleur Rose' }).click();
+  await expect(section.getByLabel('Stock Rose 3M')).toHaveCount(0);
+  await expect(section.getByLabel('Teinte Rose')).toHaveCount(0);
+  await save(page);
+  expect((await variant('rose-3m')).data()).toMatchObject({ active: false, color: 'Rose', size: '3M' });
+  await page.reload();
+  await section.getByRole('button', { name: 'Afficher les variantes retirées (1)' }).click();
+
+  // Rétablie : de nouveau dans le tableau et active en base.
+  await section.getByRole('button', { name: 'Rétablir Rose 3M' }).click();
+  await expect(section.getByLabel('Stock Rose 3M')).toHaveValue('2');
+  await save(page);
+  expect((await variant('rose-3m')).get('active')).toBe(true);
+});
+
 test('référence (SKU) : enregistrée en capitales, unique dans la boutique', async ({ page }) => {
   await signInAdmin(page);
   const sku = `E2E-${randomBytes(3).toString('hex').toUpperCase()}`;

@@ -490,15 +490,36 @@ function VariantsSection({ rows, setRows, priceCents, error, ai, categoryId }:
   const toggle = (size: string) => setChecked((c) => (c.includes(size) ? c.filter((s) => s !== size) : [...c, size]));
   // Une teinte par coloris : appliquée à toutes ses tailles.
   const setHex = (color: string, hex: string) => setRows(rows.map((r) => (r.color === color ? { ...r, colorHex: hex } : r)));
-  const tinted = [...new Set(rows.filter((r) => r.color).map((r) => r.color))];
+  // Teintes des couleurs encore actives seulement (une couleur retirée n'a plus rien à compléter).
+  const tinted = [...new Set(rows.filter((r) => r.color && r.active).map((r) => r.color))];
+  // Variantes retirées : une variante enregistrée n'est jamais effacée (paniers, commandes), seulement désactivée,
+  // et rangée sous « Afficher les variantes retirées ». Une case « Active » décochée ici reste visible jusqu'au
+  // rechargement (retrait temporaire).
+  const [keptVisible, setKeptVisible] = useState<string[]>([]);
+  const [showRetired, setShowRetired] = useState(false);
+  const isRetired = (r: GridRow) => !!r.id && !r.active && !keptVisible.includes(r.key);
+  const retired = rows.filter(isRetired);
+
+  // Ligne pas encore enregistrée : enlevée ; ligne enregistrée : désactivée (« Enregistrer » l'écrit en base).
+  const retire = (keys: string[], what: string) => {
+    const stock = rows.filter((r) => keys.includes(r.key) && r.active).reduce((s, r) => s + r.stock, 0);
+    if (stock > 0 && !window.confirm(`${what} a encore ${stock} pièce${stock > 1 ? 's' : ''} en stock : la retirer quand même ?`)) return;
+    setKeptVisible((k) => k.filter((x) => !keys.includes(x)));
+    setRows(rows.flatMap((r) => (!keys.includes(r.key) ? [r] : r.id ? [{ ...r, active: false }] : [])));
+  };
+  const restore = (key: string) => setRows(rows.map((r) => (r.key === key ? { ...r, active: true } : r)));
 
   const generate = () => {
-    const existing = new Set(rows.map((r) => `${r.color}|${r.size}`));
     const sizes = grid ? SIZE_GRIDS[grid].sizes.filter((s) => checked.includes(s)) : [];
-    const added = gridRows(lines(colors.replace(/,/g, '\n')), sizes)
-      .filter((c) => !existing.has(`${c.color}|${c.size}`))
+    const wanted = gridRows(lines(colors.replace(/,/g, '\n')), sizes);
+    const keyOf = (c: { color: string; size: string }) => `${c.color}|${c.size}`;
+    const existing = new Set(rows.map(keyOf));
+    // Une variante retirée puis ajoutée de nouveau est rétablie (même identifiant, ventes passées gardées).
+    const back = new Set(wanted.map(keyOf));
+    const added = wanted
+      .filter((c) => !existing.has(keyOf(c)))
       .map((c, n) => ({ ...c, colorHex: hexOf(rows, c.color), key: `new-${Date.now()}-${n}`, stock: 0, expectedStock: null, dimensions: '', priceCents: null, active: true }));
-    setRows([...rows, ...added]);
+    setRows([...rows.map((r) => (back.has(keyOf(r)) && !r.active ? { ...r, active: true } : r)), ...added]);
     setColors('');
     setChecked([]);
   };
@@ -506,7 +527,7 @@ function VariantsSection({ rows, setRows, priceCents, error, ai, categoryId }:
   return (
     <section aria-label="Variantes et stock">
       <h2 className="font-serif text-[22px] mb-2">Variantes et stock{ai && <span className="ml-3 align-middle text-[11px] font-sans text-neutral-500 border-[0.5px] border-neutral-400 px-1.5">proposé par l’IA · à vérifier</span>}</h2>
-      <p className="text-[14px] text-neutral-600 mb-6">Le stock est tenu par variante (coloris × taille). Une variante retirée n’est jamais supprimée : décochez « Active ».</p>
+      <p className="text-[14px] text-neutral-600 mb-6">Le stock est tenu par variante (coloris × taille). « Retirer » enlève une variante de la fiche ; décochez « Active » pour la mettre de côté un temps.</p>
       <Input label="Ajouter des coloris" value={colors} onChange={(e) => setColors(e.target.value)} hint="Une seule couleur par fiche : pour une autre couleur, dupliquez la fiche et reliez-la au même modèle." />
       <label className="block mb-4">
         <span className={`${label} block mb-2`}>Grille de tailles</span>
@@ -535,11 +556,14 @@ function VariantsSection({ rows, setRows, priceCents, error, ai, categoryId }:
           <legend className={`${label} mb-2`}>Teinte de chaque coloris (pastille sur la fiche)</legend>
           <div className="flex flex-wrap gap-x-6 gap-y-3">
             {tinted.map((c) => (
-              <label key={c} className="flex items-center gap-2 text-[14px] cursor-pointer">
-                <input type="color" aria-label={`Teinte ${c}`} value={hexOf(rows, c) ?? '#e5e5e5'} onChange={(e) => setHex(c, e.target.value)}
-                  className="w-8 h-8 p-0 border-[0.5px] border-neutral-400 bg-transparent cursor-pointer" />
-                {c}{!hexOf(rows, c) && <span className={`text-[13px] ${missingText}`}>à choisir</span>}
-              </label>
+              <span key={c} className="flex items-center gap-3">
+                <label className="flex items-center gap-2 text-[14px] cursor-pointer">
+                  <input type="color" aria-label={`Teinte ${c}`} value={hexOf(rows, c) ?? '#e5e5e5'} onChange={(e) => setHex(c, e.target.value)}
+                    className="w-8 h-8 p-0 border-[0.5px] border-neutral-400 bg-transparent cursor-pointer" />
+                  {c}{!hexOf(rows, c) && <span className={`text-[13px] ${missingText}`}>à choisir</span>}
+                </label>
+                <Button variant="text" onClick={() => retire(rows.filter((r) => r.color === c).map((r) => r.key), `La couleur ${c}`)}>Retirer la couleur {c}</Button>
+              </span>
             ))}
           </div>
         </fieldset>
@@ -552,10 +576,11 @@ function VariantsSection({ rows, setRows, priceCents, error, ai, categoryId }:
               <th className="text-left font-normal pb-2">Coloris</th><th className="text-left font-normal pb-2">Taille</th>
               <th className={`text-left font-normal pb-2 ${error ? missingText : ''}`}>Stock</th><th className="text-left font-normal pb-2">Dimensions</th>
               <th className="text-left font-normal pb-2">Prix spécifique (€)</th><th className="text-left font-normal pb-2">Active</th>
+              <th className="pb-2"><span className="sr-only">Retirer</span></th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => (
+            {rows.map((r, i) => (isRetired(r) ? null : (
               <tr key={r.key} className={`border-t-[0.5px] border-neutral-200 ${r.active ? '' : 'text-neutral-400'}`}>
                 <td className="py-2 pr-2">{r.id ? (r.color || '—') : <input aria-label="Coloris" value={r.color} onChange={(e) => update(i, { color: e.target.value })} className="w-24 border-b-[0.5px] border-neutral-400 bg-transparent" />}</td>
                 <td className="py-2 pr-2">{r.size || '—'}</td>
@@ -566,12 +591,34 @@ function VariantsSection({ rows, setRows, priceCents, error, ai, categoryId }:
                 <td className="py-2 pr-2"><input aria-label="Prix spécifique" inputMode="decimal" key={`${r.key}-${r.priceCents}`} defaultValue={r.priceCents ? centsToEuros(r.priceCents) : ''}
                   onBlur={(e) => update(i, { priceCents: e.target.value.trim() ? eurosToCents(e.target.value) : null })}
                   placeholder={priceCents ? formatEuros(priceCents) : 'prix de la pièce'} className="w-24 border-b-[0.5px] border-neutral-400 bg-transparent" /></td>
-                <td className="py-2"><input aria-label="Active" type="checkbox" checked={r.active} onChange={(e) => update(i, { active: e.target.checked })} className="w-4 h-4 accent-black" /></td>
+                <td className="py-2 pr-2"><input aria-label="Active" type="checkbox" checked={r.active} className="w-4 h-4 accent-black"
+                  onChange={(e) => { setKeptVisible((k) => [...k, r.key]); update(i, { active: e.target.checked }); }} /></td>
+                <td className="py-2">
+                  <Button variant="text" aria-label={`Retirer ${[r.color, r.size].filter(Boolean).join(' ') || 'unique'}`}
+                    onClick={() => retire([r.key], 'Cette variante')}>Retirer</Button>
+                </td>
               </tr>
-            ))}
+            )))}
           </tbody>
         </table>
       </div>
+      {retired.length > 0 && (
+        <div className="mt-4">
+          <Button variant="text" onClick={() => setShowRetired((s) => !s)}>
+            {showRetired ? 'Masquer les variantes retirées' : `Afficher les variantes retirées (${retired.length})`}
+          </Button>
+          {showRetired && (
+            <ul className="mt-3 space-y-2 text-[14px] text-neutral-500">
+              {retired.map((r) => (
+                <li key={r.key} className="flex items-center gap-4">
+                  <span>{[r.color, r.size].filter(Boolean).join(' · ') || 'Unique'}</span>
+                  <Button variant="text" aria-label={`Rétablir ${[r.color, r.size].filter(Boolean).join(' ') || 'unique'}`} onClick={() => restore(r.key)}>Rétablir</Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
       {error && <p className={`text-[13px] ${missingText} mt-4`}>À compléter : au moins une variante active avec du stock.</p>}
       <p className="text-[13px] text-neutral-500 mt-2">Prix spécifique : seulement si cette variante coûte un autre prix que la pièce ; sinon laissez vide.</p>
     </section>
