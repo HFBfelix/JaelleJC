@@ -77,6 +77,7 @@ La section « Les défis de l'industrie » (4 puces génériques) est supprimée
 - **Description** : `[Nom], [matière], cousu(e) main en Île-de-France. Série limitée de [n] exemplaires. Livraison en France.`
 - **Texte alternatif des images** : décrire ce qu'on voit (« Cape de bain en gaze de coton écrue, pliée sur un linge »). [Ajuster à la photo réelle]
 - **Choix de la pièce** (décision de Jaelle, 2026-11-04) : *Couleur : [couleur]*, *Taille : [taille]* une fois choisies ; sans choix au clic sur « Ajouter à la sélection » : *Choisissez une couleur.*, *Choisissez une taille.* ou *Choisissez une couleur et une taille.* ; taille absente dans la couleur choisie : *Taille [taille] épuisée dans cette couleur : choisissez une autre taille.*
+- **Recherche par usage** (7bis, lot 6, page Collections) : pendant la recherche, *Recherche des pièces qui conviennent…* ; rien trouvé : *Aucune pièce ne correspond à cette recherche.*
 
 ## 5. Panier, paiement, compte (microtextes)
 

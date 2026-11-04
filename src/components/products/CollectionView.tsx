@@ -4,10 +4,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import ProductCard from './ProductCard';
 import { matchesSearch } from '@/server/catalog/search';
+import { searchByUsageAction } from '@/server/catalog/usage-actions';
+import { shouldAskUsage } from '@/server/catalog/usage-search';
 import type { CategoryView, ProductCardView } from '@/server/catalog/types';
 
 // Rendu et filtres repris de legacy/src/pages/Collection.tsx. Les données arrivent du serveur
 // (présentes dans le HTML initial) ; la recherche et les sous-filtres restent dans le navigateur.
+// Recherche par usage (lot 6) : si les mots ne trouvent rien, le serveur demande à Mistral les pièces qui
+// conviennent à la phrase, une fois la saisie arrêtée ; sinon (échec, limite) la recherche par mots reste.
+const USAGE_DELAY_MS = 700;
 type Props = { products: ProductCardView[]; categories: CategoryView[] };
 
 const CollectionView = ({ products, categories }: Props) => {
@@ -39,13 +44,33 @@ const CollectionView = ({ products, categories }: Props) => {
     setActiveSub(searchParams.get('sub'));
   }, [activeCategoryUrl, searchParams]);
 
+  const keywordMatches = useMemo(() => products.filter((p) => matchesSearch(p, searchTerm)), [products, searchTerm]);
+  const askUsage = shouldAskUsage(searchTerm, keywordMatches.length);
+  const [usage, setUsage] = useState<{ term: string; ids: string[] | null } | null>(null);
+  useEffect(() => {
+    if (!askUsage) return;
+    let live = true;
+    const term = searchTerm.trim();
+    const t = setTimeout(() => {
+      searchByUsageAction({ q: term })
+        .then((r) => { if (live) setUsage({ term, ids: r.ids }); })
+        .catch(() => { if (live) setUsage({ term, ids: null }); });
+    }, USAGE_DELAY_MS);
+    return () => { live = false; clearTimeout(t); };
+  }, [askUsage, searchTerm]);
+  const usageIds = askUsage && usage?.term === searchTerm.trim() ? usage.ids : null;
+  const usagePending = askUsage && usage?.term !== searchTerm.trim();
+
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
+    const found = usageIds
+      ? usageIds.flatMap((id) => products.filter((p) => p.id === id))
+      : keywordMatches;
+    return found.filter((product) => {
       const matchesUrlCat = activeCategoryUrl ? product.categorySlug === activeCategoryUrl : true;
       const matchesSub = activeSub ? product.subSlug === activeSub : true;
-      return matchesSearch(product, searchTerm) && matchesUrlCat && matchesSub;
+      return matchesUrlCat && matchesSub;
     });
-  }, [searchTerm, products, activeCategoryUrl, activeSub]);
+  }, [usageIds, keywordMatches, products, activeCategoryUrl, activeSub]);
 
   const openSub = (category: string, sub: string) => {
     router.push(`${pathname}?category=${category}&sub=${sub}`, { scroll: false });
@@ -114,6 +139,13 @@ const CollectionView = ({ products, categories }: Props) => {
                   </button>
                 ))}
               </div>
+            )}
+
+            {usagePending && (
+              <p role="status" className="text-[11px] uppercase tracking-[0.12em] text-neutral-400 animate-pulse">Recherche des pièces qui conviennent…</p>
+            )}
+            {searchTerm.trim() && !usagePending && filteredProducts.length === 0 && (
+              <p role="status" className="text-[11px] uppercase tracking-[0.12em] text-neutral-500">Aucune pièce ne correspond à cette recherche.</p>
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-32">

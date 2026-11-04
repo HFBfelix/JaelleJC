@@ -78,6 +78,13 @@ export function startFakeStripe(): Promise<Server> {
         });
         return json(200, { id: id('chatcmpl'), object: 'chat.completion', choices: [{ index: 0, message: { role: 'assistant', content: catalogue } }] });
       }
+      // Recherche par usage : baptême → coffrets, vacances → cabas, sinon rien (pièces du catalogue reçu seulement).
+      if (String(request.messages[0]?.content).includes('trouver une pièce')) {
+        const { recherche, catalogue } = JSON.parse(String(request.messages[1]?.content)) as { recherche: string; catalogue: { id: string; nom: string }[] };
+        const word = /bapt[eê]me/i.test(recherche) ? 'Coffret' : /vacances/i.test(recherche) ? 'Cabas' : null;
+        const ids = word ? catalogue.filter((p) => p.nom.includes(word)).map((p) => p.id) : [];
+        return json(200, { id: id('chatcmpl'), object: 'chat.completion', choices: [{ index: 0, message: { role: 'assistant', content: JSON.stringify({ ids }) } }] });
+      }
       // Paragraphe personnalisé des e-mails : une phrase fixe citant la première pièce reçue.
       if (String(request.messages[0]?.content).includes('ajouté à un e-mail')) {
         const facts = JSON.parse(String(request.messages[1]?.content).replace(/^FAITS : /, '')) as { nom: string }[];
