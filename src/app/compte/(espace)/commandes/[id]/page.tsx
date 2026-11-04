@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { formatDate } from '@/components/account/OrdersList';
-import { AuthPage } from '@/components/auth/ui';
+import AccountPage from '@/components/account/AccountPage';
 import { formatEuros } from '@/server/catalog/mapping';
 import { getSessionUser } from '@/server/auth/session';
 import { orderOf } from '@/server/orders/history';
@@ -21,7 +21,7 @@ export default async function CommandePage({ params }: Props) {
   if (!order) notFound();
 
   return (
-    <AuthPage title={`Commande ${order.reference}`}>
+    <AccountPage title={`Commande ${order.reference}`} back={{ href: '/compte/commandes', label: 'Mes commandes' }}>
       <p className={`${label} mb-10`}>{formatDate(order.createdAt)} · {order.statusLabel}</p>
 
       <ul className="border-t-[0.5px] border-black mb-6">
@@ -64,9 +64,9 @@ export default async function CommandePage({ params }: Props) {
         </>
       )}
 
-      <Link href="/compte" className="text-[11px] uppercase tracking-[0.12em] border-b-[0.5px] border-black pb-1">
-        Retour à mon compte
+      <Link href="/compte/commandes" className="text-[11px] uppercase tracking-[0.12em] border-b-[0.5px] border-black pb-1">
+        Retour à mes commandes
       </Link>
-    </AuthPage>
+    </AccountPage>
   );
 }

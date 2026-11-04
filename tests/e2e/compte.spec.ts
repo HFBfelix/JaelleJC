@@ -44,6 +44,7 @@ function order(userId: string, over: Record<string, unknown> = {}) {
 }
 
 async function addAddress(page: Page, a: { label?: string; name: string; line1: string; zipCode: string; city: string }) {
+  if (!page.url().endsWith('/compte/adresses')) await page.goto('/compte/adresses');
   await main(page).getByRole('button', { name: 'Ajouter une adresse' }).click();
   const form = main(page).getByRole('form', { name: 'Nouvelle adresse' });
   if (a.label) await form.getByLabel('Nom de l’adresse (optionnel)').fill(a.label);
@@ -60,6 +61,54 @@ test('anonyme : le compte et le détail d’une commande renvoient à la connexi
   await expect(page).toHaveURL(/\/connexion\?retour=%2Fcompte|\/connexion\?retour=\/compte/);
   await page.goto('/compte/commandes/cs_test_inconnue');
   await expect(page).toHaveURL(/\/connexion/);
+  for (const path of ['/compte/commandes', '/compte/coordonnees', '/compte/adresses', '/compte/securite', '/compte/donnees']) {
+    await page.goto(path);
+    await expect(page, path).toHaveURL(/\/connexion\?retour=/);
+  }
+});
+
+test('accueil : commande en cours et suivi en tête, puis un thème par page', async ({ page }, info) => {
+  const user = await signIn(page);
+  const home = main(page);
+  await expect(home.getByRole('region', { name: 'Dernière commande' })).toContainText('Aucune commande pour le moment.');
+  await expect(home.getByRole('link', { name: 'Découvrir la collection' })).toHaveAttribute('href', '/collection');
+
+  const shipped = rand('cs_test');
+  await Promise.all([
+    db().doc(`orders/${shipped}`).set(order(user.uid, {
+      reference: 'JJC-261104-ENCO', status: 'shipped', createdAt: Timestamp.fromDate(new Date('2026-10-25T10:00:00Z')),
+      tracking: { carrier: 'Colissimo', number: '6A0002', url: 'https://www.laposte.fr/suivi?code=6A0002' },
+    })),
+    db().doc(`orders/${rand('cs_test')}`).set(order(user.uid, { reference: 'JJC-261104-LIVR', createdAt: Timestamp.fromDate(new Date('2026-10-30T10:00:00Z')) })),
+  ]);
+  await page.reload();
+  const current = home.getByRole('region', { name: 'Commande en cours' });
+  await expect(current).toContainText('JJC-261104-ENCO'); // en cours avant la livrée, même plus ancienne
+  await expect(current).not.toContainText('JJC-261104-LIVR');
+  await expect(current.getByRole('link', { name: 'Suivre mon colis' })).toHaveAttribute('href', 'https://www.laposte.fr/suivi?code=6A0002');
+  await current.getByRole('link', { name: 'Toutes mes commandes' }).click();
+  await expect(page).toHaveURL(/\/compte\/commandes$/);
+  await expect(main(page).getByRole('heading', { level: 1 })).toHaveText('Mes commandes');
+  await expect(main(page).getByRole('region', { name: 'Mes commandes' }).getByRole('link')).toHaveCount(2);
+
+  if (info.project.name === 'mobile') {
+    // Mobile : retour vers l'accueil, puis le menu en liste.
+    await main(page).getByRole('link', { name: '← Mon compte' }).click();
+    await expect(page).toHaveURL(/\/compte$/);
+    await main(page).getByRole('navigation', { name: 'Rubriques du compte' }).getByRole('link', { name: 'Mes adresses' }).click();
+  } else {
+    // Ordinateur : menu à gauche, page en cours signalée ; résumés sur l'accueil.
+    const nav = page.getByRole('navigation', { name: 'Mon compte' });
+    await expect(nav.getByRole('link', { name: 'Mes commandes' })).toHaveAttribute('aria-current', 'page');
+    await nav.getByRole('link', { name: 'Mon compte' }).click();
+    await expect(main(page).getByRole('region', { name: 'Connexion et sécurité' })).toContainText(user.email);
+    await expect(main(page).getByRole('region', { name: 'Mes coordonnées' })).toContainText('Camille Test');
+    await main(page).getByRole('link', { name: 'Gérer : Mes adresses' }).click();
+  }
+  await expect(page).toHaveURL(/\/compte\/adresses$/);
+  await expect(main(page).getByRole('heading', { level: 1 })).toHaveText('Mes adresses');
+  // « Mes données » reste à part : rien de l'export ni de la suppression ailleurs.
+  await expect(main(page).getByRole('button', { name: 'Supprimer mon compte' })).toHaveCount(0);
 });
 
 test('commandes : la cliente voit les siennes (anciennes comprises), jamais celle d’une autre', async ({ page }) => {
@@ -80,7 +129,7 @@ test('commandes : la cliente voit les siennes (anciennes comprises), jamais cell
     db().doc(`orders/${other}`).set(order(otherUser.uid, { reference: 'JJC-261030-AUTR' })),
   ]);
 
-  await page.goto('/compte');
+  await page.goto('/compte/commandes');
   const list = main(page).getByRole('region', { name: 'Mes commandes' });
   await expect(list.getByRole('link')).toHaveCount(2);
   await expect(list.getByRole('link').first()).toContainText(`Réf. ${tracked.reference}`); // plus récente d'abord
@@ -128,7 +177,7 @@ test('adresses : 5 au plus, la sixième est refusée par le serveur', async ({ p
   const user = await signIn(page);
   const a = { label: '', name: 'Camille Test', line1: '1 rue A', line2: '', zipCode: '75001', city: 'Paris', country: 'FR', phone: '' };
   await Promise.all([1, 2, 3, 4, 5].map((n) => db().doc(`users/${user.uid}/adresses/a${n}`).set({ ...a, label: `Adresse ${n}` })));
-  await page.reload();
+  await page.goto('/compte/adresses');
   await main(page).getByRole('button', { name: 'Ajouter une adresse' }).click();
   const form = main(page).getByRole('form', { name: 'Nouvelle adresse' });
   await form.getByLabel('Nom et prénom').fill('Sixième');
@@ -155,9 +204,9 @@ test('export : un fichier avec le compte, les adresses et les commandes de la se
   const otherUser = await createUser();
   await db().doc(`orders/${mine}`).set(order(user.uid, { reference: 'JJC-261030-MOIE' }));
   await db().doc(`orders/${rand('cs_test')}`).set(order(otherUser.uid, { reference: 'JJC-261030-AUTR' }));
-  await page.reload();
   await addAddress(page, { name: 'Camille Test', line1: '5 rue Export', zipCode: '69001', city: 'Lyon' });
 
+  await page.goto('/compte/donnees');
   const [download] = await Promise.all([
     page.waitForEvent('download'),
     main(page).getByRole('button', { name: 'Télécharger mes données' }).click(),
@@ -174,7 +223,7 @@ test('export : un fichier avec le compte, les adresses et les commandes de la se
 test('suppression refusée tant qu’une commande est en cours', async ({ page }) => {
   const user = await signIn(page);
   await db().doc(`orders/${rand('cs_test')}`).set(order(user.uid, { status: 'preparing' }));
-  await page.reload();
+  await page.goto('/compte/donnees');
   await main(page).getByRole('button', { name: 'Supprimer mon compte' }).click();
   await main(page).getByLabel('Je confirme la suppression de mon compte.').check();
   await main(page).getByRole('button', { name: 'Supprimer définitivement' }).click();
@@ -187,9 +236,9 @@ test('suppression : compte, profil, adresses et panier effacés ; commandes gard
   const orderId = rand('cs_test');
   await db().doc(`orders/${orderId}`).set(order(user.uid));
   await db().doc(`users/${user.uid}`).set({ displayName: 'Camille' });
-  await page.reload();
   await addAddress(page, { name: 'Camille Test', line1: '7 rue Effacée', zipCode: '75003', city: 'Paris' });
 
+  await page.goto('/compte/donnees');
   await main(page).getByRole('button', { name: 'Supprimer mon compte' }).click();
   await expect(main(page).getByRole('button', { name: 'Supprimer définitivement' })).toBeDisabled();
   await main(page).getByLabel('Je confirme la suppression de mon compte.').check();
@@ -271,7 +320,7 @@ test.describe('préremplissage du paiement (faux Stripe)', () => {
     expect(saved).toEqual(expect.arrayContaining([expect.objectContaining({ name: 'Lou Test', city: 'Lyon', phone: '+33700000001' })]));
 
     // Suppression du compte (paiements ouverts depuis moins de 30 minutes : refusée d'abord).
-    await page.goto('/compte');
+    await page.goto('/compte/donnees');
     await main(page).getByRole('button', { name: 'Supprimer mon compte' }).click();
     await main(page).getByLabel('Je confirme la suppression de mon compte.').check();
     await main(page).getByRole('button', { name: 'Supprimer définitivement' }).click();
@@ -304,12 +353,18 @@ test('faisons connaissance : civilité, prénom, nom et téléphone obligatoires
   await expect(main(page).getByText('Bonjour Madame Martin', { exact: true })).toBeVisible();
   expect((await db().doc(`users/${user.uid}`).get()).data()).toMatchObject({ civilite: 'madame', prenom: 'Camille', nom: 'Martin', telephone: '+33612345678' });
 
-  // « Ne pas préciser » : salutation par le prénom.
-  const profile = main(page).getByRole('region', { name: 'Mon profil' });
+  await expect(intro).toBeHidden(); // coordonnées complètes : l'accueil n'affiche plus le formulaire
+
+  // « Ne pas préciser » : salutation par le prénom (page « Mes coordonnées »).
+  await page.goto('/compte/coordonnees');
+  const profile = main(page).getByRole('region', { name: 'Mes coordonnées' });
   await expect(profile.getByLabel('Téléphone')).toHaveValue('6 12 34 56 78');
   await profile.getByLabel('Civilité').selectOption({ label: 'Ne pas préciser' });
   await profile.getByRole('button', { name: 'Enregistrer' }).click();
+  await expect(profile.getByText('C’est noté.')).toBeVisible();
+  await page.goto('/compte');
   await expect(main(page).getByText('Bonjour Camille', { exact: true })).toBeVisible();
+  await page.goto('/compte/coordonnees');
 
   // Numéro étranger : refusé par le serveur.
   await profile.getByLabel('Téléphone').fill('20 7946 0000 1');
@@ -317,6 +372,7 @@ test('faisons connaissance : civilité, prénom, nom et téléphone obligatoires
   await expect(profile.getByText(/téléphone français sont obligatoires/)).toBeVisible();
 
   // L'export des données contient les coordonnées.
+  await page.goto('/compte/donnees');
   const download = page.waitForEvent('download');
   await main(page).getByRole('button', { name: /Télécharger mes données/ }).click();
   const file = await readFile((await (await download).path())!, 'utf8');

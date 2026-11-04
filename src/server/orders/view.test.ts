@@ -1,6 +1,6 @@
 // Présentation des commandes de l'espace client : nouvelle commande, ancienne commande migrée, champs douteux.
 import { describe, expect, it } from 'vitest';
-import { byNewest, orderDetail } from './view';
+import { byNewest, featuredOrder, orderDetail } from './view';
 
 const at = (iso: string) => ({ toDate: () => new Date(iso) });
 
@@ -53,4 +53,23 @@ it('tri : plus récente d’abord, sans date à la fin', () => {
     orderDetail('c', { createdAt: at('2026-10-01T00:00:00Z') }),
   ].sort(byNewest);
   expect(list.map((o) => o.id)).toEqual(['c', 'a', 'b']);
+});
+
+describe('commande mise en avant sur l’accueil du compte', () => {
+  const o = (id: string, status: string, iso: string) => orderDetail(id, { status, createdAt: at(iso) });
+
+  it('la plus récente encore en cours, même si une livrée est plus récente', () => {
+    const list = [o('a', 'delivered', '2026-10-30'), o('b', 'shipped', '2026-10-20'), o('c', 'paid', '2026-10-10')];
+    expect(featuredOrder(list)).toMatchObject({ order: { id: 'b' }, current: true });
+  });
+
+  it('sinon la dernière livrée ; remboursées et annulées ignorées', () => {
+    const list = [o('a', 'refunded', '2026-10-30'), o('b', 'delivered', '2026-10-20'), o('c', 'delivered', '2026-10-10')];
+    expect(featuredOrder(list)).toMatchObject({ order: { id: 'b' }, current: false });
+  });
+
+  it('aucune commande, ou seulement annulées : rien', () => {
+    expect(featuredOrder([])).toBeNull();
+    expect(featuredOrder([o('a', 'cancelled', '2026-10-30')])).toBeNull();
+  });
 });

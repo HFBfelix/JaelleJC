@@ -86,3 +86,12 @@ export function orderDetail(id: string, d: Record<string, unknown>): OrderDetail
 
 // Plus récente d'abord ; les commandes sans date à la fin.
 export const byNewest = (a: OrderDetail, b: OrderDetail) => (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0);
+
+// Commande mise en avant sur l'accueil du compte (liste triée, plus récente d'abord) : la plus récente encore en
+// cours, sinon la dernière livrée, sinon aucune (« Découvrir la collection »).
+export function featuredOrder(orders: OrderDetail[]): { order: OrderDetail; current: boolean } | null {
+  const current = orders.find((o) => IN_PROGRESS.has(o.status));
+  if (current) return { order: current, current: true };
+  const delivered = orders.find((o) => o.status === 'delivered');
+  return delivered ? { order: delivered, current: false } : null;
+}

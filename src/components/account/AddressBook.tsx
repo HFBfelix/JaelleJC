@@ -55,8 +55,7 @@ export default function AddressBook({ addresses }: { addresses: AddressView[] })
   });
 
   return (
-    <section className="mb-16" aria-labelledby="mes-adresses">
-      <h2 id="mes-adresses" className="text-[11px] uppercase tracking-[0.12em] mb-6">Mes adresses</h2>
+    <section className="mb-16" aria-label="Mes adresses">
       {addresses.length > 0 && (
         <ul className="border-t-[0.5px] border-neutral-200 mb-8">
           {addresses.map((a) => (

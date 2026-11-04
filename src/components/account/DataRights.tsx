@@ -54,8 +54,7 @@ export default function DataRights() {
   };
 
   return (
-    <section className="mb-16" aria-labelledby="mes-donnees">
-      <h2 id="mes-donnees" className="text-[11px] uppercase tracking-[0.12em] mb-6">Mes données</h2>
+    <section className="mb-16" aria-label="Mes données">
       <p className="text-[14px] text-neutral-500 mb-6">Téléchargez tout ce que nous gardons sur vous : compte, adresses, commandes, messages.</p>
       <SecondaryButton type="button" onClick={onExport} disabled={pending}>Télécharger mes données</SecondaryButton>
       {notice && <Notice>{notice}</Notice>}

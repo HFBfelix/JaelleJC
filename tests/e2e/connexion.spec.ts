@@ -9,7 +9,7 @@ const NOT_ADMIN = "Ce compte n'a pas accès à l'Atelier.";
 
 const noBanner = (page: Page) => page.addInitScript(() => localStorage.setItem('jaellejc-cookies', 'none'));
 const main = (page: Page) => page.getByRole('main');
-const accountIcon = (page: Page) => page.getByRole('link', { name: /^Mon compte/ });
+const accountIcon = (page: Page) => page.getByRole('banner').getByRole('link', { name: /^Mon compte/ }); // icône du header (le menu du compte a aussi « Mon compte »)
 const badge = (page: Page) => page.getByRole('button', { name: /^Ma sélection/ });
 
 async function askLink(page: Page, email: string, path = '/connexion') {
@@ -34,8 +34,9 @@ test('lien de connexion : compte créé au premier lien, session serveur, icône
   await askLink(page, email);
   await page.goto(await signInLinkFor(email, baseURL!));
   await expect(page).toHaveURL(/\/compte$/);
-  await expect(main(page).getByText(email)).toBeVisible();
   await expect(accountIcon(page)).toHaveAccessibleName('Mon compte (session ouverte)');
+  await page.goto('/compte/securite'); // e-mail du compte : page « Connexion et sécurité » (2026-11-04)
+  await expect(main(page).getByText(email)).toBeVisible();
 
   const session = (await page.context().cookies()).find((c) => c.name === '__session');
   expect(session).toMatchObject({ httpOnly: true, path: '/' });
@@ -186,7 +187,8 @@ test('mot de passe choisi depuis le compte : tous les appareils déconnectés, p
   await expect(tablet).toHaveURL(/\/compte$/);
 
   await page.waitForTimeout(1100); // révocation à la seconde près (voir le test de déconnexion)
-  // Formulaire du mot de passe (la page a aussi le bouton « Enregistrer » du profil, 2026-11-04).
+  // Formulaire du mot de passe : page « Connexion et sécurité » du compte (2026-11-04).
+  await page.goto('/compte/securite');
   const passwordForm = main(page).locator('form').filter({ has: page.getByLabel('Nouveau mot de passe') });
   await passwordForm.getByLabel('Nouveau mot de passe').fill('court');
   await expect(passwordForm.getByRole('button', { name: 'Enregistrer' })).toBeDisabled();

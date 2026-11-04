@@ -17,13 +17,13 @@ const MESSAGES = {
 
 const TITLES = {
   bienvenue: { title: 'Faisons connaissance', intro: 'Pour vous saluer par votre nom, vous joindre et suivre vos commandes.' },
-  profil: { title: 'Mon profil', intro: '' },
+  profil: { title: 'Mes coordonnées', intro: '' }, // page « Mes coordonnées » : son titre (h1) suffit
   paiement: { title: 'Vos coordonnées', intro: 'Avant le paiement : pour vous joindre et suivre votre commande. Toutes les informations sont obligatoires.' },
 } as const;
 
 // Coordonnées de la personne qui achète (décisions de Jaelle, 2026-11-04) : civilité, prénom, nom et téléphone,
-// tous obligatoires ; e-mail du compte affiché sur la page panier (« Mon compte » l'affiche déjà plus bas). « Faisons connaissance » à la première visite du compte,
-// « Mon profil » ensuite, « Vos coordonnées » sur la page panier (le paiement attend qu'elles soient complètes).
+// tous obligatoires ; e-mail du compte affiché sur la page panier (« Connexion et sécurité » l'affiche dans le compte). « Faisons connaissance » sur
+// l'accueil du compte tant qu'elles manquent, page « Mes coordonnées » ensuite, « Vos coordonnées » sur la page panier (le paiement attend qu'elles soient complètes).
 export default function ProfileForm({ profile, email, variant }: { profile: Profile; email: string | null; variant: keyof typeof TITLES }) {
   const router = useRouter();
   const [civilite, setCivilite] = useState<Civilite | ''>(profile.civilite ?? '');
@@ -51,9 +51,9 @@ export default function ProfileForm({ profile, email, variant }: { profile: Prof
 
   return (
     <section aria-label={title} className="mb-16">
-      <h2 className="text-[11px] uppercase tracking-[0.12em] mb-2">{title}</h2>
+      {variant !== 'profil' && <h2 className="text-[11px] uppercase tracking-[0.12em] mb-2">{title}</h2>}
       {intro && <p className="text-[14px] text-neutral-500 mb-6">{intro}</p>}
-      <form onSubmit={onSubmit} className={intro ? '' : 'mt-6'}>
+      <form onSubmit={onSubmit} className={intro || variant === 'profil' ? '' : 'mt-6'}>
         <label className="block mb-8">
           <span className="text-[11px] uppercase tracking-[0.12em] text-neutral-500 block mb-2">Civilité</span>
           <span className="block border-b border-neutral-200 focus-within:border-black transition-colors">
