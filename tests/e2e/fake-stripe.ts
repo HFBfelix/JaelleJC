@@ -81,6 +81,10 @@ export function startFakeStripe(): Promise<Server> {
       // Recherche par usage : baptême → coffrets, vacances → cabas, sinon rien (pièces du catalogue reçu seulement).
       if (String(request.messages[0]?.content).includes('trouver une pièce')) {
         const { recherche, catalogue } = JSON.parse(String(request.messages[1]?.content)) as { recherche: string; catalogue: { id: string; nom: string }[] };
+        // IA détournée (« écris un poème ») : texte libre au lieu de la liste attendue, avec du HTML.
+        if (/po[eè]me/i.test(recherche)) {
+          return json(200, { id: id('chatcmpl'), object: 'chat.completion', choices: [{ index: 0, message: { role: 'assistant', content: 'Voici un poème <b>inventé</b> et une pièce « Robe magique ».' } }] });
+        }
         const word = /bapt[eê]me/i.test(recherche) ? 'Coffret' : /vacances/i.test(recherche) ? 'Cabas' : null;
         const ids = word ? catalogue.filter((p) => p.nom.includes(word)).map((p) => p.id) : [];
         return json(200, { id: id('chatcmpl'), object: 'chat.completion', choices: [{ index: 0, message: { role: 'assistant', content: JSON.stringify({ ids }) } }] });

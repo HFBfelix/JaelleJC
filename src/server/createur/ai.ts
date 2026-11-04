@@ -15,6 +15,16 @@ import { audit, listCategoriesAdmin, loadProductAdmin } from './products';
 
 export const AI_CALLS_PER_HOUR = 10;
 export const DICTATIONS_PER_HOUR = 30;
+
+// Longueur maximale de chaque réponse de Mistral (en jetons, environ 3,5 caractères de français par jeton) : borne
+// la facture d'une réponse emballée ou détournée. Chaque plafond dépasse largement la plus longue réponse permise par
+// les limites de longueur des champs (une réponse coupée serait illisible, donc refusée : repli prévu par chaque appel).
+export const MAX_TOKENS = {
+  analyse: 6000, // fiche complète : textes ≤ ~14 000 caractères (description 4 000, détails, FAQ, textes alternatifs…)
+  catalogue: 10_000, // 60 pièces × 320 caractères + introduction 700 ≈ 20 000 caractères
+  paragraphe: 300, // paragraphe d'e-mail ≤ 300 caractères
+  recherche: 512, // ≤ 24 identifiants de pièces
+} as const;
 const env = (name: string) => process.env[name]?.trim() || null;
 
 export const aiEnabled = () => !!env('MISTRAL_API_KEY');
@@ -67,6 +77,7 @@ export async function analyzeProduct(uid: string, id: string, notes: string): Pr
       body: JSON.stringify({
         model: env('MISTRAL_MODEL') ?? 'mistral-small-latest',
         temperature: 0.3,
+        max_tokens: MAX_TOKENS.analyse,
         response_format: { type: 'json_object' },
         messages: [{ role: 'system', content: analysisPrompt(categories) }, { role: 'user', content }],
       }),

@@ -3,7 +3,7 @@
 // part seul. Jamais pour un e-mail envoyé pendant le paiement (confirmation, excuses).
 import 'server-only';
 import { COLLECTIONS, produit } from '../db/schema';
-import { aiEnabled, endpoint, takeQuota } from '../createur/ai';
+import { MAX_TOKENS, aiEnabled, endpoint, takeQuota } from '../createur/ai';
 import { adminDb } from '../firebase/admin';
 import { parsePersonal, personalFacts, personalPrompt, type PieceFacts } from './personal-logic';
 import type { EmailKind } from './texts';
@@ -35,6 +35,7 @@ export async function personalParagraph(kind: EmailKind, pieces: PieceFacts[]): 
       body: JSON.stringify({
         model: process.env.MISTRAL_MODEL?.trim() || 'mistral-small-latest',
         temperature: 0.4,
+        max_tokens: MAX_TOKENS.paragraphe,
         response_format: { type: 'json_object' },
         messages: [{ role: 'system', content: personalPrompt(kind) }, { role: 'user', content: personalFacts(pieces) }],
       }),

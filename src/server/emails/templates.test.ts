@@ -101,3 +101,15 @@ describe('envois automatiques', () => {
     expect(reviewRequest('a@exemple.fr', 'JJC-1', 'https://x/opt').text).toContain('https://x/opt');
   });
 });
+
+describe('alerte de la recherche par usage', () => {
+  it('à la boutique, objet par sorte, compteurs, lien vers l’Atelier ; jamais de phrase de cliente', async () => {
+    const { searchAlert } = await import('./templates');
+    const m = searchAlert('contact@jaellejc.com', 'heure', '2026-11-04', { ia: 500, 'refus-heure': 1 }, 'https://www.jaellejc.com');
+    expect(m.to).toBe('contact@jaellejc.com');
+    expect(m.subject).toBe('Recherche par usage : plafond de l’heure atteint');
+    expect(m.text).toContain('ia : 500');
+    expect(m.html).toContain('href="https://www.jaellejc.com/atelier/reglages"');
+    expect(searchAlert('x@y.z', 'echecs', '2026-11-04', {}, 'https://x').subject).toBe('Recherche par usage : Mistral ne répond pas');
+  });
+});

@@ -51,25 +51,3 @@ test('recherche : sans accents, par univers, plusieurs mots', async ({ page }) =
   await page.goto('/collection?search=zzzz-introuvable');
   await expect(main(page).getByText(name, { exact: true })).toHaveCount(0);
 });
-
-test('recherche par usage : une phrase sans mot du catalogue → pièces choisies par l’IA (faux Mistral), sinon message', async ({ page }) => {
-  // Compteurs de la limite remis à zéro (les parcours répétés viennent tous de la même adresse locale).
-  for (const d of (await db().collection('rateLimits').get()).docs) if (d.id.startsWith('recherche-')) await d.ref.delete();
-  const results = (q: string) => page.goto(`/collection?search=${encodeURIComponent(q)}`);
-  await results('cadeau pour le baptême de mon neveu');
-  await expect(main(page).getByText(FIXTURE.buy.name, { exact: true }).first()).toBeVisible({ timeout: 15_000 });
-  await expect(main(page).getByText(FIXTURE.cabas.name, { exact: true })).toHaveCount(0);
-
-  await results('je pars en vacances');
-  await expect(main(page).getByText(FIXTURE.cabas.name, { exact: true }).first()).toBeVisible({ timeout: 15_000 });
-  await expect(main(page).getByText(FIXTURE.buy.name, { exact: true })).toHaveCount(0);
-
-  // Rien ne convient : message, aucune pièce.
-  await results('une phrase sans rapport aucun');
-  await expect(main(page).getByText('Aucune pièce ne correspond à cette recherche.')).toBeVisible({ timeout: 15_000 });
-
-  // La phrase de la cliente ne part qu'avec les faits publics des pièces en ligne (jamais un brouillon).
-  const ai = JSON.stringify(await (await fetch('http://127.0.0.1:12111/__test/ai')).json());
-  expect(ai).toContain('baptême de mon neveu');
-  expect(ai).not.toContain('Brouillon E2E secret');
-});

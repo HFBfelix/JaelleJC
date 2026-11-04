@@ -2,7 +2,7 @@
 // le droit admin. Lecture seule : rien n'est écrit en base, hormis le quota d'appels à l'IA.
 import 'server-only';
 import { COLLECTIONS } from '../db/schema';
-import { endpoint, takeQuota } from '../createur/ai';
+import { MAX_TOKENS, endpoint, takeQuota } from '../createur/ai';
 import { toCsv } from '../createur/site';
 import { listCategoriesAdmin, toAdminProduct, toAdminVariants, type AdminProduct, type AdminVariant } from '../createur/products';
 import { adminDb } from '../firebase/admin';
@@ -68,6 +68,7 @@ export async function catalogueTexts(uid: string, ids: string[]): Promise<TextsR
       body: JSON.stringify({
         model: env('MISTRAL_MODEL') ?? 'mistral-small-latest',
         temperature: 0.3,
+        max_tokens: MAX_TOKENS.catalogue,
         response_format: { type: 'json_object' },
         messages: [{ role: 'system', content: cataloguePrompt() }, { role: 'user', content: `FAITS : ${catalogueFacts(pieces)}` }],
       }),

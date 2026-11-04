@@ -212,6 +212,35 @@ ${piece?.image ? `<tr><td style="padding:32px 32px 0;"><a href="${escapeHtml(pie
   return { to, subject: t.subject, html, text };
 }
 
+// Alerte à la boutique (recherche par usage, 2026-11-04) : un plafond du site atteint ou Mistral en échec répété.
+// Une seule par sorte et par jour ; jamais de phrase de cliente ni d'adresse IP.
+export type SearchAlertKind = 'heure' | 'jour' | 'echecs';
+const SEARCH_ALERTS: Record<SearchAlertKind, { subject: string; text: string }> = {
+  heure: {
+    subject: 'Recherche par usage : plafond de l’heure atteint',
+    text: 'Le site a atteint 500 recherches par l’IA dans l’heure. Jusqu’à l’heure suivante, la recherche fonctionne par mots seulement.',
+  },
+  jour: {
+    subject: 'Recherche par usage : plafond du jour atteint',
+    text: 'Le site a atteint 2 000 recherches par l’IA aujourd’hui. Jusqu’à minuit (heure UTC), la recherche fonctionne par mots seulement.',
+  },
+  echecs: {
+    subject: 'Recherche par usage : Mistral ne répond pas',
+    text: 'Mistral a échoué 10 fois aujourd’hui. La recherche fonctionne par mots seulement quand Mistral ne répond pas.',
+  },
+};
+
+export function searchAlert(to: string, kind: SearchAlertKind, day: string, counts: Record<string, number>, origin: string): EmailMessage {
+  const a = SEARCH_ALERTS[kind];
+  const rows = Object.entries(counts).map(([k, n]) => `${k} : ${n}`);
+  const html = layout(`${h1(a.subject)}<p>${escapeHtml(a.text)}</p>
+<p>Si ces recherches ne viennent pas de vraies clientes (robots), aucune action n’est nécessaire : la facture reste plafonnée.</p>
+<p style="color:#666;">Compteurs du ${escapeHtml(day)} :<br>${rows.map(escapeHtml).join('<br>')}</p>
+${button(`${origin}/atelier/reglages`, 'Voir le compteur')}`);
+  const text = [a.subject, a.text, `Compteurs du ${day} :`, ...rows, `${origin}/atelier/reglages`].join('\n');
+  return { to, subject: a.subject, html, text };
+}
+
 // --- Envois automatiques (lot 4) : relances de panier, « colis arrivé ? », avis à J+14 ---
 // Chaque message porte un lien « ne plus recevoir ces messages » (préférence gardée côté serveur).
 const followUp = (body: string, optOutUrl: string) => layout(`${body}

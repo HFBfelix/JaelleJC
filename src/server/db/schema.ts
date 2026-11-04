@@ -23,6 +23,8 @@ export const COLLECTIONS = {
   emailMarks: 'emailMarks', // e-mails automatiques déjà partis (bienvenue, relances…) : un seul envoi ; serveur uniquement
   emailPrefs: 'emailPrefs', // « ne plus recevoir ces messages » (adresse hachée, jeton du lien) : serveur uniquement
   produitsNotes: 'produitsNotes', // texte libre de la créatrice par pièce (analyse IA) : serveur uniquement, jamais public
+  usageCache: 'usageCache', // recherche par usage : pièces trouvées pour une phrase (empreinte seule), 24 h ; serveur uniquement, TTL `expiresAt`
+  usageStats: 'usageStats', // recherche par usage : compteurs du jour et alertes parties ; serveur uniquement, TTL `expiresAt` (90 jours)
 } as const;
 
 const slug = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80);
