@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { emailSchema } from '../auth/policy';
 import { COLLECTIONS } from '../db/schema';
 import { sendEmail, syncNewsletterContact } from '../emails/sender';
+import { loadEmailTexts } from '../emails/settings';
 import { newsletterWelcome } from '../emails/templates';
 import { featuredPiece } from '../emails/featured';
 import { adminDb } from '../firebase/admin';
@@ -49,7 +50,8 @@ export async function subscribeNewsletterAction(raw: unknown): Promise<Newslette
       const url = `${origin}/newsletter/desinscription?id=${ref.id}&t=${token}`;
       after(async () => {
         const piece = await featuredPiece(origin).catch(() => null); // sans photo : l'e-mail part quand même
-        if ((await sendEmail(newsletterWelcome(email, url, origin, piece))) === 'echec') console.error('newsletter : confirmation non envoyée');
+        const text = (await loadEmailTexts()).newsletter;
+        if ((await sendEmail(newsletterWelcome(email, url, origin, piece, { text }))) === 'echec') console.error('newsletter : confirmation non envoyée');
         await syncNewsletterContact(email, true);
       });
     }

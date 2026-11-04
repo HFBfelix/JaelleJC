@@ -19,8 +19,8 @@ const env = (name: string) => process.env[name]?.trim() || null;
 
 export const aiEnabled = () => !!env('MISTRAL_API_KEY');
 
-// Quota par heure et par administratrice, tenu en transaction (collection serveur, règles : tout refusé).
-export async function takeQuota(uid: string, kind: 'analyse' | 'dictee' | 'catalogue', limit: number): Promise<boolean> {
+// Quota par heure et par administratrice (« site » pour les e-mails), tenu en transaction (collection serveur, règles : tout refusé).
+export async function takeQuota(uid: string, kind: 'analyse' | 'dictee' | 'catalogue' | 'e-mail', limit: number): Promise<boolean> {
   const hour = new Date().toISOString().slice(0, 13).replace(/[-T]/g, '');
   const ref = adminDb().collection(COLLECTIONS.aiQuota).doc(kind === 'analyse' ? `${uid}_${hour}` : `${uid}_${kind}_${hour}`);
   return adminDb().runTransaction(async (tx) => {

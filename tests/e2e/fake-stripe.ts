@@ -78,6 +78,12 @@ export function startFakeStripe(): Promise<Server> {
         });
         return json(200, { id: id('chatcmpl'), object: 'chat.completion', choices: [{ index: 0, message: { role: 'assistant', content: catalogue } }] });
       }
+      // Paragraphe personnalisé des e-mails : une phrase fixe citant la première pièce reçue.
+      if (String(request.messages[0]?.content).includes('ajouté à un e-mail')) {
+        const facts = JSON.parse(String(request.messages[1]?.content).replace(/^FAITS : /, '')) as { nom: string }[];
+        const paragraphe = JSON.stringify({ paragraphe: `Paragraphe de l’IA sur ${facts[0]?.nom ?? 'la pièce'}.` });
+        return json(200, { id: id('chatcmpl'), object: 'chat.completion', choices: [{ index: 0, message: { role: 'assistant', content: paragraphe } }] });
+      }
       const content = JSON.stringify({
         nom: 'E2E créatrice cape de bain en gaze', univers: 'createur-e2e', famille: 'capes', prixEuros: 45.5,
         matieres: ['gaze de coton'], details: ['Cape : 80 × 80 cm'], entretien: 'Lavage à 30 °C.', serieLimitee: null,

@@ -17,6 +17,7 @@ vi.mock('next/server', () => ({ after: mocks.after }));
 vi.mock('../http/origin', () => ({ siteOrigin: async () => 'https://www.jaellejc.com' }));
 vi.mock('../http/rate-limit', () => ({ takeRateLimit: mocks.limit, clientIp: async () => '203.0.113.7' }));
 vi.mock('../emails/sender', () => ({ sendEmail: mocks.send, syncNewsletterContact: mocks.sync }));
+vi.mock('../emails/settings', async () => ({ loadEmailTexts: async () => (await import('../emails/texts')).defaultTexts() }));
 vi.mock('../emails/featured', () => ({ featuredPiece: async () => ({ name: 'Cabas', priceCents: 6500, image: 'https://firebasestorage.googleapis.com/x.jpg', url: 'https://www.jaellejc.com/produits/cabas' }) }));
 
 const { subscribeNewsletterAction, unsubscribeNewsletterAction } = await import('./actions');

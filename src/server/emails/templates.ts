@@ -1,7 +1,10 @@
 // E-mails du parcours d'achat (EDITORIAL.md §6), purs et testés. Tout texte venu d'une cliente ou de la base
 // (nom, adresse, mot pour la naissance, noms des pièces) est échappé avant d'entrer dans le HTML.
 // Style repris de l'e-mail de confirmation de l'ancien site, typographie « Atelier » (droit, 11 px au moins).
+// Objet, titre et texte des e-mails aux clientes : réglables dans l'Atelier (texts.ts), textes d'EDITORIAL.md par défaut ;
+// un court paragraphe rédigé par Mistral (personal.ts) peut suivre le texte, sinon le texte fixe part seul.
 import type { NewOrder } from '../checkout/logic';
+import { defaultText, fillVars, type EmailKind, type EmailText } from './texts';
 
 export type EmailMessage = { to: string; subject: string; html: string; text: string };
 type MailOrder = Omit<NewOrder, 'tracking'>;
@@ -14,6 +17,28 @@ export function escapeHtml(value: unknown): string {
 
 // Objet d'e-mail : une seule ligne (aucun saut de ligne injectable dans les en-têtes).
 const oneLine = (value: string) => value.replace(/[\r\n]+/g, ' ').trim();
+
+// Texte réglable : échappé, paragraphes séparés par une ligne vide, retour à la ligne simple gardé.
+const escapeText = (value: string) => value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+const paragraphs = (body: string) => body.split(/\r?\n\s*\r?\n/).map((p) => p.trim()).filter(Boolean);
+function htmlParagraphs(body: string, style = '', lastStyle = style) {
+  const list = paragraphs(body);
+  return list.map((p, i) => {
+    const css = i === list.length - 1 ? lastStyle : style;
+    return `<p${css ? ` style="${css}"` : ''}>${escapeText(p).replace(/\r?\n/g, '<br>')}</p>`;
+  }).join('\n');
+}
+const personalHtml = (personal: string | null) => (personal ? `<p>${escapeText(personal)}</p>` : '');
+
+export type TextOptions = { text?: EmailText; personal?: string | null };
+// Textes de l'e-mail, mots entre accolades remplacés (« {référence} »).
+function texts(kind: EmailKind, opts: TextOptions, vars: Record<string, string> = {}) {
+  const t = opts.text ?? defaultText(kind);
+  const fill = (v: string) => fillVars(v, vars);
+  return { subject: oneLine(fill(t.subject)), title: escapeText(fill(t.title)), titleText: fill(t.title), body: fill(t.body), personal: opts.personal ?? null };
+}
+const plain = (t: { titleText: string; body: string; personal: string | null }) =>
+  [t.titleText, ...paragraphs(t.body), t.personal ?? ''].filter(Boolean);
 
 const euros = (cents: number) => (cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2).replace('.', ','));
 
@@ -45,32 +70,37 @@ function giftBlock(order: MailOrder) {
 <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;margin:0;">Emballage cadeau</p>${message}</div>`;
 }
 
-export function orderConfirmation(order: MailOrder): EmailMessage {
+export function orderConfirmation(order: MailOrder, opts: TextOptions = {}): EmailMessage {
+  const t = texts('confirmation', opts, { référence: order.reference });
   const html = layout(`
 <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;">Commande confirmée</p>
-<h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">Merci pour votre commande.</h1>
+<h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">${t.title}</h1>
 <p style="color:#666;">Référence : ${escapeHtml(order.reference)}</p>
 <p>Bonjour ${escapeHtml(order.customer.name || '')},</p>
-<p style="color:#666;">Nous préparons votre sélection avec le plus grand soin. Voici le détail de votre commande :</p>
+${htmlParagraphs(t.body, 'color:#666;')}${personalHtml(t.personal)}
 ${itemsTable(order)}${giftBlock(order)}
 <div style="background:#F7F7F7;padding:20px;margin-top:24px;">
 <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;margin:0 0 8px;">Livraison</p>
 <p style="margin:0;">${address(order)}</p></div>`);
-  const text = [`Merci pour votre commande ${order.reference}.`, ...order.items.map((i) => `${i.quantity} × ${i.name} : ${euros(i.unitPriceCents * i.quantity)} €`),
+  const text = [...plain(t), `Référence : ${order.reference}`, ...order.items.map((i) => `${i.quantity} × ${i.name} : ${euros(i.unitPriceCents * i.quantity)} €`),
     `Total : ${euros(order.amounts.totalCents)} €`].join('\n');
-  return { to: order.customer.email, subject: oneLine(`Votre commande Jaelle & JC — ${order.reference}`), html, text };
+  return { to: order.customer.email, subject: t.subject, html, text };
 }
 
-export function stockApology(order: MailOrder): EmailMessage {
+// Motif « stock » : titre et texte réglables ; motif « montant » (rare) : texte fixe.
+export function stockApology(order: MailOrder, opts: TextOptions = {}): EmailMessage {
   const stock = order.refund?.reason !== 'montant';
+  const t = texts('excuses', opts, { référence: order.reference });
+  const fixed = 'Un problème est survenu pendant votre paiement. Nous sommes sincèrement désolées.';
   const html = layout(`
-<h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">${stock ? 'Votre pièce a trouvé preneur.' : 'Votre commande n’a pas pu aboutir.'}</h1>
+<h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">${stock ? t.title : 'Votre commande n’a pas pu aboutir.'}</h1>
 <p>Bonjour ${escapeHtml(order.customer.name || '')},</p>
-<p>${stock ? 'Pendant votre paiement, la dernière pièce disponible a été commandée.' : 'Un problème est survenu pendant votre paiement.'} Nous sommes sincèrement désolées.</p>
+${stock ? htmlParagraphs(t.body) : `<p>${fixed}</p>`}
 <p>Votre paiement de ${euros(order.amounts.totalCents)} € vous est intégralement remboursé. Le remboursement apparaît sur votre relevé sous quelques jours, selon votre banque.</p>
 <p style="color:#666;">Référence : ${escapeHtml(order.reference)}</p>`);
-  const text = `Votre pièce a trouvé preneur pendant votre paiement. Vos ${euros(order.amounts.totalCents)} € vous sont intégralement remboursés. Référence : ${order.reference}.`;
-  return { to: order.customer.email, subject: oneLine(`Votre commande Jaelle & JC — ${order.reference} : remboursement`), html, text };
+  const text = [...(stock ? plain({ ...t, personal: null }) : [fixed]),
+    `Vos ${euros(order.amounts.totalCents)} € vous sont intégralement remboursés. Référence : ${order.reference}.`].join('\n');
+  return { to: order.customer.email, subject: t.subject, html, text };
 }
 
 export function shopNotification(order: MailOrder, shopEmail: string): EmailMessage {
@@ -96,47 +126,50 @@ export function signInLink(to: string, link: string): EmailMessage {
 }
 
 // Commande passée « en préparation » dans l'espace créatrice.
-export function orderPreparing(order: MailOrder): EmailMessage {
+export function orderPreparing(order: MailOrder, opts: TextOptions = {}): EmailMessage {
+  const t = texts('preparation', opts, { référence: order.reference });
   const html = layout(`
 <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;">Référence : ${escapeHtml(order.reference)}</p>
-<h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">Votre commande est en préparation.</h1>
+<h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">${t.title}</h1>
 <p>Bonjour ${escapeHtml(order.customer.name || '')},</p>
-<p>Votre sélection est en préparation à l'atelier. Nous vous écrirons dès son départ, avec le numéro de suivi du colis.</p>
+${htmlParagraphs(t.body)}${personalHtml(t.personal)}
 ${itemsTable(order)}${giftBlock(order)}`);
-  const text = `Votre commande ${order.reference} est en préparation à l'atelier. Nous vous écrirons dès son départ, avec le numéro de suivi du colis.`;
-  return { to: order.customer.email, subject: oneLine(`Votre commande Jaelle & JC — ${order.reference} : en préparation`), html, text };
+  const text = [...plain(t), `Référence : ${order.reference}`].join('\n');
+  return { to: order.customer.email, subject: t.subject, html, text };
 }
 
 // Colis remis au transporteur (EDITORIAL.md §6) : numéro de suivi recopié par Jaelle et lien du transporteur.
 export type ShippedOrder = Omit<NewOrder, 'tracking'> & { tracking: { carrier: string; number: string; url: string } };
-export function orderShipped(order: ShippedOrder): EmailMessage {
+export function orderShipped(order: ShippedOrder, opts: TextOptions = {}): EmailMessage {
+  const t = texts('expedition', opts, { référence: order.reference });
   const { carrier, number, url } = order.tracking;
   const link = url.startsWith('https://') ? url : '';
   const html = layout(`
 <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;">Référence : ${escapeHtml(order.reference)}</p>
-<h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">Votre colis est en route.</h1>
+<h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">${t.title}</h1>
 <p>Bonjour ${escapeHtml(order.customer.name || '')},</p>
-<p>Votre commande vient de partir de l'atelier.</p>
+${htmlParagraphs(t.body)}${personalHtml(t.personal)}
 <div style="background:#F7F7F7;padding:20px;margin:24px 0;">
 <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;margin:0 0 8px;">${escapeHtml(carrier)}</p>
 <p style="margin:0;">Numéro de suivi : ${escapeHtml(number)}</p>
 ${link ? `<p style="margin:16px 0 0;"><a href="${escapeHtml(link)}" style="color:#000;">Suivre mon colis</a></p>` : ''}</div>
 <div style="padding:0 0 8px;"><p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;margin:0 0 8px;">Livraison</p>
 <p style="margin:0;">${address(order)}</p></div>`);
-  const text = [`Votre colis est en route (${order.reference}).`, `${carrier} — numéro de suivi : ${number}`, link].filter(Boolean).join('\n');
-  return { to: order.customer.email, subject: oneLine(`Votre colis est en route — ${order.reference}`), html, text };
+  const text = [...plain(t), `Référence : ${order.reference}`, `${carrier} — numéro de suivi : ${number}`, link].filter(Boolean).join('\n');
+  return { to: order.customer.email, subject: t.subject, html, text };
 }
 
 // Bienvenue (création de compte) : texte de l'ancien site conservé, sans « vestiaire de l'essentiel » (EDITORIAL.md §6).
-export function welcome(to: string, origin: string): EmailMessage {
+export function welcome(to: string, origin: string, opts: TextOptions = {}): EmailMessage {
+  const t = texts('bienvenue', opts);
   const html = layout(`
-<h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">Bienvenue à l'Atelier</h1>
+<h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">${t.title}</h1>
 <p>Bonjour,</p>
-<p>Nous sommes ravis de vous compter parmi nous. L'Atelier Jaelle &amp; JC est né d'une envie simple : que chaque pièce raconte une histoire de transmission et de savoir-faire français.</p>
+${htmlParagraphs(t.body)}
 <p style="margin:32px 0;"><a href="${escapeHtml(`${origin}/collection`)}" style="background:#000;color:#fff;text-decoration:none;padding:16px 32px;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;">Explorer la collection</a></p>
 <p style="color:#666;">« De belles matières, l'amour de l'artisanat. »</p>`);
-  const text = `Bienvenue à l'Atelier.\nNous sommes ravis de vous compter parmi nous. L'Atelier Jaelle & JC est né d'une envie simple : que chaque pièce raconte une histoire de transmission et de savoir-faire français.\n${origin}/collection`;
-  return { to, subject: "Bienvenue dans l'univers Jaelle & JC", html, text };
+  const text = [...plain(t), `${origin}/collection`].join('\n');
+  return { to, subject: t.subject, html, text };
 }
 
 // Inscription à la newsletter (décision de Jaelle, 2026-11-04, sur le modèle épuré d'une grande maison) : remerciement
@@ -145,7 +178,8 @@ export function welcome(to: string, origin: string): EmailMessage {
 export type MailPiece = { name: string; priceCents: number; image: string | null; url: string };
 export const INSTAGRAM_URL = 'https://www.instagram.com/jaellejc/';
 
-export function newsletterWelcome(to: string, unsubscribeUrl: string, origin: string, piece: MailPiece | null = null): EmailMessage {
+export function newsletterWelcome(to: string, unsubscribeUrl: string, origin: string, piece: MailPiece | null = null, opts: TextOptions = {}): EmailMessage {
+  const t = texts('newsletter', opts);
   const serif = "font-family:'Crimson Pro',Georgia,serif;font-weight:400;color:#000;";
   const small = 'font-size:11px;text-transform:uppercase;letter-spacing:0.12em;';
   const html = `<!doctype html><html lang="fr"><body style="margin:0;background:#F7F7F7;">
@@ -153,9 +187,8 @@ export function newsletterWelcome(to: string, unsubscribeUrl: string, origin: st
 <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;font-family:'Source Sans 3',Arial,sans-serif;font-size:14px;line-height:1.7;color:#333;text-align:center;">
 <tr><td style="padding:44px 32px 8px;"><a href="${escapeHtml(origin)}"><img src="${escapeHtml(`${origin}/assets/Logo%20noir%20Jaelle%26JC_V2.png`)}" alt="Jaelle &amp; JC" width="170" style="display:inline-block;border:0;"></a></td></tr>
 <tr><td style="padding:24px 40px 8px;">
-<h1 style="${serif}font-size:30px;line-height:1.2;margin:0 0 20px;">Bienvenue</h1>
-<p style="margin:0 0 8px;">Nous vous remercions de votre inscription à la lettre Jaelle &amp; JC et de l'intérêt que vous portez à notre atelier.</p>
-<p style="margin:0;">Chaque pièce y est cousue main, en Île-de-France, en petite série. Nous vous écrirons quelques fois par an, quand une nouvelle pièce sort de l'atelier.</p>
+<h1 style="${serif}font-size:30px;line-height:1.2;margin:0 0 20px;">${t.title}</h1>
+${htmlParagraphs(t.body, 'margin:0 0 8px;', 'margin:0;')}
 </td></tr>
 ${piece?.image ? `<tr><td style="padding:32px 32px 0;"><a href="${escapeHtml(piece.url)}"><img src="${escapeHtml(piece.image)}" alt="${escapeHtml(piece.name)}" width="536" style="display:block;width:100%;height:auto;border:0;background:#F7F7F7;"></a>
 <p style="margin:12px 0 0;color:#999;font-size:13px;">${escapeHtml(piece.name)}</p></td></tr>` : ''}
@@ -170,15 +203,13 @@ ${piece?.image ? `<tr><td style="padding:32px 32px 0;"><a href="${escapeHtml(pie
 </table>
 </td></tr></table></body></html>`;
   const text = [
-    'Bienvenue',
-    "Nous vous remercions de votre inscription à la lettre Jaelle & JC et de l'intérêt que vous portez à notre atelier.",
-    "Chaque pièce y est cousue main, en Île-de-France, en petite série. Nous vous écrirons quelques fois par an, quand une nouvelle pièce sort de l'atelier.",
+    ...plain(t),
     `Découvrez dès à présent la collection : ${origin}/collection`,
     'À bientôt.',
     `Instagram : ${INSTAGRAM_URL} — contact@jaellejc.com`,
     `Se désinscrire : ${unsubscribeUrl}`,
   ].join('\n');
-  return { to, subject: 'Bienvenue dans la lettre Jaelle & JC', html, text };
+  return { to, subject: t.subject, html, text };
 }
 
 // --- Envois automatiques (lot 4) : relances de panier, « colis arrivé ? », avis à J+14 ---
@@ -190,36 +221,28 @@ const button = (href: string, label: string) =>
   `<p style="margin:32px 0;"><a href="${escapeHtml(href)}" style="background:#000;color:#fff;text-decoration:none;padding:16px 32px;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;">${label}</a></p>`;
 
 export type ReminderLine = { name: string; variantLabel: string; image: string | null };
-const REMINDERS = {
-  1: { subject: 'Votre sélection vous attend', title: 'Votre sélection vous attend.', text: 'Vous avez laissé quelques pièces dans votre sélection. Elle vous attend, telle que vous l’avez laissée.' },
-  2: { subject: 'Votre sélection est toujours là', title: 'Votre sélection est toujours là.', text: 'Nos pièces sont cousues main, en petite série : votre sélection vous attend encore quelques jours.' },
-  3: { subject: 'Votre sélection sera retirée dans 2 jours', title: 'Votre sélection sera retirée dans 2 jours.', text: 'Sans commande de votre part, les pièces de votre sélection seront retirées dans 2 jours.' },
-} as const;
-
-export function cartReminder(stage: 1 | 2 | 3, to: string, lines: ReminderLine[], origin: string, optOutUrl: string): EmailMessage {
-  const r = REMINDERS[stage];
+export function cartReminder(stage: 1 | 2 | 3, to: string, lines: ReminderLine[], origin: string, optOutUrl: string, opts: TextOptions = {}): EmailMessage {
+  const t = texts(`relance${stage}`, opts);
   const list = lines.slice(0, 6).map((l) => `<tr>
 <td width="72" style="padding:8px 12px 8px 0;">${l.image ? `<img src="${escapeHtml(l.image)}" alt="" width="64" style="display:block;border:0;background:#F7F7F7;">` : ''}</td>
 <td style="padding:8px 0;">${escapeHtml(l.name)}${l.variantLabel ? `<br><span style="color:#666;font-size:13px;">${escapeHtml(l.variantLabel)}</span>` : ''}</td></tr>`).join('');
-  const html = followUp(`${h1(r.title)}<p>${r.text}</p>
+  const html = followUp(`${h1(t.title)}${htmlParagraphs(t.body)}${personalHtml(t.personal)}
 <table width="100%" cellpadding="0" cellspacing="0" style="border-top:0.5px solid #eee;margin-top:16px;">${list}</table>
 ${button(`${origin}/panier`, 'Retrouver ma sélection')}`, optOutUrl);
-  const text = [r.text, ...lines.slice(0, 6).map((l) => `- ${l.name}${l.variantLabel ? ` (${l.variantLabel})` : ''}`), `${origin}/panier`, `Ne plus recevoir ces messages : ${optOutUrl}`].join('\n');
-  return { to, subject: r.subject, html, text };
+  const text = [...plain(t), ...lines.slice(0, 6).map((l) => `- ${l.name}${l.variantLabel ? ` (${l.variantLabel})` : ''}`), `${origin}/panier`, `Ne plus recevoir ces messages : ${optOutUrl}`].join('\n');
+  return { to, subject: t.subject, html, text };
 }
 
-export function arrivalCheck(to: string, reference: string, optOutUrl: string): EmailMessage {
-  const body = `Votre commande ${escapeHtml(reference)} est partie de l'atelier il y a quelques jours. Est-elle bien arrivée ?`;
-  const html = followUp(`${h1('Votre colis est-il bien arrivé ?')}<p>${body}</p>
-<p>En cas de souci, répondez simplement à cet e-mail : nous nous en occupons.</p>`, optOutUrl);
-  const text = `Votre commande ${reference} est partie de l'atelier il y a quelques jours. Est-elle bien arrivée ? En cas de souci, répondez simplement à cet e-mail.\nNe plus recevoir ces messages : ${optOutUrl}`;
-  return { to, subject: oneLine(`Votre colis est-il bien arrivé ? — ${reference}`), html, text };
+export function arrivalCheck(to: string, reference: string, optOutUrl: string, opts: TextOptions = {}): EmailMessage {
+  const t = texts('arrivee', opts, { référence: reference });
+  const html = followUp(`${h1(t.title)}${htmlParagraphs(t.body)}`, optOutUrl);
+  const text = [...plain({ ...t, personal: null }), `Ne plus recevoir ces messages : ${optOutUrl}`].join('\n');
+  return { to, subject: t.subject, html, text };
 }
 
-export function reviewRequest(to: string, reference: string, optOutUrl: string): EmailMessage {
-  const html = followUp(`${h1('Comment se passe la vie avec votre pièce ?')}
-<p>Il y a deux semaines, votre commande ${escapeHtml(reference)} arrivait chez vous. Nous aimerions savoir comment elle a été accueillie.</p>
-<p>Répondez simplement à cet e-mail : chaque mot est lu à l'atelier.</p>`, optOutUrl);
-  const text = `Il y a deux semaines, votre commande ${reference} arrivait chez vous. Nous aimerions savoir comment elle a été accueillie : répondez simplement à cet e-mail.\nNe plus recevoir ces messages : ${optOutUrl}`;
-  return { to, subject: 'Comment se passe la vie avec votre pièce ?', html, text };
+export function reviewRequest(to: string, reference: string, optOutUrl: string, opts: TextOptions = {}): EmailMessage {
+  const t = texts('avis', opts, { référence: reference });
+  const html = followUp(`${h1(t.title)}${htmlParagraphs(t.body)}${personalHtml(t.personal)}`, optOutUrl);
+  const text = [...plain(t), `Ne plus recevoir ces messages : ${optOutUrl}`].join('\n');
+  return { to, subject: t.subject, html, text };
 }

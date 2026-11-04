@@ -6,7 +6,10 @@ import 'server-only';
 import type { NewOrder, OrderEmails } from '../checkout/logic';
 import { COLLECTIONS, order as orderSchema } from '../db/schema';
 import { sendEmail, shopNotificationAddress } from '../emails/sender';
+import { personalParagraph, piecesFacts } from '../emails/personal';
+import { loadEmailTexts } from '../emails/settings';
 import { orderConfirmation, orderPreparing, orderShipped, shopNotification, stockApology, type EmailMessage } from '../emails/templates';
+import { defaultTexts, type EmailTexts } from '../emails/texts';
 import { adminDb } from '../firebase/admin';
 
 type Field = keyof OrderEmails;
@@ -14,13 +17,19 @@ type Field = keyof OrderEmails;
 export type MailableOrder = Omit<NewOrder, 'tracking'> & { tracking: { carrier: string; number: string; url: string } | null };
 
 // E-mail de chaque champ « en_attente » ; null si la commande ne permet pas de l'écrire (suivi absent…).
-export function emailFor(field: Field, order: MailableOrder): EmailMessage | null {
+// Textes réglés dans l'Atelier ; paragraphe personnalisé seulement pour « en préparation » et « colis en route ».
+export function emailFor(field: Field, order: MailableOrder, texts: EmailTexts = defaultTexts(), personal: string | null = null): EmailMessage | null {
   switch (field) {
-    case 'cliente': return order.status === 'refunded' ? stockApology(order) : orderConfirmation(order);
+    case 'cliente': return order.status === 'refunded' ? stockApology(order, { text: texts.excuses }) : orderConfirmation(order, { text: texts.confirmation });
     case 'boutique': return shopNotification(order, shopNotificationAddress());
-    case 'preparation': return orderPreparing(order);
-    case 'expedition': return order.tracking ? orderShipped({ ...order, tracking: order.tracking }) : null;
+    case 'preparation': return orderPreparing(order, { text: texts.preparation, personal });
+    case 'expedition': return order.tracking ? orderShipped({ ...order, tracking: order.tracking }, { text: texts.expedition, personal }) : null;
   }
+}
+
+async function personalFor(field: Field, order: MailableOrder, texts: EmailTexts): Promise<string | null> {
+  if ((field !== 'preparation' && field !== 'expedition') || !texts[field].personal) return null;
+  return personalParagraph(field, await piecesFacts(order.items).catch(() => []));
 }
 
 const FIELDS: Field[] = ['cliente', 'boutique', 'preparation', 'expedition'];
@@ -28,10 +37,12 @@ const FIELDS: Field[] = ['cliente', 'boutique', 'preparation', 'expedition'];
 async function sendPending(orderId: string, order: MailableOrder) {
   const ref = adminDb().collection(COLLECTIONS.orders).doc(orderId);
   const pending: Partial<OrderEmails> = order.emails ?? { cliente: 'en_attente', boutique: 'en_attente' };
+  if (!FIELDS.some((f) => pending[f] === 'en_attente')) return;
+  const texts = await loadEmailTexts();
   for (const field of FIELDS) {
     if (pending[field] !== 'en_attente') continue;
     try {
-      const message = emailFor(field, order);
+      const message = emailFor(field, order, texts, await personalFor(field, order, texts));
       if (message && (await sendEmail(message)) === 'envoye') await ref.update({ [`emails.${field}`]: 'envoye' });
     } catch {
       console.error(`commande : e-mail « ${field} » non envoyé`); // ni adresse ni contenu dans le journal

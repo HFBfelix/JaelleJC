@@ -321,6 +321,8 @@ for (const [nom, ctx] of Object.entries(nonAdmins)) {
 
   test(`réglages et catégories : ${nom} ne lit pas un réglage interne, ne supprime rien`, async () => {
     await assertFails(getDoc(doc(db(ctx), 'settings', 'interne')));
+    await assertFails(getDoc(doc(db(ctx), 'settings', 'emailTexts'))); // textes des e-mails : serveur seulement
+    await assertFails(setDoc(doc(db(ctx), 'settings', 'emailTexts'), { avis: { subject: 'x' } }));
     await assertFails(deleteDoc(doc(db(ctx), 'settings', 'delivery')));
     await assertFails(deleteDoc(doc(db(ctx), 'categories', 'bebe')));
   });

@@ -8,9 +8,12 @@ import { readOffers } from '../cart/repository';
 import { COLLECTIONS } from '../db/schema';
 import { adminAuth, adminDb } from '../firebase/admin';
 import { ARRIVAL_DAYS_DEFAULT, arrivalDue, reminderStage, reviewDue, stageToSend } from './automations-logic';
+import { personalParagraph, piecesFacts } from './personal';
 import { isOptedOut, optOutUrl } from './prefs';
 import { sendEmail } from './sender';
+import { loadEmailTexts } from './settings';
 import { arrivalCheck, cartReminder, reviewRequest } from './templates';
+import type { EmailTexts } from './texts';
 
 export type AutomationSummary = { relances: number; arrivees: number; avis: number; echecs: number };
 
@@ -21,7 +24,7 @@ export async function readArrivalDays(): Promise<number> {
   return Number.isInteger(v) && v >= 1 && v <= 30 ? v : ARRIVAL_DAYS_DEFAULT;
 }
 
-async function cartReminders(origin: string, now: Date, s: AutomationSummary) {
+async function cartReminders(origin: string, now: Date, texts: EmailTexts, s: AutomationSummary) {
   const carts = await adminDb().collection(COLLECTIONS.carts).where('userId', '!=', null).get();
   for (const c of carts.docs) {
     try {
@@ -39,7 +42,7 @@ async function cartReminders(origin: string, now: Date, s: AutomationSummary) {
       const offers = await readOffers(items);
       const lines = items.flatMap((i) => {
         const o = offers.get(`${i.productId}/${i.variantId}`);
-        return o && o.stock > 0 ? [{ name: o.name, variantLabel: o.variantLabel, image: o.image?.url ?? null }] : [];
+        return o && o.stock > 0 ? [{ productId: i.productId, name: o.name, variantLabel: o.variantLabel, image: o.image?.url ?? null }] : [];
       });
       if (!lines.length) continue; // plus rien en stock : pas de relance
       const previous = await adminDb().runTransaction(async (tx) => {
@@ -49,7 +52,9 @@ async function cartReminders(origin: string, now: Date, s: AutomationSummary) {
         return sent;
       });
       if (previous === null) continue;
-      const result = await sendEmail(cartReminder(due, user.email, lines, origin, await optOutUrl(user.email, origin)));
+      const text = texts[`relance${due}`];
+      const personal = text.personal ? await personalParagraph(`relance${due}`, await piecesFacts(lines).catch(() => [])) : null;
+      const result = await sendEmail(cartReminder(due, user.email, lines, origin, await optOutUrl(user.email, origin), { text, personal }));
       if (result === 'envoye') s.relances++;
       else { s.echecs++; await mark.set({ uid, stage: previous }, { merge: true }); } // nouvel essai au prochain passage
     } catch {
@@ -59,7 +64,7 @@ async function cartReminders(origin: string, now: Date, s: AutomationSummary) {
   }
 }
 
-async function orderFollowUps(origin: string, now: Date, arrivalDays: number, s: AutomationSummary) {
+async function orderFollowUps(origin: string, now: Date, arrivalDays: number, texts: EmailTexts, s: AutomationSummary) {
   const orders = await adminDb().collection(COLLECTIONS.orders).where('status', 'in', ['shipped', 'delivered']).get();
   for (const o of orders.docs) {
     try {
@@ -69,13 +74,16 @@ async function orderFollowUps(origin: string, now: Date, arrivalDays: number, s:
       const dates = { status: String(o.get('status')), shippedAt: date(o.get('shippedAt')), deliveredAt: date(o.get('deliveredAt')) };
       const sent = (o.get('emails') ?? {}) as Record<string, unknown>;
       const jobs = [
-        ['arrivee', sent.arrivee !== 'envoye' && arrivalDue(dates, now, arrivalDays), () => arrivalCheck] as const,
-        ['avis', sent.avis !== 'envoye' && reviewDue(dates, now, arrivalDays), () => reviewRequest] as const,
+        ['arrivee', sent.arrivee !== 'envoye' && arrivalDue(dates, now, arrivalDays), arrivalCheck] as const,
+        ['avis', sent.avis !== 'envoye' && reviewDue(dates, now, arrivalDays), reviewRequest] as const,
       ];
       for (const [field, due, template] of jobs) {
         if (!due) continue;
         if (await isOptedOut(email)) break;
-        const result = await sendEmail(template()(email, reference, await optOutUrl(email, origin)));
+        const text = texts[field];
+        const items = (o.get('items') ?? []) as { productId: string; name: string; variantLabel: string }[];
+        const personal = text.personal ? await personalParagraph(field, await piecesFacts(items).catch(() => [])) : null;
+        const result = await sendEmail(template(email, reference, await optOutUrl(email, origin), { text, personal }));
         if (result === 'envoye') {
           await o.ref.update({ [`emails.${field}`]: 'envoye' });
           s[field === 'arrivee' ? 'arrivees' : 'avis']++;
@@ -90,8 +98,9 @@ async function orderFollowUps(origin: string, now: Date, arrivalDays: number, s:
 
 export async function runAutomations(origin: string, now = new Date()): Promise<AutomationSummary> {
   const summary: AutomationSummary = { relances: 0, arrivees: 0, avis: 0, echecs: 0 };
-  await cartReminders(origin, now, summary);
-  await orderFollowUps(origin, now, await readArrivalDays(), summary);
+  const texts = await loadEmailTexts();
+  await cartReminders(origin, now, texts, summary);
+  await orderFollowUps(origin, now, await readArrivalDays(), texts, summary);
   await adminDb().collection(COLLECTIONS.settings).doc('automations').set({ lastRunAt: FieldValue.serverTimestamp(), ...summary });
   return summary;
 }
