@@ -14,6 +14,7 @@ import { checklist as checklistOf, gridRows, slugify, variantIdFor, type Product
 import type { AdminProduct, AdminVariant } from '@/server/createur/products';
 import type { Categorie, Produit, Variante } from '@/server/db/schema';
 import { formatEuros } from '@/server/catalog/mapping';
+import { frenchTitle } from '@/server/migration/text';
 import Dictation from './Dictation';
 import { Button, Card, Input, Message, StatusBadge, TextArea, centsToEuros, eurosToCents, label, missingText } from './ui';
 
@@ -193,11 +194,20 @@ export default function ProductEditor({ product, variants, categories, notes: sa
   };
 
   const onSave = () => run(async () => {
-    if (await saveAll()) { setNotice('Enregistré.'); setAiKeys(new Set()); router.refresh(); }
+    const typed = fields.name.trim();
+    if (await saveAll()) {
+      // Le serveur écrit le nom en typographie française : la fiche affiche le nom enregistré, et le dit.
+      const saved = frenchTitle(typed);
+      if (typed && saved !== typed) setFields((f) => ({ ...f, name: saved }));
+      setNotice(typed && saved !== typed ? `Enregistré. Nom harmonisé : « ${saved} ».` : 'Enregistré.');
+      setAiKeys(new Set());
+      router.refresh();
+    }
   });
 
   const onPublish = () => run(async () => {
     if (dirty && !(await saveAll())) return;
+    setFields((f) => ({ ...f, name: frenchTitle(f.name.trim()) || f.name }));
     const r = await call(() => publishAction({ productId: product.id }));
     if (r?.status === 'ok') { setNotice('La pièce est en ligne.'); setAiKeys(new Set()); router.refresh(); }
   });
@@ -291,7 +301,7 @@ export default function ProductEditor({ product, variants, categories, notes: sa
           <Card>
             <section aria-label="Décrire la pièce">
               <h2 className="font-serif text-[22px] mb-2">Décrire la pièce</h2>
-              <p className="text-[14px] text-neutral-600 mb-6">Ajoutez les photos, puis racontez la pièce comme à une cliente, en le tapant ou en le dictant. L’IA remplit la fiche ; vous vérifiez et validez.</p>
+              <p className="text-[14px] text-neutral-600 mb-6">Ajoutez les photos, puis racontez la pièce comme en boutique, en le tapant ou en le dictant. L’IA remplit la fiche ; vous vérifiez et validez.</p>
 
               <label className={`block border-[0.5px] border-dashed ${missing.has('photos') ? 'border-red-700' : 'border-neutral-400'} bg-[#F5F2EE] p-6 text-center cursor-pointer mb-2`}>
                 <span className="text-[11px] uppercase tracking-[0.12em]">Ajouter des photos</span>

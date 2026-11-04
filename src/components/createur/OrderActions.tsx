@@ -67,7 +67,7 @@ export default function OrderActions({ orderId, status, tracking, emails }:
             hint="Recopié depuis l’étiquette (ex. 6A12345678901)." />
           {carrier === 'autre' && <Input label="Lien de suivi" type="url" value={url} onChange={(e) => setUrl(e.target.value)} required placeholder="https://…" />}
           <Button type="submit" className="w-full" disabled={pending || !number.trim()}>Marquer comme expédiée</Button>
-          <p className="text-[13px] text-neutral-500 mt-3">La cliente voit aussitôt le suivi dans son compte et reçoit l’e-mail « Votre colis est en route » avec ce numéro.</p>
+          <p className="text-[13px] text-neutral-500 mt-3">Le suivi apparaît aussitôt dans le compte, et part avec l’e-mail « Votre colis est en route » avec ce numéro.</p>
         </form>
       )}
 
@@ -86,7 +86,7 @@ export default function OrderActions({ orderId, status, tracking, emails }:
       {(status === 'refunded' || status === 'cancelled') && <p className="text-[14px]">Commande {status === 'refunded' ? 'remboursée' : 'annulée'}.</p>}
       {emails.length > 0 && (
         <div className="mt-6 border-t-[0.5px] border-neutral-200 pt-4">
-          <h3 className={`${label} mb-2`}>E-mails à la cliente</h3>
+          <h3 className={`${label} mb-2`}>E-mails envoyés pour cette commande</h3>
           <ul className="text-[14px] space-y-1 mb-3">
             {emails.map((e) => <li key={e.label}>{e.label} : {e.sent ? 'envoyé' : 'en attente'}</li>)}
           </ul>

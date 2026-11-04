@@ -113,3 +113,18 @@ describe('alerte de la recherche par usage', () => {
     expect(searchAlert('x@y.z', 'echecs', '2026-11-04', {}, 'https://x').subject).toBe('Recherche par usage : Mistral ne répond pas');
   });
 });
+
+describe('salutation des e-mails', () => {
+  it('nom du compte (jamais l’adresse de livraison) ; sans profil : « Bonjour, »', async () => {
+    const { orderConfirmation, cartReminder, welcome } = await import('./templates');
+    const gift = order({ customer: { uid: 'u1', email: 'cliente@exemple.fr', name: 'Destinataire Cadeau', phone: '' } });
+    const named = orderConfirmation(gift, { greeting: 'Madame Martin' });
+    expect(named.html).toContain('<p>Bonjour Madame Martin,</p>');
+    expect(named.html).not.toContain('Bonjour Destinataire');
+    expect(named.text).toContain('Bonjour Madame Martin,');
+    expect(orderConfirmation(gift).html).toContain('<p>Bonjour,</p>');
+    expect(cartReminder(1, 'a@exemple.fr', [], 'https://x', 'https://x/opt', { greeting: '<b>Camille</b>' }).html)
+      .toContain('<p>Bonjour &lt;b&gt;Camille&lt;/b&gt;,</p>');
+    expect(welcome('a@exemple.fr', 'https://x').html).toContain('<p>Bonjour,</p>');
+  });
+});

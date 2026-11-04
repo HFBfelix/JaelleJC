@@ -67,6 +67,8 @@ export function frenchTitle(text: string): string {
       const proper = PROPER_NOUNS.find((p) => lower(p) === lower(core));
       let out: string;
       if (proper) out = word.replace(core, proper);
+      // Mot avec un chiffre (référence « T2 », « N°3B », « E2E ») : jamais un mot courant, gardé tel quel (2026-11-04).
+      else if (/\d/.test(word)) out = word;
       // Sigle court (2 ou 3 lettres, « BIO ») au milieu d'un titre en minuscules : conservé.
       else if (!allCaps && !sentenceStart && /^\p{Lu}{2,3}$/u.test(core)) out = word;
       else out = sentenceStart ? capitalizeWord(lower(word)) : lower(word);

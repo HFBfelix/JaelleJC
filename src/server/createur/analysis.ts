@@ -4,6 +4,7 @@
 // elle préremplit le formulaire, la créatrice vérifie puis enregistre.
 import { z } from 'zod';
 import { SIZE_GRIDS, normalizeSize } from '../catalog/sizes';
+import { frenchTitle } from '../migration/text';
 
 export const NOTES_MAX = 6000;
 export const ANALYSIS_PHOTOS_MAX = 4;
@@ -140,7 +141,7 @@ export function parseAnalysis(content: string, categories: AnalysisCategory[], p
 
   const limited = wholeNumber(r.serieLimitee, 10_000);
   return {
-    name: clip(r.nom, 120),
+    name: frenchTitle(clip(r.nom, 120)), // typographie française du nom, comme à l'enregistrement
     categoryId: category?.slug ?? null,
     subCategory: sub?.slug ?? null,
     priceCents: cents(r.prixEuros),

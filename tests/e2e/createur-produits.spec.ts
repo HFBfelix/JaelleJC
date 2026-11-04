@@ -189,6 +189,18 @@ test('stock : une vente pendant la saisie n’est jamais écrasée', async ({ pa
   await expect(main(page).getByLabel('Stock unique')).toHaveValue('7'); // variantes rechargées depuis la base
 });
 
+test('nom tapé en majuscules : harmonisé à l’enregistrement (typographie française), et dit à la créatrice', async ({ page }) => {
+  await signInAdmin(page);
+  const { id } = await newProduct(page);
+  const suffix = randomBytes(3).toString('hex');
+  await main(page).getByLabel('Nom de la pièce').fill(`${E2E_PRODUCT_PREFIX} VESTE SHERPA KAKI ${suffix}`);
+  await panel(page).getByRole('button', { name: 'Enregistrer', exact: true }).click();
+  const expected = `${E2E_PRODUCT_PREFIX} veste sherpa kaki ${suffix}`;
+  await expect(panel(page).getByText(`Enregistré. Nom harmonisé : « ${expected} ».`)).toBeVisible();
+  await expect(main(page).getByLabel('Nom de la pièce')).toHaveValue(expected);
+  expect((await db().doc(`produits/${id}`).get()).get('name')).toBe(expected);
+});
+
 test('variantes : tailles cochées dans une grille, une teinte par coloris, enregistrées en base', async ({ page }) => {
   await signInAdmin(page);
   const { id } = await newProduct(page);

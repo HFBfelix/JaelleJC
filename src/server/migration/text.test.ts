@@ -7,6 +7,12 @@ describe('typographie française des titres (EDITORIAL.md)', () => {
     expect(frenchTitle('COUVERTURE MOUTARDE IMPRIMÉ FLEURS')).toBe('Couverture moutarde imprimé fleurs');
   });
 
+  it('mot avec un chiffre (référence) gardé tel quel', () => {
+    expect(frenchTitle('VESTE T2 KAKI')).toBe('Veste T2 kaki');
+    expect(frenchTitle('E2E créatrice cape')).toBe('E2E créatrice cape');
+    expect(frenchTitle('Coffret N°3B')).toBe('Coffret N°3B');
+  });
+
   it('majuscules de style anglais retirées : la couleur n’est pas un nom', () => {
     expect(frenchTitle('Cabas Imprimé Bleu')).toBe('Cabas imprimé bleu');
     expect(frenchTitle('Résonances Esthétiques')).toBe('Résonances esthétiques');

@@ -11,19 +11,21 @@ export type PieceFacts = { nom: string; variante: string; accroche: string; mati
 const MOMENTS: Partial<Record<EmailKind, string>> = {
   preparation: 'la commande vient de passer en préparation à l’atelier',
   expedition: 'le colis vient de partir de l’atelier',
-  relance1: 'la cliente a laissé ces pièces dans sa sélection hier',
-  relance2: 'la cliente a laissé ces pièces dans sa sélection il y a quelques jours',
-  relance3: 'la sélection de la cliente sera bientôt retirée',
-  avis: 'la cliente a reçu ces pièces il y a deux semaines',
+  relance1: 'ces pièces sont restées dans la sélection depuis hier',
+  relance2: 'ces pièces sont restées dans la sélection depuis quelques jours',
+  relance3: 'la sélection sera bientôt retirée',
+  avis: 'ces pièces ont été reçues il y a deux semaines',
 };
 
 export function personalPrompt(kind: EmailKind): string {
   return `Tu écris pour Jaelle & JC, atelier de couture en Île-de-France (cadeaux de naissance cousus main, petites séries),
-un court paragraphe ajouté à un e-mail déjà rédigé. Moment : ${MOMENTS[kind] ?? 'e-mail à une cliente'}.
+un court paragraphe ajouté à un e-mail déjà rédigé. Moment : ${MOMENTS[kind] ?? 'e-mail à une personne de la clientèle'}.
 
 RÈGLES ABSOLUES
 - N'utilise que les FAITS fournis sur les pièces. N'invente aucune matière, dimension, date, délai, promesse, remise,
-  vertu écologique ou propriété. Ne cite ni prix ni stock. Ne suppose rien sur la cliente ni sur l'occasion.
+  vertu écologique ou propriété. Ne cite ni prix ni stock. Ne suppose rien sur la personne ni sur l'occasion.
+- Écris sans accord de genre pour la personne : ni « ravie » ni « ravi », ni « cher » ni « chère », ni « client » ni
+  « cliente » ; tourne la phrase autrement (« votre pièce », « vous »).
 - 1 ou 2 phrases, ${PERSONAL_MAX} caractères au plus, vouvoiement, ton sobre et chaleureux, aucun point d'exclamation,
   pas de salutation ni de signature (l'e-mail les contient déjà), aucun lien.
 

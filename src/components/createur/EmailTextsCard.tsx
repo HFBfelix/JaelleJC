@@ -58,7 +58,7 @@ export default function EmailTextsCard({ texts, aiAvailable }: { texts: EmailTex
     <Card className="mt-8">
       <h2 className={`${label} mb-4`}>Textes des e-mails</h2>
       <p className="text-[14px] text-neutral-600 mb-6">
-        Objet, titre et texte de chaque e-mail envoyé aux clientes. Le détail de la commande, l’adresse, le suivi du colis
+        Objet, titre et texte de chaque e-mail envoyé à la clientèle. Le détail de la commande, l’adresse, le suivi du colis
         et les liens restent ajoutés automatiquement.
       </p>
       <label className="block mb-6">

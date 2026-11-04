@@ -81,6 +81,11 @@ La section « Les défis de l'industrie » (4 puces génériques) est supprimée
 
 ## 5. Panier, paiement, compte (microtextes)
 
+- **Écriture neutre** (décision de Jaelle, 2026-11-04) : la clientèle compte des hommes et des femmes. Aucun texte ne suppose le genre de la personne : pas de « connectée », « inscrite », « cliente », « ravie », « chère » ; on tourne la phrase (« votre session a été fermée », « à la suite de votre inscription », « la clientèle »). Même règle dans les consignes données à Mistral.
+- **Faisons connaissance** (première visite de « Mon compte », puis « Mon profil ») : *Pour vous saluer par votre nom, sur le site et dans nos e-mails.* ; Civilité (facultatif) : *Madame*, *Monsieur*, *Mademoiselle*, *Ne pas préciser* ; Prénom ; Nom (facultatif) ; enregistré : *C'est noté.*
+- **Salutation** (page « Mon compte » et e-mails) : civilité + nom → *Bonjour Madame Martin* ; sinon prénom → *Bonjour Camille* ; rien → *Bonjour,*. Toujours la personne qui a commandé (son compte), jamais le nom de l'adresse de livraison.
+- **Noms des pièces, univers et familles** : typographie française appliquée à l'enregistrement dans l'Atelier (une capitale initiale ; noms propres et mots avec un chiffre gardés) ; message *Enregistré. Nom harmonisé : « … ».*
+
 - Ajout au panier : *Ajouté à votre sélection*
 - Panier vide : *Votre sélection est vide.* + lien *Découvrir les cadeaux de naissance*
 - Bouton paiement : *Confirmer et payer*

@@ -30,15 +30,19 @@ function htmlParagraphs(body: string, style = '', lastStyle = style) {
 }
 const personalHtml = (personal: string | null) => (personal ? `<p>${escapeText(personal)}</p>` : '');
 
-export type TextOptions = { text?: EmailText; personal?: string | null };
+// `greeting` : nom de la salutation, tiré du compte de la personne qui a commandé (src/server/account/greeting.ts) ;
+// absent : « Bonjour, ». Jamais le nom de l'adresse de livraison (un cadeau peut être envoyé à quelqu'un d'autre).
+export type TextOptions = { text?: EmailText; personal?: string | null; greeting?: string | null };
 // Textes de l'e-mail, mots entre accolades remplacés (« {référence} »).
 function texts(kind: EmailKind, opts: TextOptions, vars: Record<string, string> = {}) {
   const t = opts.text ?? defaultText(kind);
   const fill = (v: string) => fillVars(v, vars);
-  return { subject: oneLine(fill(t.subject)), title: escapeText(fill(t.title)), titleText: fill(t.title), body: fill(t.body), personal: opts.personal ?? null };
+  return { subject: oneLine(fill(t.subject)), title: escapeText(fill(t.title)), titleText: fill(t.title), body: fill(t.body), personal: opts.personal ?? null, greeting: opts.greeting ?? null };
 }
-const plain = (t: { titleText: string; body: string; personal: string | null }) =>
-  [t.titleText, ...paragraphs(t.body), t.personal ?? ''].filter(Boolean);
+const helloText = (greeting: string | null) => `Bonjour${greeting ? ` ${greeting}` : ''},`;
+const hello = (greeting: string | null) => `<p>${escapeHtml(helloText(greeting))}</p>`;
+const plain = (t: { titleText: string; body: string; personal: string | null; greeting?: string | null }, withHello = true) =>
+  [t.titleText, withHello ? helloText(t.greeting ?? null) : '', ...paragraphs(t.body), t.personal ?? ''].filter(Boolean);
 
 const euros = (cents: number) => (cents % 100 === 0 ? String(cents / 100) : (cents / 100).toFixed(2).replace('.', ','));
 
@@ -76,7 +80,7 @@ export function orderConfirmation(order: MailOrder, opts: TextOptions = {}): Ema
 <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;">Commande confirmée</p>
 <h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">${t.title}</h1>
 <p style="color:#666;">Référence : ${escapeHtml(order.reference)}</p>
-<p>Bonjour ${escapeHtml(order.customer.name || '')},</p>
+${hello(t.greeting)}
 ${htmlParagraphs(t.body, 'color:#666;')}${personalHtml(t.personal)}
 ${itemsTable(order)}${giftBlock(order)}
 <div style="background:#F7F7F7;padding:20px;margin-top:24px;">
@@ -94,7 +98,7 @@ export function stockApology(order: MailOrder, opts: TextOptions = {}): EmailMes
   const fixed = 'Un problème est survenu pendant votre paiement. Nous sommes sincèrement désolées.';
   const html = layout(`
 <h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">${stock ? t.title : 'Votre commande n’a pas pu aboutir.'}</h1>
-<p>Bonjour ${escapeHtml(order.customer.name || '')},</p>
+${hello(t.greeting)}
 ${stock ? htmlParagraphs(t.body) : `<p>${fixed}</p>`}
 <p>Votre paiement de ${euros(order.amounts.totalCents)} € vous est intégralement remboursé. Le remboursement apparaît sur votre relevé sous quelques jours, selon votre banque.</p>
 <p style="color:#666;">Référence : ${escapeHtml(order.reference)}</p>`);
@@ -131,7 +135,7 @@ export function orderPreparing(order: MailOrder, opts: TextOptions = {}): EmailM
   const html = layout(`
 <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;">Référence : ${escapeHtml(order.reference)}</p>
 <h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">${t.title}</h1>
-<p>Bonjour ${escapeHtml(order.customer.name || '')},</p>
+${hello(t.greeting)}
 ${htmlParagraphs(t.body)}${personalHtml(t.personal)}
 ${itemsTable(order)}${giftBlock(order)}`);
   const text = [...plain(t), `Référence : ${order.reference}`].join('\n');
@@ -147,7 +151,7 @@ export function orderShipped(order: ShippedOrder, opts: TextOptions = {}): Email
   const html = layout(`
 <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;">Référence : ${escapeHtml(order.reference)}</p>
 <h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">${t.title}</h1>
-<p>Bonjour ${escapeHtml(order.customer.name || '')},</p>
+${hello(t.greeting)}
 ${htmlParagraphs(t.body)}${personalHtml(t.personal)}
 <div style="background:#F7F7F7;padding:20px;margin:24px 0;">
 <p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;margin:0 0 8px;">${escapeHtml(carrier)}</p>
@@ -164,7 +168,7 @@ export function welcome(to: string, origin: string, opts: TextOptions = {}): Ema
   const t = texts('bienvenue', opts);
   const html = layout(`
 <h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:28px;margin:8px 0;">${t.title}</h1>
-<p>Bonjour,</p>
+${hello(t.greeting)}
 ${htmlParagraphs(t.body)}
 <p style="margin:32px 0;"><a href="${escapeHtml(`${origin}/collection`)}" style="background:#000;color:#fff;text-decoration:none;padding:16px 32px;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;">Explorer la collection</a></p>
 <p style="color:#666;">« De belles matières, l'amour de l'artisanat. »</p>`);
@@ -199,11 +203,11 @@ ${piece?.image ? `<tr><td style="padding:32px 32px 0;"><a href="${escapeHtml(pie
 <tr><td style="padding:32px 24px 8px;${serif}font-size:16px;color:#333;">Emballage cadeau avec un mot pour la naissance &nbsp;·&nbsp; Livraison à domicile en France</td></tr>
 <tr><td style="padding:16px 24px;"><a href="${INSTAGRAM_URL}" style="color:#333;${small}text-decoration:none;">Instagram</a></td></tr>
 <tr><td style="padding:0 24px 8px;font-size:13px;"><a href="mailto:contact@jaellejc.com" style="color:#666;">contact@jaellejc.com</a> &nbsp;·&nbsp; <a href="${escapeHtml(origin)}" style="color:#666;">jaellejc.com</a></td></tr>
-<tr><td style="padding:8px 24px 40px;font-size:11px;color:#999;line-height:1.6;">Vous recevez cet e-mail car vous vous êtes inscrit(e) sur jaellejc.com. <a href="${escapeHtml(unsubscribeUrl)}" style="color:#999;">Se désinscrire</a></td></tr>
+<tr><td style="padding:8px 24px 40px;font-size:11px;color:#999;line-height:1.6;">Vous recevez cet e-mail à la suite de votre inscription sur jaellejc.com. <a href="${escapeHtml(unsubscribeUrl)}" style="color:#999;">Se désinscrire</a></td></tr>
 </table>
 </td></tr></table></body></html>`;
   const text = [
-    ...plain(t),
+    ...plain(t, false),
     `Découvrez dès à présent la collection : ${origin}/collection`,
     'À bientôt.',
     `Instagram : ${INSTAGRAM_URL} — contact@jaellejc.com`,
@@ -234,7 +238,7 @@ export function searchAlert(to: string, kind: SearchAlertKind, day: string, coun
   const a = SEARCH_ALERTS[kind];
   const rows = Object.entries(counts).map(([k, n]) => `${k} : ${n}`);
   const html = layout(`${h1(a.subject)}<p>${escapeHtml(a.text)}</p>
-<p>Si ces recherches ne viennent pas de vraies clientes (robots), aucune action n’est nécessaire : la facture reste plafonnée.</p>
+<p>Si ces recherches ne viennent pas de vraies personnes (robots), aucune action n’est nécessaire : la facture reste plafonnée.</p>
 <p style="color:#666;">Compteurs du ${escapeHtml(day)} :<br>${rows.map(escapeHtml).join('<br>')}</p>
 ${button(`${origin}/atelier/reglages`, 'Voir le compteur')}`);
   const text = [a.subject, a.text, `Compteurs du ${day} :`, ...rows, `${origin}/atelier/reglages`].join('\n');
@@ -255,7 +259,7 @@ export function cartReminder(stage: 1 | 2 | 3, to: string, lines: ReminderLine[]
   const list = lines.slice(0, 6).map((l) => `<tr>
 <td width="72" style="padding:8px 12px 8px 0;">${l.image ? `<img src="${escapeHtml(l.image)}" alt="" width="64" style="display:block;border:0;background:#F7F7F7;">` : ''}</td>
 <td style="padding:8px 0;">${escapeHtml(l.name)}${l.variantLabel ? `<br><span style="color:#666;font-size:13px;">${escapeHtml(l.variantLabel)}</span>` : ''}</td></tr>`).join('');
-  const html = followUp(`${h1(t.title)}${htmlParagraphs(t.body)}${personalHtml(t.personal)}
+  const html = followUp(`${h1(t.title)}${hello(t.greeting)}${htmlParagraphs(t.body)}${personalHtml(t.personal)}
 <table width="100%" cellpadding="0" cellspacing="0" style="border-top:0.5px solid #eee;margin-top:16px;">${list}</table>
 ${button(`${origin}/panier`, 'Retrouver ma sélection')}`, optOutUrl);
   const text = [...plain(t), ...lines.slice(0, 6).map((l) => `- ${l.name}${l.variantLabel ? ` (${l.variantLabel})` : ''}`), `${origin}/panier`, `Ne plus recevoir ces messages : ${optOutUrl}`].join('\n');
@@ -264,14 +268,14 @@ ${button(`${origin}/panier`, 'Retrouver ma sélection')}`, optOutUrl);
 
 export function arrivalCheck(to: string, reference: string, optOutUrl: string, opts: TextOptions = {}): EmailMessage {
   const t = texts('arrivee', opts, { référence: reference });
-  const html = followUp(`${h1(t.title)}${htmlParagraphs(t.body)}`, optOutUrl);
+  const html = followUp(`${h1(t.title)}${hello(t.greeting)}${htmlParagraphs(t.body)}`, optOutUrl);
   const text = [...plain({ ...t, personal: null }), `Ne plus recevoir ces messages : ${optOutUrl}`].join('\n');
   return { to, subject: t.subject, html, text };
 }
 
 export function reviewRequest(to: string, reference: string, optOutUrl: string, opts: TextOptions = {}): EmailMessage {
   const t = texts('avis', opts, { référence: reference });
-  const html = followUp(`${h1(t.title)}${htmlParagraphs(t.body)}${personalHtml(t.personal)}`, optOutUrl);
+  const html = followUp(`${h1(t.title)}${hello(t.greeting)}${htmlParagraphs(t.body)}${personalHtml(t.personal)}`, optOutUrl);
   const text = [...plain(t), `Ne plus recevoir ces messages : ${optOutUrl}`].join('\n');
   return { to, subject: t.subject, html, text };
 }

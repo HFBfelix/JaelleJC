@@ -74,7 +74,7 @@ const SiteLayout = ({ categories, children }: { categories: NavCategory[]; child
           </div>
 
           <div className="w-1/3 flex items-center justify-end gap-6">
-            <Link href={isSignedIn ? '/compte' : '/connexion'} aria-label={isSignedIn ? 'Mon compte (connectée)' : 'Mon compte'}
+            <Link href={isSignedIn ? '/compte' : '/connexion'} aria-label={isSignedIn ? 'Mon compte (session ouverte)' : 'Mon compte'}
               className="hover:opacity-50 transition-opacity relative">
               <User size={20} strokeWidth={1} />
               {isSignedIn && <span className="absolute -top-1 -right-1 w-2 h-2 bg-black rounded-full" />}

@@ -111,3 +111,16 @@ describe('une fiche, une couleur (2026-11-04)', () => {
     expect(colorWarnings([r('Noir')], 'm1')).toEqual([]);
   });
 });
+
+describe('typographie des noms à l’enregistrement (2026-11-04)', () => {
+  it('nom de pièce : une capitale initiale, noms propres gardés', async () => {
+    const { productFields } = await import('./logic');
+    const base = { name: '', categoryId: null, subCategory: null, priceCents: 0, accroche: '', histoire: '', description: '', materials: [],
+      entretien: '', details: [], faq: [], limitedEditionSize: null, giftWrap: true, tags: [], usages: [] };
+    const name = (n: string) => productFields.parse({ ...base, name: n }).name;
+    expect(name('VESTE SHERPA KAKI')).toBe('Veste sherpa kaki');
+    expect(name('Cabas Bleu')).toBe('Cabas bleu');
+    expect(name('coffret liberty paris')).toBe('Coffret Liberty Paris');
+    expect(name('Cabas imprimé bleu')).toBe('Cabas imprimé bleu');
+  });
+});

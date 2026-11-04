@@ -22,7 +22,7 @@ export default async function ConnexionPage({ searchParams }: Props) {
     <AuthPage title="Connexion">
       {reauth && <Notice>Par sécurité, reconnectez-vous pour confirmer cette action.</Notice>}
       {params.info === 'mot-de-passe' && (
-        <Notice>Votre mot de passe est enregistré. Par sécurité, vous avez été déconnectée de tous vos appareils : reconnectez-vous avec ce mot de passe.</Notice>
+        <Notice>Votre mot de passe est enregistré. Par sécurité, votre session a été fermée sur tous vos appareils : reconnectez-vous avec ce mot de passe.</Notice>
       )}
       {config ? <SignInForm config={config} retour={retour} /> : <Notice>La connexion est momentanément indisponible.</Notice>}
     </AuthPage>

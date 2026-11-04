@@ -17,6 +17,8 @@ test.beforeEach(async ({ page }, info) => {
 
 test('texte de la relance modifié dans l’Atelier, paragraphe de l’IA ajouté ; mot inconnu refusé ; texte d’origine rétabli', async ({ page }) => {
   const client = await createUser();
+  // Profil posé comme par « Faisons connaissance » : la relance salue « Madame Martin ».
+  await db().doc(`users/${client.uid}`).set({ civilite: 'madame', prenom: 'Camille', nom: 'Martin' }, { merge: true });
   const cart = db().doc(`carts/u_${client.uid}`);
   await cart.set({ tokenHash: null, userId: client.uid, items: [{ productId: FIXTURE.buy.id, variantId: 'unique', quantity: 1 }],
     updatedAt: Timestamp.fromMillis(Date.now() - 1.5 * DAY), expiresAt: Timestamp.fromMillis(Date.now() + 5 * DAY) });
@@ -49,7 +51,7 @@ test('texte de la relance modifié dans l’Atelier, paragraphe de l’IA ajout�
   await expect(main(page).getByText(/^Envois terminés/)).toBeVisible({ timeout: 60_000 });
   const [mail] = await inbox(client.email);
   expect(mail!.subject).toBe('Vos pièces vous attendent à l’atelier');
-  expect(mail!.text).toContain('Vos pièces vous attendent.\nÀ très vite.');
+  expect(mail!.text).toContain('Bonjour Madame Martin,\nVos pièces vous attendent.\nÀ très vite.');
   expect(mail!.text).toContain(`Paragraphe de l’IA sur ${FIXTURE.buy.name}.`);
 
   // Seuls des faits du catalogue partent chez Mistral : ni l'adresse de la cliente ni son identifiant.

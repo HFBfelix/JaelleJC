@@ -6,6 +6,7 @@ import 'server-only';
 import type { NewOrder, OrderEmails } from '../checkout/logic';
 import { COLLECTIONS, order as orderSchema } from '../db/schema';
 import { sendEmail, shopNotificationAddress } from '../emails/sender';
+import { greetingFor } from '../account/profile';
 import { personalParagraph, piecesFacts } from '../emails/personal';
 import { loadEmailTexts } from '../emails/settings';
 import { orderConfirmation, orderPreparing, orderShipped, shopNotification, stockApology, type EmailMessage } from '../emails/templates';
@@ -17,13 +18,14 @@ type Field = keyof OrderEmails;
 export type MailableOrder = Omit<NewOrder, 'tracking'> & { tracking: { carrier: string; number: string; url: string } | null };
 
 // E-mail de chaque champ « en_attente » ; null si la commande ne permet pas de l'écrire (suivi absent…).
-// Textes réglés dans l'Atelier ; paragraphe personnalisé seulement pour « en préparation » et « colis en route ».
-export function emailFor(field: Field, order: MailableOrder, texts: EmailTexts = defaultTexts(), personal: string | null = null): EmailMessage | null {
+// Textes réglés dans l'Atelier ; paragraphe personnalisé seulement pour « en préparation » et « colis en route » ;
+// salutation tirée du compte de la personne qui a commandé (`greeting`), jamais de l'adresse de livraison.
+export function emailFor(field: Field, order: MailableOrder, texts: EmailTexts = defaultTexts(), personal: string | null = null, greeting: string | null = null): EmailMessage | null {
   switch (field) {
-    case 'cliente': return order.status === 'refunded' ? stockApology(order, { text: texts.excuses }) : orderConfirmation(order, { text: texts.confirmation });
+    case 'cliente': return order.status === 'refunded' ? stockApology(order, { text: texts.excuses, greeting }) : orderConfirmation(order, { text: texts.confirmation, greeting });
     case 'boutique': return shopNotification(order, shopNotificationAddress());
-    case 'preparation': return orderPreparing(order, { text: texts.preparation, personal });
-    case 'expedition': return order.tracking ? orderShipped({ ...order, tracking: order.tracking }, { text: texts.expedition, personal }) : null;
+    case 'preparation': return orderPreparing(order, { text: texts.preparation, personal, greeting });
+    case 'expedition': return order.tracking ? orderShipped({ ...order, tracking: order.tracking }, { text: texts.expedition, personal, greeting }) : null;
   }
 }
 
@@ -39,10 +41,11 @@ async function sendPending(orderId: string, order: MailableOrder) {
   const pending: Partial<OrderEmails> = order.emails ?? { cliente: 'en_attente', boutique: 'en_attente' };
   if (!FIELDS.some((f) => pending[f] === 'en_attente')) return;
   const texts = await loadEmailTexts();
+  const greeting = await greetingFor(order.userId);
   for (const field of FIELDS) {
     if (pending[field] !== 'en_attente') continue;
     try {
-      const message = emailFor(field, order, texts, await personalFor(field, order, texts));
+      const message = emailFor(field, order, texts, await personalFor(field, order, texts), greeting);
       if (message && (await sendEmail(message)) === 'envoye') await ref.update({ [`emails.${field}`]: 'envoye' });
     } catch {
       console.error(`commande : e-mail « ${field} » non envoyé`); // ni adresse ni contenu dans le journal

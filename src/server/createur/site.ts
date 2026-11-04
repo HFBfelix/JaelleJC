@@ -5,6 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import { z } from 'zod';
 import { COLLECTIONS, categorie, deliverySettings } from '../db/schema';
 import { adminDb } from '../firebase/admin';
+import { frenchTitle } from '../migration/text';
 import { slugify } from './logic';
 import { audit, listCategoriesAdmin, listProductsAdmin } from './products';
 import { listStocks } from './orders';
@@ -35,10 +36,11 @@ export async function todo() {
 const text = (max: number) => z.string().trim().max(max);
 export const categoryInput = z.strictObject({
   slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80).optional(), // absent : nouvelle catégorie
-  name: text(60).min(1),
+  // Noms d'univers et de familles : typographie française (« sacs » → « Sacs »), appliquée par le serveur.
+  name: text(60).min(1).transform(frenchTitle),
   order: z.number().int().min(0).max(999),
   intro: text(1000),
-  subs: z.array(z.strictObject({ slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80).optional(), name: text(60).min(1) })).max(20),
+  subs: z.array(z.strictObject({ slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80).optional(), name: text(60).min(1).transform(frenchTitle) })).max(20),
 });
 
 export async function saveCategory(uid: string, input: z.infer<typeof categoryInput>): Promise<'ok' | 'introuvable' | 'doublon'> {

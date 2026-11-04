@@ -35,7 +35,7 @@ test('lien de connexion : compte créé au premier lien, session serveur, icône
   await page.goto(await signInLinkFor(email, baseURL!));
   await expect(page).toHaveURL(/\/compte$/);
   await expect(main(page).getByText(email)).toBeVisible();
-  await expect(accountIcon(page)).toHaveAccessibleName('Mon compte (connectée)');
+  await expect(accountIcon(page)).toHaveAccessibleName('Mon compte (session ouverte)');
 
   const session = (await page.context().cookies()).find((c) => c.name === '__session');
   expect(session).toMatchObject({ httpOnly: true, path: '/' });
@@ -186,10 +186,12 @@ test('mot de passe choisi depuis le compte : tous les appareils déconnectés, p
   await expect(tablet).toHaveURL(/\/compte$/);
 
   await page.waitForTimeout(1100); // révocation à la seconde près (voir le test de déconnexion)
-  await main(page).getByLabel('Nouveau mot de passe').fill('court');
-  await expect(main(page).getByRole('button', { name: 'Enregistrer' })).toBeDisabled();
-  await main(page).getByLabel('Nouveau mot de passe').fill('Nouveau-mdp-2026');
-  await main(page).getByRole('button', { name: 'Enregistrer' }).click();
+  // Formulaire du mot de passe (la page a aussi le bouton « Enregistrer » du profil, 2026-11-04).
+  const passwordForm = main(page).locator('form').filter({ has: page.getByLabel('Nouveau mot de passe') });
+  await passwordForm.getByLabel('Nouveau mot de passe').fill('court');
+  await expect(passwordForm.getByRole('button', { name: 'Enregistrer' })).toBeDisabled();
+  await passwordForm.getByLabel('Nouveau mot de passe').fill('Nouveau-mdp-2026');
+  await passwordForm.getByRole('button', { name: 'Enregistrer' }).click();
   await expect(page).toHaveURL(/\/connexion\?retour=\/compte&info=mot-de-passe$/);
   await expect(main(page).getByRole('status')).toContainText('Votre mot de passe est enregistré.');
 

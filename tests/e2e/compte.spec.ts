@@ -286,3 +286,35 @@ test.describe('préremplissage du paiement (faux Stripe)', () => {
     expect((await db().doc(`stripeCustomers/${user.uid}`).get()).exists).toBe(false);
   });
 });
+
+test('faisons connaissance : prénom puis civilité et nom ; salutation adaptée ; jamais écrit par le navigateur', async ({ page }) => {
+  const user = await signIn(page);
+  const intro = main(page).getByRole('region', { name: 'Faisons connaissance' });
+  await expect(intro).toBeVisible();
+  await expect(main(page).getByText(/^Bonjour/)).toHaveCount(0);
+
+  // Prénom seul : « Bonjour Camille ».
+  await intro.getByLabel('Prénom').fill('Camille');
+  await intro.getByRole('button', { name: 'Enregistrer' }).click();
+  await expect(main(page).getByText('Bonjour Camille', { exact: true })).toBeVisible();
+  const profile = main(page).getByRole('region', { name: 'Mon profil' });
+  await expect(profile).toBeVisible();
+
+  // Civilité + nom : « Bonjour Madame Martin ».
+  await profile.getByLabel('Civilité (facultatif)').selectOption({ label: 'Madame' });
+  await profile.getByLabel('Nom (facultatif)').fill('Martin');
+  await profile.getByRole('button', { name: 'Enregistrer' }).click();
+  await expect(main(page).getByText('Bonjour Madame Martin', { exact: true })).toBeVisible();
+  expect((await db().doc(`users/${user.uid}`).get()).data()).toMatchObject({ civilite: 'madame', prenom: 'Camille', nom: 'Martin' });
+
+  // « Ne pas préciser » : retour au prénom.
+  await profile.getByLabel('Civilité (facultatif)').selectOption({ label: 'Ne pas préciser' });
+  await profile.getByRole('button', { name: 'Enregistrer' }).click();
+  await expect(main(page).getByText('Bonjour Camille', { exact: true })).toBeVisible();
+
+  // L'export des données contient le profil.
+  const download = page.waitForEvent('download');
+  await main(page).getByRole('button', { name: /Télécharger mes données/ }).click();
+  const file = await readFile((await (await download).path())!, 'utf8');
+  expect(JSON.parse(file).profil).toMatchObject({ civilite: 'non-precise', prenom: 'Camille', nom: 'Martin' });
+});

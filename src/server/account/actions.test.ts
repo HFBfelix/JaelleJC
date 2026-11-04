@@ -10,14 +10,16 @@ const mocks = vi.hoisted(() => ({
   deleteAccount: vi.fn(),
   deleteCookie: vi.fn(),
   redirect: vi.fn(),
+  saveProfile: vi.fn(),
 }));
 vi.mock('../auth/session', () => ({ getSessionUser: mocks.getSessionUser }));
 vi.mock('./addresses', () => ({ saveAddress: mocks.saveAddress, deleteAddress: mocks.deleteAddress }));
 vi.mock('./data', () => ({ exportData: mocks.exportData, deleteAccount: mocks.deleteAccount }));
+vi.mock('./profile', () => ({ saveProfile: mocks.saveProfile }));
 vi.mock('next/headers', () => ({ cookies: async () => ({ delete: mocks.deleteCookie }) }));
 vi.mock('next/navigation', () => ({ redirect: mocks.redirect }));
 
-const { deleteAccountAction, deleteAddressAction, exportDataAction, saveAddressAction } = await import('./actions');
+const { deleteAccountAction, deleteAddressAction, exportDataAction, saveAddressAction, saveProfileAction } = await import('./actions');
 const nowS = () => Math.floor(Date.now() / 1000);
 const user = (authTime = nowS()) => ({ uid: 'u1', email: 'a@exemple.test', admin: false, authTime });
 const address = { label: '', name: 'Camille', line1: '1 rue A', line2: '', zipCode: '75001', city: 'Paris', phone: '' };
@@ -114,5 +116,27 @@ describe('suppression du compte', () => {
     expect(await deleteAccountAction({ confirm: true })).toBe('erreur');
     expect(spy).toHaveBeenCalledWith('compte : suppression interrompue');
     spy.mockRestore();
+  });
+});
+
+describe('profil : civilité, prénom, nom', () => {
+  const valid = { civilite: 'madame', prenom: 'Camille', nom: 'Martin' };
+  it('anonyme : refusé, rien d’écrit', async () => {
+    mocks.getSessionUser.mockResolvedValue(null);
+    expect(await saveProfileAction(valid)).toBe('connexion');
+    expect(mocks.saveProfile).not.toHaveBeenCalled();
+  });
+  it('saisie piégée ou incomplète : refusée avant toute écriture', async () => {
+    mocks.getSessionUser.mockResolvedValue({ uid: 'u1', email: 'a@exemple.fr' });
+    for (const input of [{ ...valid, prenom: '' }, { ...valid, civilite: 'docteur' }, { ...valid, nom: 'x'.repeat(81) },
+      { ...valid, prenom: '<b>Camille</b>' }, { ...valid, prenom: 'A\nB' }, { ...valid, uid: 'autre' }, null]) {
+      expect(await saveProfileAction(input)).toBe('invalide');
+    }
+    expect(mocks.saveProfile).not.toHaveBeenCalled();
+  });
+  it('enregistré pour le compte de la session, jamais un autre', async () => {
+    mocks.getSessionUser.mockResolvedValue({ uid: 'u1', email: 'a@exemple.fr' });
+    expect(await saveProfileAction({ civilite: null, prenom: ' Camille ', nom: '' })).toBe('ok');
+    expect(mocks.saveProfile).toHaveBeenCalledWith('u1', { civilite: null, prenom: 'Camille', nom: '' });
   });
 });

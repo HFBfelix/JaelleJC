@@ -8,9 +8,26 @@ import { SENSITIVE_ACTION_SECONDS, SESSION_COOKIE, isRecent } from '../auth/poli
 import { getSessionUser } from '../auth/session';
 import { deleteAddress, saveAddress } from './addresses';
 import { deleteAccount, exportData, type DeleteResult } from './data';
+import { profileInput } from './greeting';
 import { deleteAccountInput, deleteAddressInput, saveAddressInput } from './logic';
+import { saveProfile } from './profile';
 
 export type AddressResult = 'ok' | 'plein' | 'introuvable' | 'invalide' | 'connexion' | 'erreur';
+
+// Civilité, prénom, nom (« Faisons connaissance », puis « Mon compte ») : seulement pour son propre compte.
+export async function saveProfileAction(input: unknown): Promise<'ok' | 'invalide' | 'connexion' | 'erreur'> {
+  const parsed = profileInput.safeParse(input);
+  if (!parsed.success) return 'invalide';
+  const user = await getSessionUser();
+  if (!user) return 'connexion';
+  try {
+    await saveProfile(user.uid, parsed.data);
+    return 'ok';
+  } catch {
+    console.error('compte : profil non enregistré'); // ni prénom ni nom dans le journal
+    return 'erreur';
+  }
+}
 
 export async function saveAddressAction(input: unknown): Promise<AddressResult> {
   const parsed = saveAddressInput.safeParse(input);

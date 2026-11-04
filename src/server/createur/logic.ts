@@ -2,6 +2,7 @@
 // avant publication, slug et SKU. Montants en centimes. Aucune de ces fonctions ne lit ni n'écrit en base.
 import { z } from 'zod';
 import { produit, variante, type Categorie, type Produit, type Variante } from '../db/schema';
+import { frenchTitle } from '../migration/text';
 
 export const PHOTO_MAX_BYTES = 4 * 1024 * 1024; // après réduction dans le navigateur (limite Vercel : 4,5 Mo)
 export const PHOTOS_MAX = 12;
@@ -14,7 +15,9 @@ const slugSchema = z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80);
 
 // Saisie d'une fiche (étapes 2, 3 et 5). Brouillon : champs vides permis ; la liste de contrôle décide de la publication.
 export const productFields = z.strictObject({
-  name: text(120).min(1),
+  // Typographie française des noms (EDITORIAL.md, décision de Jaelle 2026-11-04) : une capitale initiale, le reste en
+  // minuscules sauf noms propres (« VESTE SHERPA KAKI » → « Veste sherpa kaki »), appliquée par le serveur.
+  name: text(120).min(1).transform(frenchTitle),
   // Référence (SKU) : lettres, chiffres, tirets, points ; en capitales ; vide = pas encore saisie. Unicité vérifiée à l'enregistrement.
   sku: z.string().trim().toUpperCase().regex(/^([A-Z0-9][A-Z0-9._-]{0,39})?$/).optional(),
   slug: slugSchema.optional(), // modifiable tant que la pièce n'a jamais été publiée

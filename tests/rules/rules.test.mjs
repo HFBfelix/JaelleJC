@@ -177,6 +177,10 @@ test('profil : la cliente ne peut pas se donner de droits ni ajouter de champ in
   await assertFails(updateDoc(doc(db(cliente), 'users', 'cliente-uid'), { admin: true }));
   await assertFails(updateDoc(doc(db(cliente), 'users', 'cliente-uid'), { role: 'admin' }));
   await assertFails(updateDoc(doc(db(cliente), 'users', 'cliente-uid'), { displayName: 'x'.repeat(101) }));
+  // Civilité, prénom, nom (2026-11-04) : écrits par le serveur seulement (Server Action validée).
+  for (const field of ['civilite', 'prenom', 'nom']) {
+    await assertFails(updateDoc(doc(db(cliente), 'users', 'cliente-uid'), { [field]: 'x' }));
+  }
 });
 
 test('profil : la cliente ne supprime pas son profil depuis le navigateur', async () => {

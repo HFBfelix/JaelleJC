@@ -29,7 +29,10 @@ export async function exportData(uid: string, email: string | null) {
     exporteLe: new Date().toISOString(),
     compte: { email: account.email ?? null, creeLe: account.metadata.creationTime ?? null, derniereConnexion: account.metadata.lastSignInTime ?? null },
     profil: profile.exists
-      ? { nom: profile.get('displayName') ?? '', telephone: profile.get('phone') ?? '', creeLe: iso(profile.get('createdAt')) }
+      ? {
+        civilite: profile.get('civilite') ?? null, prenom: profile.get('prenom') ?? '', nom: profile.get('nom') ?? profile.get('displayName') ?? '',
+        telephone: profile.get('phone') ?? '', creeLe: iso(profile.get('createdAt')),
+      }
       : null,
     adresses: addresses.map(withoutId),
     commandes: orders.map((o) => ({ ...o, createdAt: o.createdAt?.toISOString() ?? null })),

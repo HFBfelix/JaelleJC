@@ -42,7 +42,7 @@ export default function AutomationsCard({ arrivalDays, lastRun }: { arrivalDays:
     <Card className="mt-8">
       <h2 className={`${label} mb-4`}>E-mails automatiques</h2>
       <p className="text-[14px] text-neutral-600 mb-6">
-        Chaque matin : relance d’un panier non payé (clientes avec un compte) à J+1, J+3 et J+5 ; « Votre colis est-il bien
+        Chaque matin : relance d’un panier non payé (personnes ayant un compte) à J+1, J+3 et J+5 ; « Votre colis est-il bien
         arrivé ? » après l’expédition ; demande d’avis 14 jours après la livraison. Chaque e-mail permet de ne plus en recevoir.
       </p>
       <div className="flex items-end gap-4 max-w-md">

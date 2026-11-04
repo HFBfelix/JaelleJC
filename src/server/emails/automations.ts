@@ -8,6 +8,7 @@ import { readOffers } from '../cart/repository';
 import { COLLECTIONS } from '../db/schema';
 import { adminAuth, adminDb } from '../firebase/admin';
 import { ARRIVAL_DAYS_DEFAULT, arrivalDue, reminderStage, reviewDue, stageToSend } from './automations-logic';
+import { greetingFor } from '../account/profile';
 import { personalParagraph, piecesFacts } from './personal';
 import { isOptedOut, optOutUrl } from './prefs';
 import { sendEmail } from './sender';
@@ -54,7 +55,8 @@ async function cartReminders(origin: string, now: Date, texts: EmailTexts, s: Au
       if (previous === null) continue;
       const text = texts[`relance${due}`];
       const personal = text.personal ? await personalParagraph(`relance${due}`, await piecesFacts(lines).catch(() => [])) : null;
-      const result = await sendEmail(cartReminder(due, user.email, lines, origin, await optOutUrl(user.email, origin), { text, personal }));
+      const greeting = await greetingFor(uid);
+      const result = await sendEmail(cartReminder(due, user.email, lines, origin, await optOutUrl(user.email, origin), { text, personal, greeting }));
       if (result === 'envoye') s.relances++;
       else { s.echecs++; await mark.set({ uid, stage: previous }, { merge: true }); } // nouvel essai au prochain passage
     } catch {
@@ -83,7 +85,8 @@ async function orderFollowUps(origin: string, now: Date, arrivalDays: number, te
         const text = texts[field];
         const items = (o.get('items') ?? []) as { productId: string; name: string; variantLabel: string }[];
         const personal = text.personal ? await personalParagraph(field, await piecesFacts(items).catch(() => [])) : null;
-        const result = await sendEmail(template(email, reference, await optOutUrl(email, origin), { text, personal }));
+        const greeting = await greetingFor(o.get('userId') as string | null); // commande détachée (compte supprimé) : « Bonjour, »
+        const result = await sendEmail(template(email, reference, await optOutUrl(email, origin), { text, personal, greeting }));
         if (result === 'envoye') {
           await o.ref.update({ [`emails.${field}`]: 'envoye' });
           s[field === 'arrivee' ? 'arrivees' : 'avis']++;
