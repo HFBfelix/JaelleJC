@@ -3,7 +3,7 @@ import { lineKey } from '../cart/logic';
 import type { CartItem, Offer } from '../cart/types';
 import type { CheckoutSnapshot } from '../db/schema';
 import {
-  allocate, amountsOf, buildOrder, checkoutInput, frenchPhone, matchesSnapshot, normalizeGift, orderReference, paidSession,
+  allocate, amountsOf, buildOrder, checkoutInput, frenchPhone, isMetropolitanZip, matchesSnapshot, normalizeGift, orderReference, paidSession,
   prepareLines, shippingOption, stripeLineItems, withoutPurchased, type CheckoutLine,
 } from './logic';
 
@@ -21,7 +21,7 @@ const line = (productId: string, quantity: number, unitPriceCents = 4500): Check
 describe('entrée du navigateur au clic « Payer »', () => {
   const shipping = { name: 'C', line1: '1 rue A', line2: '', zipCode: '75001', city: 'Paris', phone: '0612345678' };
   it('option cadeau, adresse de livraison et choix de l’enregistrer', () => {
-    expect(checkoutInput.safeParse({ gift: { wrap: true, message: 'Bienvenue' }, shipping, saveAddress: false }).success).toBe(true);
+    expect(checkoutInput.safeParse({ gift: { wrap: true, message: 'Bienvenue' }, shipping, saveAddress: false, forOther: false }).success).toBe(true);
   });
 
   it.each([
@@ -130,6 +130,20 @@ describe('commande', () => {
       shipping: { line1: '10 Rue Léon Blum', line2: 'Bât. B', zipCode: '92100', city: 'Boulogne-Billancourt', country: 'FR' },
       customer: { name: 'Lou Test', phone: '+33700000001', email: 'cliente@exemple.fr' },
     });
+  });
+
+  it('cadeau livré à une autre personne (2026-11-04) : acheteur et destinataire gardés séparément', () => {
+    const shipping = { name: 'Lou Destinataire', line1: '10 Rue Léon Blum', line2: '', zipCode: '92100', city: 'Boulogne-Billancourt', phone: '+33700000001' };
+    const buyer = { name: 'Camille Martin', phone: '+33612345678' };
+    expect(buildOrder(session, { ...snap, shipping, buyer }, 'evt_1', 'paid', 'R')).toMatchObject({
+      customer: { name: 'Camille Martin', phone: '+33612345678', email: 'cliente@exemple.fr' },
+      shipping: { name: 'Lou Destinataire', phone: '+33700000001', zipCode: '92100', country: 'FR' },
+    });
+  });
+
+  it('livraison : France métropolitaine (Corse comprise), jamais l’outre-mer', () => {
+    for (const zip of ['75001', '20000', '20200', '13001', '59000']) expect(isMetropolitanZip(zip)).toBe(true);
+    for (const zip of ['97100', '97400', '97600', '98000', '98800', '7500', 'ABCDE']) expect(isMetropolitanZip(zip)).toBe(false);
   });
 
   it('référence lisible, sans caractère ambigu', () => {

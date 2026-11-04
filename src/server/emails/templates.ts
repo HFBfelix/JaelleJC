@@ -63,7 +63,13 @@ function itemsTable(order: MailOrder) {
 <tr><td style="padding-top:12px;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;font-weight:600;">Total</td><td align="right" style="padding-top:12px;font-size:20px;">${euros(order.amounts.totalCents)} €</td></tr></table>`;
 }
 
-const address = (order: MailOrder) => [order.customer.name, order.shipping.line1, order.shipping.line2,
+// Adresse au nom du destinataire (`shipping.name`, depuis le 2026-11-04) ; commandes d'avant : nom de `customer`.
+type ShippingWithRecipient = MailOrder['shipping'] & { name?: string; phone?: string };
+const recipient = (order: MailOrder) => {
+  const ship = order.shipping as ShippingWithRecipient;
+  return { name: ship.name || order.customer.name, phone: ship.phone || order.customer.phone };
+};
+const address = (order: MailOrder) => [recipient(order).name, order.shipping.line1, order.shipping.line2,
   `${order.shipping.zipCode} ${order.shipping.city}`.trim()].filter(Boolean).map(escapeHtml).join('<br>');
 
 function giftBlock(order: MailOrder) {
@@ -113,7 +119,10 @@ export function shopNotification(order: MailOrder, shopEmail: string): EmailMess
 <h1 style="font-family:'Crimson Pro',Georgia,serif;font-weight:400;font-size:24px;margin:8px 0;">${refunded ? 'Commande remboursée automatiquement' : 'Nouvelle commande'}</h1>
 <p>Référence : ${escapeHtml(order.reference)}${refunded ? ` — motif : ${order.refund?.reason === 'stock' ? 'stock insuffisant' : 'montant inattendu'}` : ''}</p>
 ${itemsTable(order)}${giftBlock(order)}
-<p>${address(order)}<br>Téléphone : ${escapeHtml(order.customer.phone || 'non renseigné')}<br>E-mail : ${escapeHtml(order.customer.email)}</p>`);
+<p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;margin:24px 0 4px;">Livraison</p>
+<p style="margin:0;">${address(order)}<br>Téléphone : ${escapeHtml(recipient(order).phone || 'non renseigné')}</p>
+<p style="font-size:11px;text-transform:uppercase;letter-spacing:0.12em;color:#999;margin:24px 0 4px;">Commande passée par</p>
+<p style="margin:0;">${escapeHtml(order.customer.name || 'non renseigné')}<br>Téléphone : ${escapeHtml(order.customer.phone || 'non renseigné')}<br>E-mail : ${escapeHtml(order.customer.email)}</p>`);
   const text = `${refunded ? 'Commande remboursée' : 'Nouvelle commande'} ${order.reference} : ${euros(order.amounts.totalCents)} €.`;
   return { to: shopEmail, subject: oneLine(`${refunded ? 'Remboursement' : 'Nouvelle commande'} — ${order.reference}`), html, text };
 }

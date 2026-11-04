@@ -2,6 +2,7 @@
 import { randomUUID } from 'node:crypto';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 
 const PROJECT = process.env.FIREBASE_PROJECT_ID ?? 'demo-jaellejc';
 // Mot de passe tiré au hasard à chaque lancement (aucune valeur fixe dans le dépôt).
@@ -15,10 +16,15 @@ function auth() {
 
 export const newEmail = () => `e2e-${randomUUID().slice(0, 8)}@exemple.test`;
 
-export async function createUser({ admin = false, password = PASSWORD, emailVerified = true } = {}) {
+// Coordonnées complètes d'un compte existant (obligatoires avant le paiement depuis le 2026-11-04). `profile: false` :
+// compte tout neuf, sans coordonnées (parcours « Faisons connaissance » / « Vos coordonnées »).
+export const TEST_PROFILE = { civilite: 'madame', prenom: 'Camille', nom: 'Test', telephone: '+33600000000' } as const;
+
+export async function createUser({ admin = false, password = PASSWORD, emailVerified = true, profile = true } = {}) {
   const email = newEmail();
   const user = await auth().createUser({ email, password, emailVerified });
   if (admin) await auth().setCustomUserClaims(user.uid, { admin: true });
+  if (profile && !admin) await getFirestore(getApps()[0]!).doc(`users/${user.uid}`).set({ ...TEST_PROFILE });
   return { uid: user.uid, email, password };
 }
 

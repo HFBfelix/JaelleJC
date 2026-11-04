@@ -18,8 +18,8 @@ test.beforeEach(async ({ page }, info) => {
   await page.addInitScript(() => localStorage.setItem('jaellejc-cookies', 'none'));
 });
 
-async function signIn(page: Page) {
-  const user = await createUser();
+async function signIn(page: Page, { profile = true } = {}) {
+  const user = await createUser({ profile });
   await page.goto('/connexion');
   await main(page).getByLabel('Votre e-mail').fill(user.email);
   await main(page).getByRole('button', { name: 'Utiliser un mot de passe' }).click();
@@ -167,7 +167,7 @@ test('export : un fichier avec le compte, les adresses et les commandes de la se
   expect(data.compte.email).toBe(user.email);
   expect(data.adresses).toEqual([expect.objectContaining({ line1: '5 rue Export', zipCode: '69001' })]);
   expect(data.commandes.map((o: { reference: string }) => o.reference)).toEqual(['JJC-261030-MOIE']);
-  expect(data.commandes[0].contact).toEqual({ email: 'x@exemple.test', phone: '' });
+  expect(data.commandes[0].contact).toEqual({ name: 'Camille Test', email: 'x@exemple.test', phone: '' }); // personne qui a commandé
   expect(JSON.stringify(data)).not.toContain(otherUser.uid);
 });
 
@@ -224,7 +224,7 @@ test.describe('préremplissage du paiement (faux Stripe)', () => {
     return sessionParams(page.url().split('/pay/')[1]!);
   }
 
-  test('livraison confirmée avant Stripe : adresse du compte préremplie, téléphone exigé, nouvelle adresse enregistrée à la demande ; suppression : client effacé', async ({ page }) => {
+  test('livraison confirmée avant Stripe : résumé avec l’adresse du compte, cadeau à une autre personne enregistré à la demande ; suppression : client effacé', async ({ page }) => {
     const user = await signIn(page);
     await addAddress(page, { label: 'Grands-parents', name: 'Dominique Test', line1: '9 place du Marché', zipCode: '78000', city: 'Versailles' });
     await page.goto(`/produits/${FIXTURE.buy.slug}`);
@@ -233,14 +233,12 @@ test.describe('préremplissage du paiement (faux Stripe)', () => {
 
     await page.goto('/panier');
     const form = main(page).getByRole('group', { name: 'Livraison' });
-    await expect(form.getByLabel('Nom et prénom')).toHaveValue('Dominique Test'); // première adresse du compte
-    await expect(form.getByLabel('Code postal')).toHaveValue('78000');
-    // Téléphone vide : le navigateur bloque l'envoi, aucune session Stripe.
-    const count = async () => ((await (await fetch(`${FAKE}/__test/count`)).json()) as { sessions: number }).sessions;
-    const before = await count();
-    await main(page).getByRole('button', { name: 'Confirmer et payer' }).click();
-    expect(await count()).toBe(before);
-    await form.getByLabel('Téléphone').fill('06 11 22 33 44');
+    // Compte complet avec une adresse : simple résumé, au nom et au téléphone du profil (pas de saisie).
+    const summary = form.getByLabel('Adresse de livraison');
+    await expect(summary).toContainText('Camille Test');
+    await expect(summary).toContainText('78000 Versailles');
+    await expect(summary).toContainText('+33 6 00 00 00 00');
+    await expect(form.getByLabel('Code postal')).toHaveCount(0);
 
     const withAddress = await pay(page);
     expect(withAddress.customer).toMatch(/^cus_/);
@@ -248,21 +246,23 @@ test.describe('préremplissage du paiement (faux Stripe)', () => {
     expect(withAddress['line_items[0][price_data][unit_amount]']).toBe(String(FIXTURE.buy.priceCents));
     const c = await customer(withAddress.customer!);
     expect(c.params).toMatchObject({
-      email: user.email, phone: '+33611223344', 'shipping[name]': 'Dominique Test', 'shipping[address][line1]': '9 Place du Marché', // écriture officielle (Base Adresse Nationale)
+      email: user.email, phone: '+33600000000', 'shipping[name]': 'Camille Test', 'shipping[address][line1]': '9 Place du Marché', // écriture officielle (Base Adresse Nationale)
       'shipping[address][postal_code]': '78000', 'shipping[address][city]': 'Versailles', 'shipping[address][country]': 'FR',
-      'shipping[phone]': '+33611223344', 'metadata[uid]': user.uid,
+      'shipping[phone]': '+33600000000', 'metadata[uid]': user.uid,
     });
     expect((await db().doc(`stripeCustomers/${user.uid}`).get()).get('customerId')).toBe(withAddress.customer);
     expect((await db().collection(`users/${user.uid}/adresses`).get()).size).toBe(1); // non enregistrée sans demande
 
-    // Nouvelle adresse, enregistrée à la demande ; même client Stripe, mis à jour.
+    // Cadeau livré à une autre personne, nouvelle adresse enregistrée à la demande ; même client Stripe, mis à jour.
     await page.goto('/panier');
+    await form.getByLabel('Cadeau livré à une autre personne').check();
     await form.getByLabel('Mes adresses').selectOption({ label: 'Nouvelle adresse' });
-    await form.getByLabel('Nom et prénom').fill('Lou Test');
+    await form.getByLabel('Prénom du destinataire').fill('Lou');
+    await form.getByLabel('Nom du destinataire', { exact: true }).fill('Test');
+    await form.getByLabel('Téléphone du destinataire').fill('7 00 00 00 01');
     await form.getByLabel('Adresse', { exact: true }).fill('3 rue Neuve');
     await form.getByLabel('Code postal').fill('69001');
     await form.getByLabel('Ville').fill('Lyon');
-    await form.getByLabel('Téléphone').fill('+33 7 00 00 00 01');
     await form.getByLabel('Enregistrer cette adresse dans mon compte').check();
     const again = await pay(page);
     expect(again.customer).toBe(withAddress.customer);
@@ -287,34 +287,38 @@ test.describe('préremplissage du paiement (faux Stripe)', () => {
   });
 });
 
-test('faisons connaissance : prénom puis civilité et nom ; salutation adaptée ; jamais écrit par le navigateur', async ({ page }) => {
-  const user = await signIn(page);
+test('faisons connaissance : civilité, prénom, nom et téléphone obligatoires ; salutation adaptée ; export', async ({ page }) => {
+  const user = await signIn(page, { profile: false });
   const intro = main(page).getByRole('region', { name: 'Faisons connaissance' });
   await expect(intro).toBeVisible();
   await expect(main(page).getByText(/^Bonjour/)).toHaveCount(0);
 
-  // Prénom seul : « Bonjour Camille ».
+  // Tant qu'un champ manque, rien ne s'enregistre.
   await intro.getByLabel('Prénom').fill('Camille');
+  await expect(intro.getByRole('button', { name: 'Enregistrer' })).toBeDisabled();
+  await intro.getByLabel('Civilité').selectOption({ label: 'Madame' });
+  await intro.getByLabel('Nom', { exact: true }).fill('Martin');
+  await expect(intro.getByText('+33')).toBeVisible(); // indicatif français affiché devant le numéro
+  await intro.getByLabel('Téléphone').fill('06 12 34 56 78');
   await intro.getByRole('button', { name: 'Enregistrer' }).click();
-  await expect(main(page).getByText('Bonjour Camille', { exact: true })).toBeVisible();
-  const profile = main(page).getByRole('region', { name: 'Mon profil' });
-  await expect(profile).toBeVisible();
-
-  // Civilité + nom : « Bonjour Madame Martin ».
-  await profile.getByLabel('Civilité (facultatif)').selectOption({ label: 'Madame' });
-  await profile.getByLabel('Nom (facultatif)').fill('Martin');
-  await profile.getByRole('button', { name: 'Enregistrer' }).click();
   await expect(main(page).getByText('Bonjour Madame Martin', { exact: true })).toBeVisible();
-  expect((await db().doc(`users/${user.uid}`).get()).data()).toMatchObject({ civilite: 'madame', prenom: 'Camille', nom: 'Martin' });
+  expect((await db().doc(`users/${user.uid}`).get()).data()).toMatchObject({ civilite: 'madame', prenom: 'Camille', nom: 'Martin', telephone: '+33612345678' });
 
-  // « Ne pas préciser » : retour au prénom.
-  await profile.getByLabel('Civilité (facultatif)').selectOption({ label: 'Ne pas préciser' });
+  // « Ne pas préciser » : salutation par le prénom.
+  const profile = main(page).getByRole('region', { name: 'Mon profil' });
+  await expect(profile.getByLabel('Téléphone')).toHaveValue('6 12 34 56 78');
+  await profile.getByLabel('Civilité').selectOption({ label: 'Ne pas préciser' });
   await profile.getByRole('button', { name: 'Enregistrer' }).click();
   await expect(main(page).getByText('Bonjour Camille', { exact: true })).toBeVisible();
 
-  // L'export des données contient le profil.
+  // Numéro étranger : refusé par le serveur.
+  await profile.getByLabel('Téléphone').fill('20 7946 0000 1');
+  await profile.getByRole('button', { name: 'Enregistrer' }).click();
+  await expect(profile.getByText(/téléphone français sont obligatoires/)).toBeVisible();
+
+  // L'export des données contient les coordonnées.
   const download = page.waitForEvent('download');
   await main(page).getByRole('button', { name: /Télécharger mes données/ }).click();
   const file = await readFile((await (await download).path())!, 'utf8');
-  expect(JSON.parse(file).profil).toMatchObject({ civilite: 'non-precise', prenom: 'Camille', nom: 'Martin' });
+  expect(JSON.parse(file).profil).toMatchObject({ civilite: 'non-precise', prenom: 'Camille', nom: 'Martin', telephone: '+33612345678' });
 });

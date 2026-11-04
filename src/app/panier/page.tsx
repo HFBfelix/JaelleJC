@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import CartPageView from '@/components/cart/CartPageView';
 import { listAddresses } from '@/server/account/addresses';
+import { isProfileComplete, readProfile } from '@/server/account/greeting';
 import { isComplete } from '@/server/account/logic';
+import { loadProfile } from '@/server/account/profile';
 import { getSessionUser } from '@/server/auth/session';
 import { addressApi } from '@/server/checkout/address';
 
@@ -11,10 +13,15 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Adresses enregistrées et complètes de la cliente connectée : préremplissent l'étape « Livraison ».
-// Base Adresse Nationale : suggestions d'adresses réelles pendant la saisie.
+// Personne connectée : coordonnées (obligatoires avant le paiement) et adresses enregistrées complètes en France
+// métropolitaine, qui préremplissent l'étape « Livraison ». Base Adresse Nationale : suggestions pendant la saisie.
 export default async function PanierPage() {
   const user = await getSessionUser();
-  const addresses = user ? (await listAddresses(user.uid)).filter(isComplete) : [];
-  return <CartPageView addresses={addresses} addressApi={addressApi()} />;
+  const [addresses, profile] = user
+    ? await Promise.all([listAddresses(user.uid).then((list) => list.filter(isComplete)), loadProfile(user.uid)])
+    : [[], readProfile(undefined)];
+  return (
+    <CartPageView addresses={addresses} addressApi={addressApi()} profile={profile}
+      profileComplete={isProfileComplete(profile)} email={user?.email ?? null} />
+  );
 }

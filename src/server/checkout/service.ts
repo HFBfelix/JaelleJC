@@ -4,6 +4,8 @@ import 'server-only';
 import { randomBytes } from 'node:crypto';
 import { Timestamp } from 'firebase-admin/firestore';
 import { listAddresses, saveAddress } from '../account/addresses';
+import { fullName, isProfileComplete } from '../account/greeting';
+import { loadProfile } from '../account/profile';
 import type { SessionUser } from '../auth/session';
 import { accountKey, loadCart, readDeliveryRule } from '../cart/repository';
 import { COLLECTIONS, checkoutSnapshot, type Adresse, type CheckoutSnapshot } from '../db/schema';
@@ -13,17 +15,24 @@ import { customerWithAddress } from '../payments/customers';
 import { verifyAddress } from './address';
 import { getStripe } from '../payments/stripe';
 import {
-  CHECKOUT_EXPIRES_SECONDS, amountsOf, normalizeGift, prepareLines, shippingOption, stripeLineItems, type ShippingInput,
+  CHECKOUT_EXPIRES_SECONDS, amountsOf, isMetropolitanZip, normalizeGift, prepareLines, shippingOption, stripeLineItems, type ShippingInput,
 } from './logic';
 
 export type StartCheckoutResult =
   | { status: 'ok'; url: string }
-  | { status: 'vide' | 'stock' | 'indisponible' | 'adresse' };
+  | { status: 'vide' | 'stock' | 'indisponible' | 'adresse' | 'profil' | 'metropole' };
 
+// `forOther` : cadeau livré à une autre personne (nom et téléphone du destinataire saisis) ; sinon la livraison
+// porte le nom et le téléphone du profil de la personne qui achète.
 export async function startCheckout(
-  user: SessionUser, gift: { wrap: boolean; message: string }, shipping: ShippingInput, save: boolean,
+  user: SessionUser, gift: { wrap: boolean; message: string }, shipping: ShippingInput, save: boolean, forOther = false,
 ): Promise<StartCheckoutResult> {
   if (!user.email) return { status: 'indisponible' };
+  // Coordonnées de la personne qui achète obligatoires (décision de Jaelle, 2026-11-04) : sans elles, aucun paiement.
+  const profile = await loadProfile(user.uid);
+  if (!isProfileComplete(profile)) return { status: 'profil' };
+  const buyer = { name: fullName(profile), phone: profile.telephone };
+  if (!forOther) shipping = { ...shipping, name: buyer.name, phone: buyer.phone };
   const key = accountKey(user.uid);
   const [{ items, offers, adjusted }, rule] = await Promise.all([loadCart(key), readDeliveryRule()]);
   // Panier corrigé en base par loadCart (pièce vendue ou retirée entre-temps) : la cliente est prévenue.
@@ -36,6 +45,7 @@ export async function startCheckout(
   const checked = await verifyAddress(shipping);
   if (checked.status === 'introuvable') return { status: 'adresse' };
   if (checked.status === 'verifiee') shipping = { ...shipping, line1: checked.line1, zipCode: checked.zipCode, city: checked.city };
+  if (!isMetropolitanZip(shipping.zipCode)) return { status: 'metropole' }; // écriture officielle relue aussi
   const address: Adresse = { label: '', ...shipping, country: 'FR' };
   // « Enregistrer cette adresse » : seulement à la demande, sans doublon ; plafond atteint = simplement non enregistrée.
   if (save) {
@@ -75,6 +85,7 @@ export async function startCheckout(
   const snapshot: CheckoutSnapshot = checkoutSnapshot.parse({
     uid: user.uid, email: user.email, cartId: key.id, lines: prepared.lines, amounts, gift: normalizeGift(gift),
     shipping: { name: shipping.name, line1: shipping.line1, line2: shipping.line2, zipCode: shipping.zipCode, city: shipping.city, phone: shipping.phone },
+    buyer,
   });
   await adminDb().collection(COLLECTIONS.checkouts).doc(session.id).set({
     ...snapshot,

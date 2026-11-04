@@ -120,7 +120,7 @@ describe('suppression du compte', () => {
 });
 
 describe('profil : civilité, prénom, nom', () => {
-  const valid = { civilite: 'madame', prenom: 'Camille', nom: 'Martin' };
+  const valid = { civilite: 'madame', prenom: 'Camille', nom: 'Martin', telephone: '06 12 34 56 78' };
   it('anonyme : refusé, rien d’écrit', async () => {
     mocks.getSessionUser.mockResolvedValue(null);
     expect(await saveProfileAction(valid)).toBe('connexion');
@@ -129,6 +129,7 @@ describe('profil : civilité, prénom, nom', () => {
   it('saisie piégée ou incomplète : refusée avant toute écriture', async () => {
     mocks.getSessionUser.mockResolvedValue({ uid: 'u1', email: 'a@exemple.fr' });
     for (const input of [{ ...valid, prenom: '' }, { ...valid, civilite: 'docteur' }, { ...valid, nom: 'x'.repeat(81) },
+      { ...valid, civilite: null }, { ...valid, nom: '' }, { ...valid, telephone: '' }, { ...valid, telephone: '+32 470 12 34 56' },
       { ...valid, prenom: '<b>Camille</b>' }, { ...valid, prenom: 'A\nB' }, { ...valid, uid: 'autre' }, null]) {
       expect(await saveProfileAction(input)).toBe('invalide');
     }
@@ -136,7 +137,7 @@ describe('profil : civilité, prénom, nom', () => {
   });
   it('enregistré pour le compte de la session, jamais un autre', async () => {
     mocks.getSessionUser.mockResolvedValue({ uid: 'u1', email: 'a@exemple.fr' });
-    expect(await saveProfileAction({ civilite: null, prenom: ' Camille ', nom: '' })).toBe('ok');
-    expect(mocks.saveProfile).toHaveBeenCalledWith('u1', { civilite: null, prenom: 'Camille', nom: '' });
+    expect(await saveProfileAction({ ...valid, prenom: ' Camille ' })).toBe('ok');
+    expect(mocks.saveProfile).toHaveBeenCalledWith('u1', { civilite: 'madame', prenom: 'Camille', nom: 'Martin', telephone: '+33612345678' });
   });
 });

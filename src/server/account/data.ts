@@ -31,7 +31,7 @@ export async function exportData(uid: string, email: string | null) {
     profil: profile.exists
       ? {
         civilite: profile.get('civilite') ?? null, prenom: profile.get('prenom') ?? '', nom: profile.get('nom') ?? profile.get('displayName') ?? '',
-        telephone: profile.get('phone') ?? '', creeLe: iso(profile.get('createdAt')),
+        telephone: profile.get('telephone') ?? profile.get('phone') ?? '', creeLe: iso(profile.get('createdAt')),
       }
       : null,
     adresses: addresses.map(withoutId),

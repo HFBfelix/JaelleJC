@@ -3,34 +3,40 @@ import { z } from 'zod';
 import { deliveryFor, lineKey, normalize, type DeliveryRule } from '../cart/logic';
 import type { CartItem, Offer } from '../cart/types';
 import type { CheckoutSnapshot } from '../db/schema';
+import { frenchPhone } from './phone';
 
 export const GIFT_MESSAGE_MAX = 300;
 // La session de paiement Stripe expire au bout de 30 minutes (minimum accepté par Stripe).
 export const CHECKOUT_EXPIRES_SECONDS = 30 * 60;
 
-// Téléphone français (transporteur) : « 06 12 34 56 78 », « +33 6… » ou « 0033 6… » → « +33612345678 ».
-export const frenchPhone = z.string().trim().max(30)
-  .transform((v) => v.replace(/[\s.\-()]/g, ''))
-  .refine((v) => /^(?:\+33|0033|0)[1-9]\d{8}$/.test(v))
-  .transform((v) => `+33${v.replace(/^(?:\+33|0033|0)/, '')}`);
+// Téléphone français : src/server/checkout/phone.ts (champ du navigateur et validation du serveur).
+export { frenchPhone };
 
-// Livraison confirmée sur la page panier, avant Stripe (France seulement, téléphone obligatoire).
+// Livraison en France métropolitaine seulement, Corse comprise (décision de Jaelle, 2026-11-04) : code postal à
+// 5 chiffres, hors outre-mer (97…, 98…). Même règle à l'écran, au serveur et dans le carnet d'adresses.
+export const isMetropolitanZip = (zip: string) => /^[0-9]{5}$/.test(zip) && !/^9[78]/.test(zip);
+export const METROPOLE_ONLY = 'Nous livrons en France métropolitaine uniquement (Corse comprise).';
+
+// Livraison confirmée sur la page panier, avant Stripe (métropole seulement, téléphone français obligatoire).
+// `name` et `phone` : le destinataire (la personne qui achète, sauf cadeau livré à une autre personne).
 export const shippingInput = z.strictObject({
   name: z.string().trim().min(1).max(100),
   line1: z.string().trim().min(1).max(200),
   line2: z.string().trim().max(200),
-  zipCode: z.string().trim().regex(/^[0-9]{5}$/),
+  zipCode: z.string().trim().refine(isMetropolitanZip),
   city: z.string().trim().min(1).max(100),
   phone: frenchPhone,
 });
 export type ShippingInput = z.infer<typeof shippingInput>;
 
-// Seules entrées du navigateur au clic « Payer » : l'option cadeau, l'adresse de livraison et le choix de
-// l'enregistrer dans le compte. Aucun prix, aucune ligne.
+// Seules entrées du navigateur au clic « Payer » : l'option cadeau, l'adresse de livraison, le choix de
+// l'enregistrer et `forOther` (cadeau livré à une autre personne). Aucun prix, aucune ligne. Sans `forOther`,
+// le serveur remplace le nom et le téléphone de livraison par ceux du profil de la personne qui achète.
 export const checkoutInput = z.strictObject({
   gift: z.strictObject({ wrap: z.boolean(), message: z.string().max(GIFT_MESSAGE_MAX) }),
   shipping: shippingInput,
   saveAddress: z.boolean(),
+  forOther: z.boolean(),
 });
 
 export const normalizeGift = (gift: { wrap: boolean; message: string }) =>
@@ -161,7 +167,8 @@ export const paymentIntentId = (s: PaidSession) =>
 export const matchesSnapshot = (s: PaidSession, snap: CheckoutSnapshot) =>
   s.amount_total === snap.amounts.totalCents && s.currency === 'eur' && s.client_reference_id === snap.uid;
 
-// Commande enregistrée : instantané (noms, prix, adresse) qui ne bouge plus ensuite.
+// Commande enregistrée : instantané (noms, prix, adresse) qui ne bouge plus ensuite. `customer` : la personne qui
+// achète (profil, 2026-11-04) ; `shipping.name` / `shipping.phone` : le destinataire du colis.
 export function buildOrder(s: PaidSession, snap: CheckoutSnapshot, eventId: string, outcome: 'paid' | 'stock' | 'montant', reference: string) {
   const ship = s.collected_information?.shipping_details;
   const confirmed = snap.shipping; // adresse vérifiée sur la page panier : seule source quand elle existe
@@ -173,11 +180,11 @@ export function buildOrder(s: PaidSession, snap: CheckoutSnapshot, eventId: stri
     customer: {
       uid: snap.uid,
       email: s.customer_details?.email || snap.email,
-      name: confirmed?.name || ship?.name || s.customer_details?.name || '',
-      phone: confirmed?.phone || (s.customer_details?.phone ?? ''),
+      name: snap.buyer?.name || confirmed?.name || ship?.name || s.customer_details?.name || '',
+      phone: snap.buyer?.phone || confirmed?.phone || (s.customer_details?.phone ?? ''),
     },
     shipping: confirmed
-      ? { line1: confirmed.line1, line2: confirmed.line2, zipCode: confirmed.zipCode, city: confirmed.city, country: 'FR' }
+      ? { line1: confirmed.line1, line2: confirmed.line2, zipCode: confirmed.zipCode, city: confirmed.city, country: 'FR', name: confirmed.name, phone: confirmed.phone }
       : {
         line1: ship?.address.line1 ?? '',
         line2: ship?.address.line2 ?? '',

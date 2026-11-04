@@ -14,7 +14,7 @@ export async function loadProfile(uid: string): Promise<Profile> {
 
 export async function saveProfile(uid: string, input: ProfileInput): Promise<void> {
   await ref(uid).set({
-    civilite: input.civilite, prenom: input.prenom, nom: input.nom, updatedAt: FieldValue.serverTimestamp(),
+    civilite: input.civilite, prenom: input.prenom, nom: input.nom, telephone: input.telephone, updatedAt: FieldValue.serverTimestamp(),
   }, { merge: true });
 }
 

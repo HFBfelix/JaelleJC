@@ -8,7 +8,7 @@ vi.mock('./service', () => ({ startCheckout: mocks.startCheckout }));
 const { startCheckoutAction } = await import('./actions');
 const user = { uid: 'u1', email: 'a@b.fr', admin: false, authTime: 0 };
 const shipping = { name: 'Camille Martin', line1: '1 rue A', line2: '', zipCode: '75001', city: 'Paris', phone: '06 12 34 56 78' };
-const valid = { gift: { wrap: false, message: '' }, shipping, saveAddress: false };
+const valid = { gift: { wrap: false, message: '' }, shipping, saveAddress: false, forOther: false };
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -28,6 +28,10 @@ it.each([
   { ...valid, shipping: { ...shipping, phone: '+44 20 7946 0000' } },
   { ...valid, shipping: { ...shipping, country: 'BE' } },
   { ...valid, shipping: { ...shipping, name: ' ' } },
+  { ...valid, shipping: { ...shipping, zipCode: '97200' } }, // Martinique : hors métropole (2026-11-04)
+  { ...valid, shipping: { ...shipping, zipCode: '98000' } },
+  { ...valid, forOther: 'oui' },
+  { gift: valid.gift, shipping, saveAddress: false }, // sans réponse « cadeau à une autre personne »
   { ...valid, addressId: '../autre/adresses/x' },
   null,
 ])('entrée trafiquée %# : refusée', async (input) => {
@@ -39,8 +43,14 @@ it.each([
 it('cliente connectée : option cadeau, adresse (téléphone normalisé) et choix d’enregistrement transmis', async () => {
   mocks.getSessionUser.mockResolvedValueOnce(user);
   mocks.startCheckout.mockResolvedValueOnce({ status: 'ok', url: 'https://checkout.stripe.com/c/pay/cs_test_x' });
-  expect(await startCheckoutAction({ ...valid, gift: { wrap: true, message: 'Bienvenue' }, saveAddress: true })).toMatchObject({ status: 'ok' });
-  expect(mocks.startCheckout).toHaveBeenCalledWith(user, { wrap: true, message: 'Bienvenue' }, { ...shipping, phone: '+33612345678' }, true);
+  expect(await startCheckoutAction({ ...valid, gift: { wrap: true, message: 'Bienvenue' }, saveAddress: true, forOther: true })).toMatchObject({ status: 'ok' });
+  expect(mocks.startCheckout).toHaveBeenCalledWith(user, { wrap: true, message: 'Bienvenue' }, { ...shipping, phone: '+33612345678' }, true, true);
+});
+
+it('Corse (20…) : acceptée, c’est la métropole', async () => {
+  mocks.getSessionUser.mockResolvedValueOnce(user);
+  mocks.startCheckout.mockResolvedValueOnce({ status: 'ok', url: 'https://checkout.stripe.com/c/pay/cs_test_x' });
+  expect(await startCheckoutAction({ ...valid, shipping: { ...shipping, zipCode: '20000', city: 'Ajaccio' } })).toMatchObject({ status: 'ok' });
 });
 
 it('erreur Stripe : message générique', async () => {

@@ -18,7 +18,9 @@ describe('commande de la refonte', () => {
     expect(d).toMatchObject({ reference: 'JJC-261029-ABCD', statusLabel: 'Expédiée', amounts: { totalCents: 17800 } });
     expect(d.items[0]).toMatchObject({ name: 'Cape', variantLabel: 'Écru', quantity: 2, unitPriceCents: 8900 });
     expect(d.shipping.name).toBe('Camille Martin');
-    expect(d.contact).toEqual({ email: 'c@exemple.test', phone: '+33600000000' });
+    // Commande d'avant le 2026-11-04 (sans destinataire) : destinataire = personne qui a commandé.
+    expect(d.shipping.phone).toBe('+33600000000');
+    expect(d.contact).toEqual({ name: 'Camille Martin', email: 'c@exemple.test', phone: '+33600000000' });
     expect(d.tracking?.url).toMatch(/^https:\/\//);
   });
 });

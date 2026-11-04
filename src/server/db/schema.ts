@@ -125,8 +125,13 @@ export const order = z.object({
     image: z.string(),
   })).min(1),
   amounts: z.object({ subtotalCents: cents, deliveryCents: cents, totalCents: cents }),
+  // `customer` : la personne qui achète (e-mails, suivi). Commandes d'avant le 2026-11-04 : nom et téléphone de la
+  // livraison. `shipping.name` / `shipping.phone` : le destinataire (absents des commandes d'avant ; repli sur `customer`).
   customer: z.object({ uid: z.string().nullable(), email: z.string().email(), name: z.string(), phone: z.string() }),
-  shipping: z.object({ line1: z.string(), line2: z.string(), zipCode: z.string(), city: z.string(), country: z.string() }),
+  shipping: z.object({
+    line1: z.string(), line2: z.string(), zipCode: z.string(), city: z.string(), country: z.string(),
+    name: z.string().optional(), phone: z.string().optional(),
+  }),
   gift: z.object({ wrap: z.boolean(), message: shortText(300) }),
   stripe: z.object({ sessionId: z.string(), paymentIntentId: z.string(), eventId: z.string() }),
   status: orderStatus,
@@ -167,6 +172,8 @@ export const checkoutSnapshot = z.object({
     name: shortText(100), line1: shortText(200), line2: shortText(200), zipCode: z.string().regex(/^[0-9]{5}$/),
     city: shortText(100), phone: z.string().max(30),
   }).optional(),
+  // Personne qui achète (profil complet exigé au clic « Payer », 2026-11-04). Absente des paiements ouverts avant.
+  buyer: z.object({ name: shortText(140), phone: z.string().max(30) }).optional(),
 });
 export type CheckoutSnapshot = z.infer<typeof checkoutSnapshot>;
 

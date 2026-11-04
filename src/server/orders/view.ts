@@ -31,8 +31,8 @@ export type OrderDetail = {
   statusLabel: string;
   items: OrderLine[];
   amounts: { subtotalCents: number; deliveryCents: number; totalCents: number };
-  shipping: { name: string; line1: string; line2: string; zipCode: string; city: string };
-  contact: { email: string; phone: string }; // gardés dans la commande (export des données)
+  shipping: { name: string; phone: string; line1: string; line2: string; zipCode: string; city: string }; // destinataire
+  contact: { name: string; email: string; phone: string }; // personne qui a commandé (gardés : export des données)
   gift: { wrap: boolean; message: string };
   tracking: { carrier: string; number: string; url: string } | null;
 };
@@ -70,8 +70,13 @@ export function orderDetail(id: string, d: Record<string, unknown>): OrderDetail
       unitPriceCents: int(i.unitPriceCents),
     })),
     amounts: { subtotalCents: int(amounts.subtotalCents), deliveryCents: int(amounts.deliveryCents), totalCents: int(amounts.totalCents) },
-    shipping: { name: text(customer.name), line1: text(ship.line1), line2: text(ship.line2), zipCode: text(ship.zipCode), city: text(ship.city) },
-    contact: { email: text(customer.email), phone: text(customer.phone) },
+    // Destinataire du colis (`shipping.name`/`phone`, depuis le 2026-11-04) ; commandes d'avant : ceux de `customer`.
+    shipping: {
+      name: text(ship.name) || text(customer.name), phone: text(ship.phone) || text(customer.phone),
+      line1: text(ship.line1), line2: text(ship.line2), zipCode: text(ship.zipCode), city: text(ship.city),
+    },
+    // Personne qui a commandé (e-mails, suivi).
+    contact: { name: text(customer.name), email: text(customer.email), phone: text(customer.phone) },
     gift: { wrap: gift.wrap === true, message: text(gift.message) },
     tracking: tracking && text(tracking.number)
       ? { carrier: text(tracking.carrier), number: text(tracking.number), url: safeUrl(tracking.url) }

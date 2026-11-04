@@ -26,6 +26,7 @@ const STREETS = [
   { postcode: '75002', match: /rue de la p/i, name: 'Rue de la Paix', city: 'Paris' },
   { postcode: '78000', match: /place du m/i, name: 'Place du Marché', city: 'Versailles' },
   { postcode: '69001', match: /rue neuve/i, name: 'Rue Neuve', city: 'Lyon' },
+  { postcode: '20000', match: /cours napol/i, name: 'Cours Napoléon', city: 'Ajaccio' }, // Corse : métropole
 ];
 
 function readBody(req: import('node:http').IncomingMessage): Promise<string> {

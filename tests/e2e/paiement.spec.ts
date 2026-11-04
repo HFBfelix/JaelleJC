@@ -42,13 +42,12 @@ async function addToCart(page: Page, slug: string) {
 }
 
 // Étape « Livraison » de la page panier (avant Stripe) : adresse et téléphone obligatoires.
+// Livraison « à moi-même » (2026-11-04) : nom et téléphone repris du profil (Camille Test, +33600000000).
 async function fillShipping(page: Page) {
   const form = main(page).getByRole('group', { name: 'Livraison' });
-  await form.getByLabel('Nom et prénom').fill('Camille Test');
   await form.getByLabel('Adresse', { exact: true }).fill('1 rue de la Paix');
   await form.getByLabel('Code postal').fill('75002');
   await form.getByLabel('Ville').fill('Paris');
-  await form.getByLabel('Téléphone').fill('06 00 00 00 00');
 }
 
 // Clic « Confirmer et payer » depuis la page panier : renvoie l'identifiant de la session créée chez (le faux) Stripe.

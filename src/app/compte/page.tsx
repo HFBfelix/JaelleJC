@@ -7,7 +7,7 @@ import ProfileForm from '@/components/account/ProfileForm';
 import AccountView from '@/components/auth/AccountView';
 import { AuthPage, SecondaryButton } from '@/components/auth/ui';
 import { listAddresses } from '@/server/account/addresses';
-import { greetingName } from '@/server/account/greeting';
+import { greetingName, isProfileComplete } from '@/server/account/greeting';
 import { loadProfile } from '@/server/account/profile';
 import { signOutAction } from '@/server/auth/actions';
 import { getSessionUser } from '@/server/auth/session';
@@ -20,14 +20,15 @@ export default async function ComptePage() {
   if (!user) redirect('/connexion?retour=/compte');
   const [orders, addresses, profile] = await Promise.all([ordersOf(user.uid), listAddresses(user.uid), loadProfile(user.uid)]);
   const name = greetingName(profile);
+  const complete = isProfileComplete(profile);
   return (
     <AuthPage title="Mon compte">
       {name && <p className="font-serif text-[20px] -mt-8 mb-12">Bonjour {name}</p>}
-      {/* Première visite : « Faisons connaissance » en tête ; ensuite, « Mon profil » avec les identifiants. */}
-      {!profile.prenom && <ProfileForm profile={profile} />}
+      {/* Coordonnées incomplètes : « Faisons connaissance » en tête ; ensuite, « Mon profil » avec les identifiants. */}
+      {!complete && <ProfileForm profile={profile} email={null} variant="bienvenue" />}
       <OrdersList orders={orders} />
       <AddressBook addresses={addresses} />
-      {profile.prenom && <ProfileForm profile={profile} />}
+      {complete && <ProfileForm profile={profile} email={null} variant="profil" />}
       <AccountView email={user.email} />
       <DataRights />
       <form action={signOutAction}>

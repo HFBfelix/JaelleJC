@@ -1,13 +1,15 @@
 // Règles de l'espace client, pures (testées sans base) : entrées des formulaires, suppression du compte.
 import { z } from 'zod';
+import { isMetropolitanZip } from '../checkout/logic';
 import { adresse } from '../db/schema';
 import { IN_PROGRESS } from '../orders/view';
 
 // Identifiant de document Firestore généré par le serveur (ou ancien identifiant migré).
 export const docId = z.string().regex(/^[A-Za-z0-9_-]{1,100}$/);
 
-// Le pays n'est pas saisi : livraison en France seulement.
-export const addressFields = adresse.omit({ country: true });
+// Le pays n'est pas saisi : livraison en France métropolitaine seulement, Corse comprise (2026-11-04). Une adresse
+// d'outre-mer déjà enregistrée reste lisible mais n'est plus proposée au paiement (`isComplete`).
+export const addressFields = adresse.omit({ country: true }).extend({ zipCode: adresse.shape.zipCode.refine(isMetropolitanZip) });
 export const saveAddressInput = z.strictObject({ id: docId.optional(), address: addressFields });
 export const deleteAddressInput = z.strictObject({ id: docId });
 // Suppression : case de confirmation cochée, rien d'autre.

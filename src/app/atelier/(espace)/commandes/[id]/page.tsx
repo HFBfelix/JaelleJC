@@ -51,9 +51,13 @@ export default async function CommandeAdminPage({ params }: Props) {
             {order.shipping.name}<br />
             {order.shipping.line1}{order.shipping.line2 ? `, ${order.shipping.line2}` : ''}<br />
             {order.shipping.zipCode} {order.shipping.city}
+            {order.shipping.phone && <><br />{order.shipping.phone}</>}
           </address>
-          <h2 className={`${label} mb-2`}>Contact</h2>
-          <p className="text-[14px]">{order.customerEmail}{order.customerPhone ? ` · ${order.customerPhone}` : ''}</p>
+          <h2 className={`${label} mb-2`}>Commande passée par</h2>
+          <p className="text-[14px]">
+            {order.contact.name && <>{order.contact.name}<br /></>}
+            {order.customerEmail}{order.customerPhone ? ` · ${order.customerPhone}` : ''}
+          </p>
         </Card>
 
         <OrderActions orderId={order.id} status={order.status} tracking={order.tracking} emails={order.emails} />
