@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: 'Ma commande | Jaelle & JC', robots: 
 
 type Props = { params: Promise<{ id: string }> };
 
-const label = 'text-[11px] uppercase tracking-[0.12em] text-neutral-500';
+const label = 'font-sans text-[11px] uppercase tracking-[0.12em] text-neutral-500'; // h2 : Crimson Pro par défaut, pas sous 18 px
 
 export default async function CommandePage({ params }: Props) {
   const user = await getSessionUser();

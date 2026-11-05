@@ -37,7 +37,7 @@ export default function AccountView({ email }: { email: string | null }) {
       <p className="text-[14px] mb-16">{email}</p>
 
       <form onSubmit={onSubmit} className="mb-16">
-        <h2 className="text-[11px] uppercase tracking-[0.12em] mb-6">Mot de passe</h2>
+        <h2 className="font-sans text-[11px] uppercase tracking-[0.12em] mb-6">Mot de passe</h2>
         <Field label="Nouveau mot de passe" hint={`Au moins ${PASSWORD_MIN} caractères.`} type="password" name="password"
           autoComplete="new-password" required minLength={PASSWORD_MIN} maxLength={128}
           value={password} onChange={(e) => setPassword(e.target.value)} />

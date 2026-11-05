@@ -51,7 +51,7 @@ export default function ProfileForm({ profile, email, variant }: { profile: Prof
 
   return (
     <section aria-label={title} className="mb-16">
-      {variant !== 'profil' && <h2 className="text-[11px] uppercase tracking-[0.12em] mb-2">{title}</h2>}
+      {variant !== 'profil' && <h2 className="font-sans text-[11px] uppercase tracking-[0.12em] mb-2">{title}</h2>}
       {intro && <p className="text-[14px] text-neutral-500 mb-6">{intro}</p>}
       <form onSubmit={onSubmit} className={intro || variant === 'profil' ? '' : 'mt-6'}>
         <label className="block mb-8">
