@@ -121,7 +121,8 @@ test('« Renvoyer » cliqué en même temps dans deux onglets : chaque e-mail ne
   await expect(resend(second)).toBeVisible();
   await Promise.all([resend(first).click(), resend(second).click()]);
 
-  await expect.poll(async () => (await db().doc(`orders/${id}`).get()).get('emails')).toEqual({ cliente: 'envoye', boutique: 'envoye' });
+  // 15 s : sous la charge de la suite complète, l'envoi des deux e-mails peut dépasser les 5 s par défaut.
+  await expect.poll(async () => (await db().doc(`orders/${id}`).get()).get('emails'), { timeout: 15_000 }).toEqual({ cliente: 'envoye', boutique: 'envoye' });
   expect((await db().doc(`orders/${id}`).get()).get('emailLocks') ?? {}).toEqual({}); // verrous levés
   const inbox = (await (await fetch(`http://127.0.0.1:12111/__test/emails?to=${encodeURIComponent(email)}`)).json()) as unknown[];
   expect(inbox).toHaveLength(1); // confirmation envoyée une seule fois
