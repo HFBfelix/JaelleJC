@@ -241,7 +241,10 @@ test.describe('pages protégées', () => {
   test('cliente (non admin) : refusée à l’espace créatrice, message clair', async ({ page }) => {
     const user = await createUser();
     await signInWithPassword(page, user.email, user.password, '/atelier/connexion');
-    await expect(main(page).getByText(NOT_ADMIN)).toBeVisible();
+    await expect(main(page).getByText(NOT_ADMIN).first()).toBeVisible();
+    // Le formulaire rafraîchit la page en arrière-plan : attendre la page rendue avec la session (bouton de déconnexion)
+    // avant de naviguer, sinon WebKit signale une navigation interrompue.
+    await expect(main(page).getByRole('button', { name: 'Se déconnecter' })).toBeVisible();
     await page.goto('/atelier');
     await expect(page).toHaveURL(/\/atelier\/connexion$/);
     await expect(main(page).getByText(NOT_ADMIN)).toBeVisible();
