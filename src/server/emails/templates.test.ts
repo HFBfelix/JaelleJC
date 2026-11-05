@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { NewOrder } from '../checkout/logic';
-import { arrivalCheck, cartReminder, escapeHtml, newsletterWelcome, reviewRequest, orderConfirmation, orderPreparing, orderShipped, shopNotification, stockApology } from './templates';
+import { arrivalCheck, cartReminder, escapeHtml, newsletterConfirmRequest, newsletterWelcome, reviewRequest, orderConfirmation, orderPreparing, orderShipped, shopNotification, stockApology } from './templates';
 
 const order = (over: Partial<NewOrder> = {}): NewOrder => ({
   userId: 'u1',
@@ -126,5 +126,23 @@ describe('salutation des e-mails', () => {
     expect(cartReminder(1, 'a@exemple.fr', [], 'https://x', 'https://x/opt', { greeting: '<b>Camille</b>' }).html)
       .toContain('<p>Bonjour &lt;b&gt;Camille&lt;/b&gt;,</p>');
     expect(welcome('a@exemple.fr', 'https://x').html).toContain('<p>Bonjour,</p>');
+  });
+});
+
+describe('newsletter : demande de confirmation (double confirmation, 2026-11-05)', () => {
+  it('un seul bouton vers le lien de confirmation, échappé ; aucun lien de désinscription ni photo', () => {
+    const m = newsletterConfirmRequest('a@exemple.fr', 'https://www.jaellejc.com/newsletter/confirmation?id=1&t="x"', 'https://www.jaellejc.com');
+    expect(m).toMatchObject({ to: 'a@exemple.fr', subject: 'Confirmez votre inscription à la lettre Jaelle & JC' });
+    expect(m.html).toContain('href="https://www.jaellejc.com/newsletter/confirmation?id=1&amp;t=&quot;x&quot;"');
+    expect(m.html).toContain('Confirmer mon inscription');
+    expect(m.html).not.toContain('desinscription');
+    expect(m.text).toContain('Confirmer mon inscription : https://www.jaellejc.com/newsletter/confirmation?id=1&t="x"');
+  });
+
+  it('texte réglé dans l’Atelier : utilisé, HTML échappé', () => {
+    const m = newsletterConfirmRequest('a@exemple.fr', 'u', 'https://www.jaellejc.com', { text: { subject: 'Objet', title: '<b>Titre</b>', body: 'Texte <i>x</i>', personal: false } });
+    expect(m.subject).toBe('Objet');
+    expect(m.html).toContain('&lt;b&gt;Titre&lt;/b&gt;');
+    expect(m.html).not.toContain('<i>x</i>');
   });
 });

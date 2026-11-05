@@ -45,13 +45,13 @@ Date : 2026-11-05 · Branche : `refonte-next` (diff `bf83096..HEAD`, 42 commits 
 
 | # | Gravité | Description | Comment la reproduire | Correction | Statut |
 |---|---|---|---|---|---|
-| M1 | Moyenne | Newsletter sans double confirmation : une adresse tapée par un tiers reçoit l'e-mail de bienvenue et entre dans la liste Brevo sans avoir rien confirmé (consentement non prouvable, envois non sollicités possibles) | Inscrire `autre@exemple.fr` dans le pied de page | Double confirmation (lien à cliquer avant l'ajout à Brevo), inscriptions non confirmées expirées | **Ouvert → décision de Jaelle** (change le parcours et un e-mail validés) ; à corriger avant la bascule |
-| F1 | Faible | Règle `newsletter` : création encore permise depuis le navigateur (ancien site), alors que le nouveau site passe par le serveur (sans limite ni jeton de désinscription) | `addDoc(collection(db,'newsletter'), …)` depuis la console du navigateur | `allow create: if false` + test négatif, à la bascule (l'ancien site en dépend jusque-là) | **Ouvert → feu vert de Jaelle** (règles) |
+| M1 | Moyenne | Newsletter sans double confirmation : une adresse tapée par un tiers reçoit l'e-mail de bienvenue et entre dans la liste Brevo sans avoir rien confirmé (consentement non prouvable, envois non sollicités possibles) | Inscrire `autre@exemple.fr` dans le pied de page | Double confirmation (décision de Jaelle, 2026-11-05) : demande « en_attente » 48 h, un seul e-mail de confirmation par adresse et par 48 h, consentement daté et ajout à Brevo seulement au clic sur la page `/newsletter/confirmation` (transaction : un seul envoi de bienvenue) | **Corrigé**, testé (`newsletter/actions.test.ts`, `site-public.spec.ts` : rien chez Brevo avant le clic, faux lien refusé) |
+| F1 | Faible | Règle `newsletter` : création encore permise depuis le navigateur (ancien site), alors que le nouveau site passe par le serveur (sans limite ni jeton de désinscription) | `addDoc(collection(db,'newsletter'), …)` depuis la console du navigateur | `allow create: if false` + test de refus pour les 5 profils ; publiée sur `jaellejc-staging` le 2026-11-05 | **Corrigé** (règles 113/113) ; production à la bascule |
 | F2 | Faible | Un tiers qui connaît l'adresse d'une administratrice peut épuiser sa limite de liens (3 par quart d'heure) | 3 demandes toutes les 15 minutes | Compter par IP, puis par adresse seulement après un envoi réel ; la connexion par mot de passe reste possible | Ouvert → à trancher à l'étape 9 (avec la double authentification de l'Atelier) |
 | F3 | Faible | Bienvenue et relances de panier ne vérifiaient pas elles-mêmes que l'adresse est vérifiée (déjà imposé par la session, `openSession`) | — (bloqué en amont) | Contrôle `emailVerified` ajouté à l'envoi | **Corrigé**, testé (`welcome.test.ts`) |
-| F4 | Faible | « Renvoyer » cliqué deux fois de suite, ou deux changements de statut rapprochés : un e-mail de commande peut partir deux fois (administratrice seule) | Double clic sur « Renvoyer les e-mails en attente » | Réserver chaque e-mail en transaction avant l'envoi. Même fonction que le webhook Stripe → **feu vert demandé** (paiement) | Ouvert → Jaelle |
+| F4 | Faible | « Renvoyer » cliqué deux fois de suite, ou deux changements de statut rapprochés : un e-mail de commande peut partir deux fois (administratrice seule) | Double clic sur « Renvoyer les e-mails en attente » | Chaque e-mail réservé en transaction (`emailLocks.<e-mail>`, levé après l'envoi ou l'échec, ignoré après 10 min) ; feu vert de Jaelle (2026-11-05) | **Corrigé**, testé : deux onglets cliquent en même temps → 1 e-mail (sans la réservation : 2, 3 fois sur 3) ; `email-lock.test.ts` ; paiement et webhook rejoués |
 | F5 | Faible | Routes `export-produits` et `catalogue` testées seulement en anonyme | — | Cas « cliente connectée → 401 » ajoutés | **Corrigé**, testé |
-| F6 | Faible | `npm audit` : 6 Moyennes dans `glob`/`minimatch`, outils internes de `google-gax` (sous `firebase-admin`), jamais nourris par une saisie | `npm audit --omit=dev` | Forcer des versions corrigées (`overrides`) ou attendre `firebase-admin` ; `npm audit fix` refusé (il retirait des outils de développement) | Ouvert → accord de Jaelle (dépendances) |
+| F6 | Faible | `npm audit` : 6 Moyennes dans `glob`/`minimatch`, outils internes de `google-gax` (sous `firebase-admin`), jamais nourris par une saisie | `npm audit --omit=dev` | `rimraf` 6.1.4 forcé sous `google-gax` (`overrides`, accord de Jaelle) : `glob` 14.0.3, `minimatch` 11.0.4 ; aucune nouvelle bibliothèque ; `npm audit fix` écarté (il retirait des outils de développement) | **Corrigé** : `npm audit --omit=dev` → 0 |
 | I1 | Info | En-tête `Origin` mal formé : erreur 500 au lieu de 403 sur trois routes de l'Atelier (requête refusée de toute façon) | `Origin: null` | `isSameOrigin` (try/catch) | **Corrigé**, testé (`origin.test.ts`, parcours) |
 | I2 | Info | Jeton « ne plus recevoir ces messages » permanent (192 bits, comparé à temps constant, action idempotente) | — | Accepté | Accepté |
 | I3 | Info | Plafond du site de la recherche par usage épuisable par des robots changeant d'IP → recherche par mots et alerte à la boutique, coût plafonné | — | Accepté (décision du 2026-11-04) ; App Check à l'étape 9 | Accepté |
@@ -60,8 +60,21 @@ Aucune anomalie Critique ni Élevée. La clé Brevo exposée (étape 0) est clos
 
 ## Dépendances
 
-`npm audit --omit=dev` (2026-11-05) : 6 vulnérabilités **modérées**, toutes indirectes (`glob` 10.5.0 et `minimatch` 9.0.9 via `firebase-admin` → `@google-cloud/firestore` → `google-gax` → `rimraf`). Aucune Élevée ni Critique (le job CI « Dépendances » passe). Voir F6.
+`npm audit --omit=dev` (2026-11-05, avant correction) : 6 vulnérabilités **modérées**, toutes indirectes (`glob` 10.5.0 et `minimatch` 9.0.9 via `firebase-admin` → `@google-cloud/firestore` → `google-gax` → `rimraf`). Après F6 : **0 vulnérabilité**.
 
 ## Décision
 
-**Go en local et sur le projet de test.** Aucune anomalie Critique ni Élevée ouverte. Reste avant la bascule : M1 (double confirmation de la newsletter), F1, F4 et F6 (accord de Jaelle), F2 (étape 9). Vérifications de clôture : voir `reports/qa/etape-7bis.md`.
+**Go en local et sur le projet de test.** Aucune anomalie Critique, Élevée ni Moyenne ouverte. Reste : F2 (étape 9). Vérifications de clôture : voir `reports/qa/etape-7bis.md`.
+
+## Mise à jour du 2026-11-05 : décisions de Jaelle appliquées
+
+| Contrôle | Résultat | Preuve |
+|---|---|---|
+| Nouvelle action publique `confirmNewsletterAction` : Zod strict (identifiant 64 hex, jeton 48 hex), jeton comparé à temps constant, expiration 48 h, en transaction ; même réponse « invalide » pour un lien faux, expiré, déjà utilisé ou inconnu | OK | `newsletter/actions.test.ts` (5 cas), `site-public.spec.ts` |
+| Nouvelle page `/newsletter/confirmation` : confirmation seulement par un clic (pas à l'ouverture du lien : antivirus des messageries), `noindex` | OK | `site-public.spec.ts` |
+| E-mail de demande : lien échappé, texte réglable dans l'Atelier échappé, pas de désinscription ni de photo | OK | `templates.test.ts` |
+| Atelier : compteur et export de la newsletter limités aux inscriptions confirmées | OK | `site.ts` (`listNewsletter`) |
+| Retours autorisés après connexion : `/compte/securite` et `/compte/donnees` ajoutés à la liste fermée ; adresses détournées toujours refusées | OK | `policy.test.ts`, `compte.spec.ts` |
+| Erreur trouvée en cours de route : une constante exportée d'un fichier `'use server'` faisait échouer le rendu de toutes les pages (pied de page) ; invisible aux tests unitaires, vue par les parcours | Corrigé avant tout envoi | parcours 234/235 ensuite |
+
+**À faire par Jaelle** : politique TTL sur `newsletter.expiresAt` (projet de test, puis production) pour effacer les demandes jamais confirmées.

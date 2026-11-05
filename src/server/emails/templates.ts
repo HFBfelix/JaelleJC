@@ -225,6 +225,29 @@ ${piece?.image ? `<tr><td style="padding:32px 32px 0;"><a href="${escapeHtml(pie
   return { to, subject: t.subject, html, text };
 }
 
+// Double confirmation de la newsletter (décision de Jaelle, 2026-11-05) : même cadre épuré que l'e-mail de bienvenue
+// de la lettre ; un seul bouton. Rien n'est inscrit ni envoyé à Brevo avant le clic.
+export function newsletterConfirmRequest(to: string, confirmUrl: string, origin: string, opts: TextOptions = {}): EmailMessage {
+  const t = texts('newsletterConfirmation', opts);
+  const serif = "font-family:'Crimson Pro',Georgia,serif;font-weight:400;color:#000;";
+  const html = `<!doctype html><html lang="fr"><body style="margin:0;background:#F7F7F7;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F7F7F7;"><tr><td align="center">
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;font-family:'Source Sans 3',Arial,sans-serif;font-size:14px;line-height:1.7;color:#333;text-align:center;">
+<tr><td style="padding:44px 32px 8px;"><a href="${escapeHtml(origin)}"><img src="${escapeHtml(`${origin}/assets/Logo%20noir%20Jaelle%26JC_V2.png`)}" alt="Jaelle &amp; JC" width="170" style="display:inline-block;border:0;"></a></td></tr>
+<tr><td style="padding:24px 40px 8px;">
+<h1 style="${serif}font-size:30px;line-height:1.2;margin:0 0 20px;">${t.title}</h1>
+${htmlParagraphs(t.body, 'margin:0 0 8px;', 'margin:0;')}
+</td></tr>
+<tr><td style="padding:32px 40px 48px;"><a href="${escapeHtml(confirmUrl)}" style="display:inline-block;background:#000;color:#fff;text-decoration:none;padding:16px 32px;font-size:11px;text-transform:uppercase;letter-spacing:0.12em;">Confirmer mon inscription</a></td></tr>
+</table>
+<table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;font-family:'Source Sans 3',Arial,sans-serif;text-align:center;">
+<tr><td style="padding:24px 24px 40px;font-size:11px;color:#999;line-height:1.6;">Ce lien est valable 48 heures. <a href="mailto:contact@jaellejc.com" style="color:#999;">contact@jaellejc.com</a></td></tr>
+</table>
+</td></tr></table></body></html>`;
+  const text = [...plain(t, false), `Confirmer mon inscription : ${confirmUrl}`, 'Ce lien est valable 48 heures.'].join('\n');
+  return { to, subject: t.subject, html, text };
+}
+
 // Alerte à la boutique (recherche par usage, 2026-11-04) : un plafond du site atteint ou Mistral en échec répété.
 // Une seule par sorte et par jour ; jamais de phrase de cliente ni d'adresse IP.
 export type SearchAlertKind = 'heure' | 'jour' | 'echecs';

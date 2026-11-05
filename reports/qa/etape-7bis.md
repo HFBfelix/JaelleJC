@@ -47,7 +47,8 @@ Date : 2026-11-05 · Branche : `refonte-next` · Environnement : local (Windows 
 | Q1 | Intitulés en petites capitales de l'accueil du compte affichés en Crimson Pro (11 px) : `font-sans` ignoré, nom de police sans guillemets dans `tailwind.config.ts` (`Source Sans 3` finit par un chiffre : déclaration CSS invalide) | Nom entre guillemets (exception « polices » du fichier) ; les autres usages de `font-sans` héritaient déjà de Source Sans 3 (visuel 24/24 inchangé) | Corrigé, capture V1 |
 | Q2 | CI : 22 parcours de l'Atelier en échec sur Safari iPhone (Linux) : options de lancement propres à Chromium (micro simulé) imposées à WebKit, refusées avant même que le test soit écarté | Fichier écarté pour les navigateurs autres que Chromium avant tout lancement | Corrigé (à confirmer par la CI) |
 | Q3 | CI : cloche des nouvelles commandes et sessions Stripe comptées sur toute la base, faussées par les parcours lancés en parallèle | Cloche comparée au compte relu en base ; sessions comptées pour le seul compte du test | Corrigé ; 232/232 en parallèle |
-| Q4 | Pré-existant, hors périmètre : autres intitulés de 11 px en Crimson Pro (« Mot de passe », « Livraison » et « Suivi du colis » du détail de commande, titres de `ProfileForm`) : règle `h2` globale | Ajouter `font-sans` à ces intitulés | Ouvert → accord de Jaelle (retouche visuelle) |
+| Q4 | Pré-existant : autres intitulés de 11 px en Crimson Pro (« Mot de passe », « Livraison » et « Suivi du colis » du détail de commande, titres de `ProfileForm`) : règle `h2` globale | `font-sans` ajouté (accord de Jaelle, 2026-11-05) | Corrigé, captures `compte-securite.png`, `compte-commande.png` |
+| Q5 | Même défaut, hors de la décision : « Vous avez déjà un compte » et « Vous êtes nouveau ou nouvelle ici ? » sur la page de connexion (`SignInForm.tsx`) | `font-sans` | Ouvert → accord de Jaelle |
 
 ## Vérifications exécutées (2026-11-05)
 
@@ -59,8 +60,18 @@ Date : 2026-11-05 · Branche : `refonte-next` · Environnement : local (Windows 
 - `npm audit --omit=dev` : 6 Moyennes indirectes (voir `reports/securite/etape-7bis.md`, F6).
 - Non couvert ici : **Firefox** (ne démarre pas sur ce poste ; couvert par la CI), Lighthouse et axe (étape 9), envoi réel par Brevo et Mistral (projet de test, voir ci-dessous).
 
+## Mise à jour du 2026-11-05 : décisions de Jaelle appliquées
+
+| # | Parcours | Résultat | Preuve |
+|---|---|---|---|
+| P14 | Newsletter : « S'inscrire » → *Un e-mail vous attend pour confirmer votre inscription.* ; une seule demande par adresse ; rien chez Brevo ni consentement avant le clic ; faux lien refusé ; bon lien → confirmée, bienvenue, liste Brevo ; désinscription | OK | `site-public.spec.ts` |
+| P15 | « Renvoyer » cliqué en même temps dans deux onglets : chaque e-mail ne part qu'une fois | OK (sans la réservation : 2 e-mails, 3 fois sur 3) | `createur-commandes.spec.ts` |
+| P16 | Reconnexion depuis « Connexion et sécurité » ou « Mes données » : retour sur la même page ; adresse d'un autre site ignorée | OK | `compte.spec.ts` |
+| P17 | Intitulés de 11 px du compte en Source Sans 3 | OK | captures `compte-securite.png`, `compte-commande.png`, `compte-coordonnees.png` (et `-mobile`) |
+
+Vérifications exécutées après ces changements : `npm run typecheck` et `npm run lint` : 0 erreur · `npm test` : **526/526** · règles : **113/113** · `npm audit --omit=dev` : **0** · parcours (ordinateur, mobile, Safari iPhone) : **234 réussis, 1 échec** : `connexion.spec.ts:241` sur Safari, navigation interrompue par la redirection (test inchangé, sans lien avec ces changements), rejoué seul 3/3 · `npm run test:visual` : **24/24**.
+
 ## Reste à faire
 
-- **Jaelle** : relire les textes du compte et des e-mails sur l'aperçu Vercel ; plafond de dépense Mistral ; TTL `usageCache.expiresAt`, `usageStats.expiresAt`, `rateLimits.expiresAt` sur le projet de test.
-- **Décisions demandées** : double confirmation de la newsletter (M1) ; règle `newsletter` fermée au navigateur (F1) ; envoi des e-mails de commande réservé en transaction (F4) ; versions forcées de `glob`/`minimatch` (F6) ; police des intitulés existants (Q4).
-- **Retour après reconnexion** : depuis « Connexion et sécurité » ou « Mes données », la reconnexion ramène à l'accueil du compte (adresses de retour autorisées : authentification, feu vert requis).
+- **Jaelle** : relire les textes du compte, des e-mails et de la double confirmation sur l'aperçu Vercel ; plafond de dépense Mistral ; TTL `usageCache.expiresAt`, `usageStats.expiresAt`, `rateLimits.expiresAt` et **`newsletter.expiresAt`** sur le projet de test.
+- **Décision demandée** : police des deux intitulés de la page de connexion (Q5).

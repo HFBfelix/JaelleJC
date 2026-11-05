@@ -124,9 +124,10 @@ export async function markRead(id: string): Promise<'ok' | 'introuvable'> {
   return 'ok';
 }
 
+// Inscriptions confirmées seulement : une demande « en_attente » (double confirmation) n'est pas une inscription.
 export async function listNewsletter() {
   const snap = await db().collection(COLLECTIONS.newsletter).get();
-  return snap.docs.map((d) => ({ email: String(d.get('email') ?? ''), source: String(d.get('source') ?? ''), consentAt: iso(d.get('consentAt') ?? d.get('createdAt')) }))
+  return snap.docs.filter((d) => d.get('status') !== 'en_attente').map((d) => ({ email: String(d.get('email') ?? ''), source: String(d.get('source') ?? ''), consentAt: iso(d.get('consentAt') ?? d.get('createdAt')) }))
     .sort((a, b) => (b.consentAt ?? '').localeCompare(a.consentAt ?? ''));
 }
 

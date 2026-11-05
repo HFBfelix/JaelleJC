@@ -31,7 +31,8 @@ const Newsletter = () => {
         {status === 'success' ? (
           <div role="status" className="flex items-center justify-center gap-3 text-neutral-900">
             <Check size={16} strokeWidth={1} />
-            <p className="text-[11px] uppercase tracking-[0.12em]">Vous faites désormais partie de l&apos;Atelier.</p>
+            {/* Double confirmation (2026-11-05) : l'inscription n'est faite qu'au clic dans l'e-mail. */}
+            <p className="text-[11px] uppercase tracking-[0.12em]">Un e-mail vous attend pour confirmer votre inscription.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="relative max-w-sm mx-auto">

@@ -5,7 +5,7 @@
 import { z } from 'zod';
 
 export const EMAIL_KINDS = [
-  'confirmation', 'excuses', 'preparation', 'expedition', 'bienvenue', 'newsletter',
+  'confirmation', 'excuses', 'preparation', 'expedition', 'bienvenue', 'newsletterConfirmation', 'newsletter',
   'relance1', 'relance2', 'relance3', 'arrivee', 'avis',
 ] as const;
 export type EmailKind = (typeof EMAIL_KINDS)[number];
@@ -55,6 +55,16 @@ export const EMAIL_DEFINITIONS: Record<EmailKind, Definition> = {
       subject: "Bienvenue dans l'univers Jaelle & JC",
       title: "Bienvenue à l'Atelier",
       body: "Nous sommes ravis de vous compter parmi nous. L'Atelier Jaelle & JC est né d'une envie simple : que chaque pièce raconte une histoire de transmission et de savoir-faire français.",
+    },
+  },
+  // Double confirmation de la newsletter (décision de Jaelle, 2026-11-05) : rien n'est enregistré comme inscription
+  // ni envoyé à Brevo avant le clic sur le bouton de cet e-mail.
+  newsletterConfirmation: {
+    label: 'Newsletter : confirmer l’inscription', vars: [], personal: null,
+    defaults: {
+      subject: 'Confirmez votre inscription à la lettre Jaelle & JC',
+      title: 'Une dernière étape',
+      body: "Pour recevoir la lettre Jaelle & JC, confirmez votre adresse en cliquant sur le bouton ci-dessous.\n\nSi vous n'êtes pas à l'origine de cette demande, ignorez simplement ce message.",
     },
   },
   newsletter: {
