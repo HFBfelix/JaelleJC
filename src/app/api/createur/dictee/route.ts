@@ -6,12 +6,13 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { requireAdmin } from '@/server/auth/session';
 import { transcribe } from '@/server/createur/ai';
 import { AUDIO_MAX_BYTES, audioType } from '@/server/createur/logic';
+import { isSameOrigin } from '@/server/http/origin';
 
 const MAX_BODY = AUDIO_MAX_BYTES + 16 * 1024;
 
 export async function POST(req: NextRequest) {
   const origin = req.headers.get('origin');
-  if (!origin || new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ status: 'interdit' }, { status: 403 });
+  if (!isSameOrigin(origin, req.headers.get('host'))) return NextResponse.json({ status: 'interdit' }, { status: 403 });
   const length = Number(req.headers.get('content-length'));
   if (!Number.isFinite(length) || length <= 0 || length > MAX_BODY) return NextResponse.json({ status: 'taille' }, { status: 413 });
   const admin = await requireAdmin();

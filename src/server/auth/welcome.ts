@@ -15,7 +15,8 @@ export const isNewAccount = (creationTime: string | undefined, now = Date.now())
 
 export async function sendWelcome(uid: string, origin: string): Promise<void> {
   const user = await adminAuth().getUser(uid);
-  if (!user.email || user.customClaims?.admin === true || !isNewAccount(user.metadata.creationTime)) return;
+  // Adresse vérifiée exigée (déjà imposée par la session) : jamais d'e-mail vers une adresse saisie par un tiers.
+  if (!user.email || !user.emailVerified || user.customClaims?.admin === true || !isNewAccount(user.metadata.creationTime)) return;
   const [text, greeting] = [(await loadEmailTexts()).bienvenue, await greetingFor(uid)]; // profil souvent pas encore rempli : « Bonjour, »
   const result = await sendOnce(`bienvenue_${uid}`, uid, () => welcome(user.email!, origin, { text, greeting }));
   if (result === 'echec') console.error('compte : e-mail de bienvenue non envoyé');

@@ -16,3 +16,14 @@ export async function siteOrigin() {
   if (!LOCAL_HOST.test(host)) throw new Error('Adresse du site inconnue.');
   return `http://${host}`;
 }
+
+// Routes de l'Atelier appelées par le navigateur : même site exigé. En-tête absent, « null » ou mal formé → refusé
+// (jamais d'erreur 500).
+export function isSameOrigin(origin: string | null, host: string | null): boolean {
+  if (!origin || !host) return false;
+  try {
+    return new URL(origin).host === host;
+  } catch {
+    return false;
+  }
+}

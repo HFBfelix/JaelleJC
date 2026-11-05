@@ -5,13 +5,14 @@ import { requireAdmin } from '@/server/auth/session';
 import { defaultText, generateInput } from '@/server/catalogue/logic';
 import { catalogueBuffer } from '@/server/catalogue/pdf';
 import { piecesFor } from '@/server/catalogue/service';
+import { isSameOrigin } from '@/server/http/origin';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   const origin = req.headers.get('origin');
-  if (!origin || new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ status: 'interdit' }, { status: 403 });
+  if (!isSameOrigin(origin, req.headers.get('host'))) return NextResponse.json({ status: 'interdit' }, { status: 403 });
   if (!(await requireAdmin())) return NextResponse.json({ status: 'connexion' }, { status: 401 });
   const length = Number(req.headers.get('content-length'));
   if (!Number.isFinite(length) || length <= 0 || length > 256 * 1024) return NextResponse.json({ status: 'invalide' }, { status: 413 });

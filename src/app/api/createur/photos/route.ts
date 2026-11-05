@@ -5,12 +5,13 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { requireAdmin } from '@/server/auth/session';
 import { PHOTO_MAX_BYTES, productId } from '@/server/createur/logic';
 import { addPhoto } from '@/server/createur/products';
+import { isSameOrigin } from '@/server/http/origin';
 
 const MAX_BODY = PHOTO_MAX_BYTES + 64 * 1024; // photo + champs du formulaire
 
 export async function POST(req: NextRequest) {
   const origin = req.headers.get('origin');
-  if (!origin || new URL(origin).host !== req.headers.get('host')) return NextResponse.json({ status: 'interdit' }, { status: 403 });
+  if (!isSameOrigin(origin, req.headers.get('host'))) return NextResponse.json({ status: 'interdit' }, { status: 403 });
   const length = Number(req.headers.get('content-length'));
   if (!Number.isFinite(length) || length <= 0 || length > MAX_BODY) return NextResponse.json({ status: 'taille' }, { status: 413 });
   const admin = await requireAdmin();

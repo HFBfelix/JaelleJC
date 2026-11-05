@@ -39,7 +39,7 @@ async function cartReminders(origin: string, now: Date, texts: EmailTexts, s: Au
       // Marque de la période d'activité : une nouvelle visite (date d'activité changée) recommence les relances.
       const mark = adminDb().collection(COLLECTIONS.emailMarks).doc(`panier_${uid}_${updatedAt.getTime()}`);
       const user = await adminAuth().getUser(uid).catch(() => null);
-      if (!user?.email || (await isOptedOut(user.email))) continue;
+      if (!user?.email || !user.emailVerified || (await isOptedOut(user.email))) continue; // adresse vérifiée seulement
       const offers = await readOffers(items);
       const lines = items.flatMap((i) => {
         const o = offers.get(`${i.productId}/${i.variantId}`);

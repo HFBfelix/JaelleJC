@@ -299,6 +299,20 @@ test('export Excel et catalogue PDF : réservés à l’administratrice', async 
   expect([401, 403]).toContain(anonymous.status());
   await page.goto('/atelier/produits/catalogue');
   await expect(page).toHaveURL(/\/atelier\/connexion$/);
+
+  // Cliente connectée (sans droit admin) : refusée aussi ; en-tête Origin mal formé : 403, jamais d'erreur 500.
+  const user = await createUser();
+  await page.goto('/connexion');
+  await main(page).getByLabel('Votre e-mail').fill(user.email);
+  await main(page).getByRole('button', { name: 'Utiliser un mot de passe' }).click();
+  await main(page).getByLabel('Mot de passe').fill(user.password);
+  await main(page).getByRole('button', { name: 'Se connecter' }).click();
+  await expect(page).toHaveURL(/\/compte$/);
+  const origin = new URL(page.url()).origin;
+  const data = { ids: ['e2e-publie'], showPrices: true, intro: '', texts: {} };
+  expect((await page.request.get('/api/createur/export-produits')).status()).toBe(401);
+  expect((await page.request.post('/api/createur/catalogue', { data, headers: { origin } })).status()).toBe(401);
+  expect((await page.request.post('/api/createur/catalogue', { data, headers: { origin: 'null' } })).status()).toBe(403);
 });
 
 test('export Excel : tableur de tous les produits ; catalogue : pièces en stock cochées, textes de l’IA relus, PDF téléchargé', async ({ page }) => {
