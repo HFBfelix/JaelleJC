@@ -16,7 +16,9 @@ const main = (page: Page) => page.getByRole('main');
 const panel = (page: Page) => main(page).getByRole('complementary', { name: 'Publication' });
 const E2E_PRODUCT_PREFIX = 'E2E créatrice'; // nettoyé par catalogue-fixture.ts
 
-// Micro simulé par Chromium (dictée), sans fenêtre d'autorisation.
+// Micro simulé par Chromium (dictée), sans fenêtre d'autorisation. Ces options font échouer le lancement de WebKit
+// sous Linux (CI) : les autres navigateurs sont écartés avant tout lancement (le beforeEach, lui, ouvre une page).
+test.skip(({ browserName }) => browserName !== 'chromium', 'espace créatrice : Chromium (micro simulé)');
 test.use({ permissions: ['microphone'], launchOptions: { args: ['--use-fake-ui-for-media-stream', '--use-fake-device-for-media-stream'] } });
 
 test.beforeEach(async ({ page }, info) => {
