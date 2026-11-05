@@ -265,33 +265,33 @@ test('dernière pièce payée par deux clientes : la seconde est remboursée et 
 
 test('stock vérifié au clic « Payer » : pièce partie entre-temps, pas de paiement', async ({ page }) => {
   await setStock(FIXTURE.last.id, 1);
-  await signIn(page);
+  const user = await signIn(page);
   await addToCart(page, FIXTURE.last.slug);
   await page.goto('/panier');
   // Pièce vendue pendant que la page est ouverte (au rechargement, le panier serait déjà corrigé).
   await setStock(FIXTURE.last.id, 0);
   await fillShipping(page);
-  const sessionsBefore = ((await (await fetch(`${FAKE}/__test/count`)).json()) as { sessions: number }).sessions;
+  const sessionsBefore = ((await (await fetch(`${FAKE}/__test/count?uid=${user.uid}`)).json()) as { sessions: number }).sessions;
   await main(page).getByRole('button', { name: 'Confirmer et payer' }).click();
   await expect(main(page).getByRole('status')).toHaveText('Cette pièce vient de trouver preneur. Elle a été retirée de votre sélection.');
-  expect(((await (await fetch(`${FAKE}/__test/count`)).json()) as { sessions: number }).sessions).toBe(sessionsBefore);
+  expect(((await (await fetch(`${FAKE}/__test/count?uid=${user.uid}`)).json()) as { sessions: number }).sessions).toBe(sessionsBefore);
   await expect(main(page).getByText('Votre sélection est vide.')).toBeVisible();
 });
 
 test('adresse introuvable dans la Base Adresse Nationale : pas de paiement, message clair', async ({ page }) => {
-  await signIn(page);
+  const user = await signIn(page);
   await addToCart(page, FIXTURE.buy.slug);
   await page.goto('/panier');
   await fillShipping(page);
   const form = main(page).getByRole('group', { name: 'Livraison' });
   await form.getByLabel('Adresse', { exact: true }).fill('10'); // numéro sans rue
-  const sessionsBefore = ((await (await fetch(`${FAKE}/__test/count`)).json()) as { sessions: number }).sessions;
+  const sessionsBefore = ((await (await fetch(`${FAKE}/__test/count?uid=${user.uid}`)).json()) as { sessions: number }).sessions;
   await main(page).getByRole('button', { name: 'Confirmer et payer' }).click();
   await expect(main(page).getByRole('alert')).toHaveText('Adresse introuvable : choisissez-la dans la liste proposée (numéro et nom de rue).');
   await form.getByLabel('Adresse', { exact: true }).fill('10 rue Imaginaire'); // rue inexistante dans ce code postal
   await main(page).getByRole('button', { name: 'Confirmer et payer' }).click();
   await expect(main(page).getByRole('alert')).toHaveText(/^Adresse introuvable/);
-  expect(((await (await fetch(`${FAKE}/__test/count`)).json()) as { sessions: number }).sessions).toBe(sessionsBefore);
+  expect(((await (await fetch(`${FAKE}/__test/count?uid=${user.uid}`)).json()) as { sessions: number }).sessions).toBe(sessionsBefore);
 });
 
 test('saisie guidée : code postal puis rue, adresse réelle choisie dans la liste', async ({ page }) => {

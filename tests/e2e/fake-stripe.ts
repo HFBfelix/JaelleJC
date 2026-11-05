@@ -183,7 +183,11 @@ export function startFakeStripe(): Promise<Server> {
       return params ? json(200, params) : json(404, {});
     }
     if (req.method === 'GET' && url.pathname === '/__test/refunds') return json(200, refunds);
-    if (req.method === 'GET' && url.pathname === '/__test/count') return json(200, { sessions: sessions.size });
+    // ?uid= : sessions d'un seul compte (les parcours tournent en parallèle et créent des sessions en même temps).
+    if (req.method === 'GET' && url.pathname === '/__test/count') {
+      const uid = url.searchParams.get('uid');
+      return json(200, { sessions: uid ? [...sessions.values()].filter((s) => s.client_reference_id === uid).length : sessions.size });
+    }
     return json(404, { error: { message: 'faux Stripe : route inconnue' } });
   });
   return new Promise((resolve) => server.listen(FAKE_STRIPE_PORT, '127.0.0.1', () => resolve(server)));

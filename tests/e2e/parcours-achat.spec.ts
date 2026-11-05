@@ -9,7 +9,7 @@ import { FIXTURE, db } from './catalogue-fixture';
 const FAKE = 'http://127.0.0.1:12111';
 const METROPOLE = 'Nous livrons en France métropolitaine uniquement (Corse comprise).';
 const main = (page: Page) => page.getByRole('main');
-const sessions = async () => ((await (await fetch(`${FAKE}/__test/count`)).json()) as { sessions: number }).sessions;
+const sessions = async (uid: string) => ((await (await fetch(`${FAKE}/__test/count?uid=${uid}`)).json()) as { sessions: number }).sessions; // sessions de ce compte seulement
 
 test.beforeEach(async ({ page }, info) => {
   test.skip(!['ordinateur', 'mobile'].includes(info.project.name), 'parcours de paiement : Chromium');
@@ -76,10 +76,10 @@ test('coordonnées retirées après l’affichage de la page : le serveur refuse
   await delivery.getByLabel('Ville').fill('Paris');
 
   await db().doc(`users/${user.uid}`).update({ telephone: '' }); // profil devenu incomplet entre-temps
-  const before = await sessions();
+  const before = await sessions(user.uid);
   await main(page).getByRole('button', { name: 'Confirmer et payer' }).click();
   await expect(main(page).getByRole('region', { name: 'Vos coordonnées' })).toBeVisible();
-  expect(await sessions()).toBe(before);
+  expect(await sessions(user.uid)).toBe(before);
 });
 
 test('cadeau livré à une autre personne (Corse) : destinataire et acheteur séparés', async ({ page }) => {

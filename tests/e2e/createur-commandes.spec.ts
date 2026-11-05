@@ -63,8 +63,13 @@ test('commande : préparation, expédition Colissimo (suivi visible par la clien
   const before = await count();
   expect(before).toBeGreaterThanOrEqual(1);
   await main(page).getByRole('link', { name: new RegExp(reference) }).click();
+  await expect(page).toHaveURL(new RegExp(`/atelier/commandes/${id}$`)); // avant tout rechargement : fiche ouverte
   await expect.poll(async () => !!(await db().doc(`orders/${id}`).get()).get('seenAt')).toBe(true);
-  await expect.poll(count).toBe(before - 1); // ouverte : n'est plus nouvelle
+  // Ouverte : n'est plus nouvelle. La cloche est comparée au compte relu en base (mêmes critères que le serveur),
+  // pas à « avant moins un » : d'autres parcours créent des commandes payées en même temps.
+  const expected = async () => (await db().collection('orders').where('status', '==', 'paid').get()).docs
+    .filter((d) => !!d.get('reference') && !d.get('seenAt')).length;
+  await expect.poll(async () => { await page.reload(); return (await count()) === (await expected()); }).toBe(true);
   await expect(main(page).getByText('Emballage cadeau — message à joindre : « Bienvenue Lou »')).toBeVisible();
 
   await main(page).getByRole('button', { name: 'Passer en préparation' }).click();
