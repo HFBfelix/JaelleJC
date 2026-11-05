@@ -62,9 +62,15 @@ function stored(key: CartKey, items: CartItem[], now: Date, isNew: boolean) {
 }
 
 export async function readDeliveryRule(): Promise<DeliveryRule | null> {
+  const settings = await readDeliverySettings();
+  return settings ? { freeThresholdCents: settings.freeThresholdCents, flatRateCents: settings.flatRateCents } : null;
+}
+
+// Réglages complets (page « Livraison et retours » : seuil, forfait, délai affichés tels que réglés dans l'Atelier).
+export async function readDeliverySettings() {
   const snap = await adminDb().collection(COLLECTIONS.settings).doc('delivery').get();
   const parsed = deliverySettings.safeParse(snap.data());
-  return parsed.success ? { freeThresholdCents: parsed.data.freeThresholdCents, flatRateCents: parsed.data.flatRateCents } : null;
+  return parsed.success ? parsed.data : null;
 }
 
 // Lecture pour l'affichage. Une visite compte comme une activité : expiration renouvelée (au plus une fois par heure)
