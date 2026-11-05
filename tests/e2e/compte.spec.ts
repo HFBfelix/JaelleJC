@@ -198,6 +198,21 @@ test('reconnexion demandée : la page de connexion s’affiche même avec une se
   await expect(page).toHaveURL(/\/compte$/); // sans demande : retour direct
 });
 
+test('reconnexion depuis « Connexion et sécurité » ou « Mes données » : retour sur la même page', async ({ page }) => {
+  const user = await signIn(page);
+  for (const path of ['/compte/securite', '/compte/donnees']) {
+    await page.goto(`/connexion?retour=${path}&info=reconnexion`);
+    await main(page).getByLabel('Votre e-mail').fill(user.email);
+    await main(page).getByRole('button', { name: 'Utiliser un mot de passe' }).click();
+    await main(page).getByLabel('Mot de passe').fill(user.password);
+    await main(page).getByRole('button', { name: 'Se connecter' }).click();
+    await expect(page).toHaveURL(new RegExp(`${path}$`));
+  }
+  // Adresse hors de la liste : accueil du compte, jamais ailleurs.
+  await page.goto('/connexion?retour=https://evil.example');
+  await expect(page).toHaveURL(/\/compte$/);
+});
+
 test('export : un fichier avec le compte, les adresses et les commandes de la seule cliente', async ({ page }) => {
   const user = await signIn(page);
   const mine = rand('cs_test');

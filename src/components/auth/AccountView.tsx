@@ -44,7 +44,7 @@ export default function AccountView({ email }: { email: string | null }) {
         <PrimaryButton type="submit" disabled={pending || password.length < PASSWORD_MIN}>Enregistrer</PrimaryButton>
         {result && <Notice>{MESSAGES[result]}</Notice>}
         {result === 'reconnexion' && (
-          <Link href="/connexion?retour=/compte&info=reconnexion" className="text-[11px] uppercase tracking-[0.12em] border-b-[0.5px] border-black pb-1">
+          <Link href="/connexion?retour=/compte/securite&info=reconnexion" className="text-[11px] uppercase tracking-[0.12em] border-b-[0.5px] border-black pb-1">
             Me reconnecter
           </Link>
         )}

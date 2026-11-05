@@ -78,7 +78,7 @@ export default function DataRights() {
             </div>
             {result && <Notice>{DELETE_MESSAGES[result]}</Notice>}
             {result === 'reconnexion' && (
-              <Link href="/connexion?retour=/compte&info=reconnexion" className="text-[11px] uppercase tracking-[0.12em] border-b-[0.5px] border-black pb-1">
+              <Link href="/connexion?retour=/compte/donnees&info=reconnexion" className="text-[11px] uppercase tracking-[0.12em] border-b-[0.5px] border-black pb-1">
                 Me reconnecter
               </Link>
             )}
