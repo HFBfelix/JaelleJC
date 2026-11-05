@@ -256,9 +256,12 @@ test('contact et newsletter : l’admin lit, personne ne modifie ni ne supprime 
   await assertFails(deleteDoc(doc(db(admin), 'newsletter', 'inscrit')));
 });
 
-test('newsletter : un anonyme s’inscrit avec des champs valides', async () => {
-  await assertSucceeds(addDoc(collection(db(anonyme), 'newsletter'), { email: 'n@exemple.fr', source: 'footer_site', consentAt: serverTimestamp() }));
-});
+// Inscription par le serveur seulement (2026-11-05) : même une inscription valide est refusée depuis le navigateur.
+for (const [nom, ctx] of Object.entries(tous)) {
+  test(`newsletter : ${nom} ne s’inscrit pas depuis le navigateur, même avec des champs valides`, async () => {
+    await assertFails(addDoc(collection(db(ctx), 'newsletter'), { email: 'n@exemple.fr', source: 'footer_site', consentAt: serverTimestamp() }));
+  });
+}
 
 test('newsletter : inscriptions invalides refusées', async () => {
   const c = collection(db(anonyme), 'newsletter');

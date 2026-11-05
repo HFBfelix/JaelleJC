@@ -99,13 +99,11 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // NEWSLETTER : création publique validée, lecture admin. Jamais de lecture publique
-    // (l'ancien code cherchait les doublons depuis le navigateur : le serveur s'en charge).
+    // NEWSLETTER : lecture admin ; aucune écriture du navigateur. L'inscription passe par le serveur (limite de
+    // débit, champ piège, double confirmation, jeton de désinscription) depuis la refonte ; règle publiée en
+    // production à la bascule, quand l'ancien site (qui écrivait ici) disparaît (décision de Jaelle, 2026-11-05).
     match /newsletter/{id} {
-      allow create: if request.resource.data.keys().hasOnly(['email', 'source', 'consentAt'])
-                    && emailValide(request.resource.data.email)
-                    && request.resource.data.source in ['footer_site', 'page_newsletter']
-                    && request.resource.data.consentAt == request.time;
+      allow create: if false;
       allow read: if estAdmin();
       allow update, delete: if false;
     }
