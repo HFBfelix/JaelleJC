@@ -10,6 +10,7 @@ const TABS = [
   { href: '/atelier', label: 'À faire' },
   { href: '/atelier/produits', label: 'Produits' },
   { href: '/atelier/commandes', label: 'Commandes' },
+  { href: '/atelier/clientes', label: 'Clientes' },
   { href: '/atelier/stocks', label: 'Stocks' },
   { href: '/atelier/categories', label: 'Catégories' },
   { href: '/atelier/reglages', label: 'Réglages' },
