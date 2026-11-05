@@ -4,22 +4,25 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { deleteAccountAction, exportDataAction, type DeleteAccountResult } from '@/server/account/actions';
 import { Notice, SecondaryButton, TextButton } from '@/components/auth/ui';
+import ConfirmDialog from '@/components/common/ConfirmDialog';
 
 const DELETE_MESSAGES: Record<DeleteAccountResult, string> = {
   reconnexion: 'Par sécurité, reconnectez-vous juste avant de supprimer votre compte.',
   'commande-en-cours': 'Une commande est encore en cours. Votre compte pourra être supprimé après sa livraison ; vous pouvez aussi nous écrire.',
   'paiement-en-cours': 'Un paiement vient d’être commencé. Réessayez dans une demi-heure.',
-  invalide: 'Cochez la case pour confirmer la suppression.',
+  admin: 'Ce compte donne accès à l’Atelier : il ne peut pas être supprimé d’ici.',
+  invalide: 'Une erreur est survenue. Réessayez dans un instant.',
   erreur: 'Une erreur est survenue. Réessayez dans un instant.',
 };
 
-// Droits RGPD : export des données (fichier JSON) et suppression du compte.
+// Droits RGPD : export des données (fichier JSON) et suppression du compte. Suppression (décision de Jaelle,
+// 2026-11-05) : lien discret tout en bas, puis une confirmation simple « OK » ; le serveur exige toujours une
+// connexion récente et refuse tant qu'une commande est en cours.
 export default function DataRights() {
   const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [result, setResult] = useState<DeleteAccountResult | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
 
   const onExport = async () => {
     setPending(true);
@@ -46,7 +49,7 @@ export default function DataRights() {
     setPending(true);
     setResult(null);
     try {
-      setResult(await deleteAccountAction({ confirm: confirmed }));
+      setResult(await deleteAccountAction({ confirm: true })); // réussite : redirection vers /compte/supprime
     } catch {
       setResult('erreur');
     }
@@ -59,32 +62,22 @@ export default function DataRights() {
       <SecondaryButton type="button" onClick={onExport} disabled={pending}>Télécharger mes données</SecondaryButton>
       {notice && <Notice>{notice}</Notice>}
 
-      <div className="mt-10">
-        {!confirming ? (
-          <TextButton onClick={() => setConfirming(true)}>Supprimer mon compte</TextButton>
-        ) : (
-          <div className="border-[0.5px] border-neutral-200 p-6">
-            <p className="text-[14px] mb-4">
-              Votre compte, vos adresses et votre sélection seront supprimés définitivement. Vos commandes passées restent
-              conservées pour notre comptabilité (obligation légale de 10 ans), sans lien avec un compte.
-            </p>
-            <label className="flex items-start gap-3 mb-6 cursor-pointer">
-              <input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} className="w-4 h-4 mt-1 accent-black" />
-              <span className="text-[14px]">Je confirme la suppression de mon compte.</span>
-            </label>
-            <SecondaryButton type="button" onClick={onDelete} disabled={pending || !confirmed}>Supprimer définitivement</SecondaryButton>
-            <div className="mt-6 text-center">
-              <TextButton disabled={pending} onClick={() => { setConfirming(false); setConfirmed(false); setResult(null); }}>Annuler</TextButton>
-            </div>
-            {result && <Notice>{DELETE_MESSAGES[result]}</Notice>}
-            {result === 'reconnexion' && (
-              <Link href="/connexion?retour=/compte/donnees&info=reconnexion" className="text-[11px] uppercase tracking-[0.12em] border-b-[0.5px] border-black pb-1">
-                Me reconnecter
-              </Link>
-            )}
-          </div>
-        )}
+      <div className="mt-24">
+        <TextButton onClick={() => { setResult(null); setConfirming(true); }}>Supprimer mon compte</TextButton>
       </div>
+      {confirming && (
+        <ConfirmDialog
+          title="Supprimer mon compte"
+          message={<>Votre compte sera supprimé définitivement. Vos commandes passées restent conservées pour notre comptabilité (obligation légale de 10 ans), sans lien avec un compte.</>}
+          confirmLabel="OK" pending={pending} onConfirm={onDelete} onCancel={() => { setConfirming(false); setResult(null); }}>
+          {result && <Notice>{DELETE_MESSAGES[result]}</Notice>}
+          {result === 'reconnexion' && (
+            <Link href="/connexion?retour=/compte/donnees&info=reconnexion" className="text-[11px] uppercase tracking-[0.12em] border-b-[0.5px] border-black pb-1">
+              Me reconnecter
+            </Link>
+          )}
+        </ConfirmDialog>
+      )}
     </section>
   );
 }

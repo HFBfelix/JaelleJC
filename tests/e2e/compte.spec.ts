@@ -240,8 +240,7 @@ test('suppression refusée tant qu’une commande est en cours', async ({ page }
   await db().doc(`orders/${rand('cs_test')}`).set(order(user.uid, { status: 'preparing' }));
   await page.goto('/compte/donnees');
   await main(page).getByRole('button', { name: 'Supprimer mon compte' }).click();
-  await main(page).getByLabel('Je confirme la suppression de mon compte.').check();
-  await main(page).getByRole('button', { name: 'Supprimer définitivement' }).click();
+  await main(page).getByRole('dialog', { name: 'Supprimer mon compte' }).getByRole('button', { name: 'OK' }).click();
   await expect(main(page).getByText(/Une commande est encore en cours/)).toBeVisible();
   expect(await userExists(user.uid)).toBe(true);
 });
@@ -254,10 +253,16 @@ test('suppression : compte, profil, adresses et panier effacés ; commandes gard
   await addAddress(page, { name: 'Camille Test', line1: '7 rue Effacée', zipCode: '75003', city: 'Paris' });
 
   await page.goto('/compte/donnees');
+  // Fenêtre de confirmation simple : « Annuler » (ou Échap) ferme sans rien supprimer ; « OK » supprime.
   await main(page).getByRole('button', { name: 'Supprimer mon compte' }).click();
-  await expect(main(page).getByRole('button', { name: 'Supprimer définitivement' })).toBeDisabled();
-  await main(page).getByLabel('Je confirme la suppression de mon compte.').check();
-  await main(page).getByRole('button', { name: 'Supprimer définitivement' }).click();
+  await main(page).getByRole('dialog', { name: 'Supprimer mon compte' }).getByRole('button', { name: 'Annuler' }).click();
+  await expect(main(page).getByRole('dialog', { name: 'Supprimer mon compte' })).toBeHidden();
+  await main(page).getByRole('button', { name: 'Supprimer mon compte' }).click();
+  await page.keyboard.press('Escape');
+  await expect(main(page).getByRole('dialog', { name: 'Supprimer mon compte' })).toBeHidden();
+  expect(await userExists(user.uid)).toBe(true);
+  await main(page).getByRole('button', { name: 'Supprimer mon compte' }).click();
+  await main(page).getByRole('dialog', { name: 'Supprimer mon compte' }).getByRole('button', { name: 'OK' }).click();
   await expect(page).toHaveURL(/\/compte\/supprime$/);
   await expect(main(page).getByRole('heading', { level: 1 })).toHaveText('Votre compte est supprimé.');
 
@@ -337,14 +342,13 @@ test.describe('préremplissage du paiement (faux Stripe)', () => {
     // Suppression du compte (paiements ouverts depuis moins de 30 minutes : refusée d'abord).
     await page.goto('/compte/donnees');
     await main(page).getByRole('button', { name: 'Supprimer mon compte' }).click();
-    await main(page).getByLabel('Je confirme la suppression de mon compte.').check();
-    await main(page).getByRole('button', { name: 'Supprimer définitivement' }).click();
+    await main(page).getByRole('dialog', { name: 'Supprimer mon compte' }).getByRole('button', { name: 'OK' }).click();
     await expect(main(page).getByText(/Un paiement vient d’être commencé/)).toBeVisible();
 
     const old = Timestamp.fromDate(new Date(Date.now() - 60 * 60 * 1000));
     const open = await db().collection('checkouts').where('uid', '==', user.uid).get();
     await Promise.all(open.docs.map((d) => d.ref.update({ createdAt: old }))); // sessions expirées
-    await main(page).getByRole('button', { name: 'Supprimer définitivement' }).click();
+    await main(page).getByRole('dialog', { name: 'Supprimer mon compte' }).getByRole('button', { name: 'OK' }).click();
     await expect(page).toHaveURL(/\/compte\/supprime$/);
     expect((await customer(withAddress.customer!)).deleted).toBe(true);
     expect((await db().doc(`stripeCustomers/${user.uid}`).get()).exists).toBe(false);

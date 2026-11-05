@@ -43,12 +43,14 @@ export async function exportData(uid: string, email: string | null) {
   };
 }
 
-export type DeleteResult = 'supprime' | 'commande-en-cours' | 'paiement-en-cours';
+export type DeleteResult = 'supprime' | 'commande-en-cours' | 'paiement-en-cours' | 'admin';
 
 // Suppression du compte. Refusée tant qu'une commande est en cours ou qu'un paiement peut encore aboutir.
+// Jamais pour un compte d'administratrice (droit relu sur le compte), par aucun chemin : l'Atelier resterait sans accès.
 // Supprimés : client Stripe, adresses, profil, panier du compte, puis le compte lui-même (sessions comprises).
 // Gardées : les commandes (obligation comptable de 10 ans), détachées du compte : plus aucun lien vers lui.
 export async function deleteAccount(uid: string): Promise<DeleteResult> {
+  if ((await adminAuth().getUser(uid)).customClaims?.admin === true) return 'admin';
   const db = adminDb();
   const [orders, checkouts] = await Promise.all([
     db.collection(COLLECTIONS.orders).where('userId', '==', uid).limit(200).get(),
