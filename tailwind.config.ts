@@ -13,7 +13,7 @@ const config: Config = {
       // --- TES POLICES DE LUXE ---
       fontFamily: {
         serif: ["Crimson Pro", "serif"],        // Titres, direction « Atelier »
-        sans: ["Source Sans 3", "sans-serif"],  // Texte, direction « Atelier »
+        sans: ['"Source Sans 3"', "sans-serif"],  // Texte, direction « Atelier » (guillemets : un nom finissant par un chiffre est invalide sans eux)
       },
       // --- TAILLE DE TEXTE UX 2026 ---
       fontSize: {
