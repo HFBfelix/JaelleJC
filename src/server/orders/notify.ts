@@ -1,8 +1,10 @@
 // E-mails d'une commande : confirmation (ou excuses si remboursée) à la cliente, alerte à la boutique, puis
 // « en préparation » et « colis en route » quand Jaelle fait avancer la commande dans l'espace créatrice.
 // Chaque e-mail n'est marqué « envoye » qu'après succès ; sinon il reste « en_attente » (renvoi possible).
+// Avant l'envoi, il est réservé en transaction (`emailLocks`) : deux appels rapprochés n'envoient qu'une fois.
 // Un échec d'envoi n'annule jamais la commande ni le changement de statut.
 import 'server-only';
+import { FieldValue, Timestamp, type DocumentReference } from 'firebase-admin/firestore';
 import type { NewOrder, OrderEmails } from '../checkout/logic';
 import { COLLECTIONS, order as orderSchema } from '../db/schema';
 import { sendEmail, shopNotificationAddress } from '../emails/sender';
@@ -12,6 +14,7 @@ import { loadEmailTexts } from '../emails/settings';
 import { orderConfirmation, orderPreparing, orderShipped, shopNotification, stockApology, type EmailMessage } from '../emails/templates';
 import { defaultTexts, type EmailTexts } from '../emails/texts';
 import { adminDb } from '../firebase/admin';
+import { mayReserve } from './email-lock';
 
 type Field = keyof OrderEmails;
 // Commande créée par le webhook (sans suivi) ou relue en base (suivi posé à l'expédition).
@@ -44,12 +47,33 @@ async function sendPending(orderId: string, order: MailableOrder) {
   const greeting = await greetingFor(order.userId);
   for (const field of FIELDS) {
     if (pending[field] !== 'en_attente') continue;
+    if (!(await reserve(ref, field))) continue; // déjà en cours d'envoi par un autre appel, ou déjà envoyé
+    let sent = false;
     try {
       const message = emailFor(field, order, texts, await personalFor(field, order, texts), greeting);
-      if (message && (await sendEmail(message)) === 'envoye') await ref.update({ [`emails.${field}`]: 'envoye' });
+      sent = !!message && (await sendEmail(message)) === 'envoye';
     } catch {
       console.error(`commande : e-mail « ${field} » non envoyé`); // ni adresse ni contenu dans le journal
     }
+    // Envoyé : marqué ; sinon : reste « en_attente » (renvoi possible). Le verrou est levé dans les deux cas.
+    await ref.update({ ...(sent ? { [`emails.${field}`]: 'envoye' } : {}), [`emailLocks.${field}`]: FieldValue.delete() })
+      .catch(() => console.error(`commande : état de l'e-mail « ${field} » non enregistré`));
+  }
+}
+
+// Réserve l'e-mail en transaction : il doit être encore « en_attente » en base et ne pas être en cours d'envoi.
+async function reserve(ref: DocumentReference, field: Field): Promise<boolean> {
+  try {
+    return await adminDb().runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      const locked = snap.get(`emailLocks.${field}`) as Timestamp | undefined;
+      if (!mayReserve(snap.get(`emails.${field}`), locked ? locked.toMillis() : null, Date.now())) return false;
+      tx.update(ref, { [`emailLocks.${field}`]: Timestamp.now() });
+      return true;
+    });
+  } catch {
+    console.error(`commande : e-mail « ${field} » non réservé`);
+    return false;
   }
 }
 

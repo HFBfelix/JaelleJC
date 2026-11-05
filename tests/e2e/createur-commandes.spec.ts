@@ -107,6 +107,28 @@ test('commande : préparation, expédition Colissimo (suivi visible par la clien
   await Promise.all([...audit.docs.map((d) => d.ref.delete()), db().doc(`orders/${id}`).delete()]);
 });
 
+test('« Renvoyer » cliqué en même temps dans deux onglets : chaque e-mail ne part qu’une fois', async ({ browser }) => {
+  const email = `double-${randomBytes(6).toString('hex')}@exemple.test`;
+  const { id } = await seedOrder('cliente-double', email);
+  const context = await browser.newContext();
+  await context.addInitScript(() => localStorage.setItem('jaellejc-cookies', 'none'));
+  const first = await context.newPage();
+  await signIn(first, true);
+  const second = await context.newPage();
+  await Promise.all([first.goto(`/atelier/commandes/${id}`), second.goto(`/atelier/commandes/${id}`)]);
+  const resend = (p: Page) => main(p).getByRole('button', { name: 'Renvoyer les e-mails en attente' });
+  await expect(resend(first)).toBeVisible();
+  await expect(resend(second)).toBeVisible();
+  await Promise.all([resend(first).click(), resend(second).click()]);
+
+  await expect.poll(async () => (await db().doc(`orders/${id}`).get()).get('emails')).toEqual({ cliente: 'envoye', boutique: 'envoye' });
+  expect((await db().doc(`orders/${id}`).get()).get('emailLocks') ?? {}).toEqual({}); // verrous levés
+  const inbox = (await (await fetch(`http://127.0.0.1:12111/__test/emails?to=${encodeURIComponent(email)}`)).json()) as unknown[];
+  expect(inbox).toHaveLength(1); // confirmation envoyée une seule fois
+  await context.close();
+  await db().doc(`orders/${id}`).delete();
+});
+
 test('stocks : modification en ligne, vente pendant la saisie jamais écrasée', async ({ page }) => {
   await signIn(page, true);
   const ref = db().doc(`produits/${FIXTURE.published.id}/variantes/unique`);
