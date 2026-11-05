@@ -24,6 +24,7 @@ import { clientIp, takeRateLimit } from '../http/rate-limit';
 const input = z.strictObject({
   email: emailSchema,
   website: z.string().max(200).optional(), // champ piège invisible : rempli seulement par les robots
+  source: z.enum(['footer_site', 'page_newsletter']).optional(), // pied de page (par défaut) ou page /newsletter
 });
 
 export type NewsletterResult = 'ok' | 'invalide' | 'erreur';
@@ -57,7 +58,7 @@ export async function subscribeNewsletterAction(raw: unknown): Promise<Newslette
     const send = await adminDb().runTransaction(async (tx) => {
       const snap = await tx.get(ref);
       if (!snap.exists) {
-        tx.create(ref, { email, source: 'footer_site', unsubscribeToken: newToken(), ...pending });
+        tx.create(ref, { email, source: parsed.data.source ?? 'footer_site', unsubscribeToken: newToken(), ...pending });
         return true;
       }
       const expiresAt = snap.get('expiresAt') as Timestamp | undefined;

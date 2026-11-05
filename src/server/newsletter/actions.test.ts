@@ -46,6 +46,12 @@ beforeEach(() => {
   mocks.send.mockResolvedValue('envoye'); mocks.sync.mockResolvedValue('envoye');
 });
 
+it('page /newsletter : source « page_newsletter » enregistrée ; toute autre source refusée', async () => {
+  expect(await subscribeNewsletterAction({ email: 'a@exemple.fr', source: 'page_newsletter' })).toBe('ok');
+  expect(mocks.create).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ source: 'page_newsletter' }));
+  expect(await subscribeNewsletterAction({ email: 'a@exemple.fr', source: 'email_redirect' })).toBe('invalide');
+});
+
 it('nouvelle adresse : demande « en_attente » (minuscules, empreinte, sans consentement) ; e-mail de confirmation seulement', async () => {
   expect(await subscribeNewsletterAction({ email: ' Camille@Exemple.FR ', website: '' })).toBe('ok');
   expect(mocks.create).toHaveBeenCalledWith(expect.stringMatching(/^[a-f0-9]{64}$/), expect.objectContaining({

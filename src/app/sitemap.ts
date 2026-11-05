@@ -15,5 +15,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...products.map((p) => ({ url: absolute(`/produits/${p.slug}`), changeFrequency: 'weekly' as const, priority: 0.8 })),
     { url: absolute('/blog'), changeFrequency: 'monthly', priority: 0.5 },
     ...ARTICLES.map((a) => ({ url: absolute(`/blog/${a.slug}`), lastModified: a.isoDate, changeFrequency: 'yearly' as const, priority: 0.4 })),
+    // Pages de l'étape 8a (mêmes adresses que l'ancien site).
+    { url: absolute('/notre-promesse'), changeFrequency: 'yearly', priority: 0.6 },
+    { url: absolute('/contact'), changeFrequency: 'yearly', priority: 0.4 },
+    { url: absolute('/livraison-et-retours'), changeFrequency: 'yearly', priority: 0.4 },
+    { url: absolute('/newsletter'), changeFrequency: 'yearly', priority: 0.2 },
+    ...['/mentions-legales', '/confidentialite', '/CGV'].map((path) => ({ url: absolute(path), changeFrequency: 'yearly' as const, priority: 0.1 })),
   ];
 }
