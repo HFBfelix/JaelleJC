@@ -75,3 +75,13 @@ Vérifications exécutées après ces changements : `npm run typecheck` et `npm 
 
 - **Jaelle** : relire les textes du compte, des e-mails et de la double confirmation sur l'aperçu Vercel ; plafond de dépense Mistral ; TTL `usageCache.expiresAt`, `usageStats.expiresAt`, `rateLimits.expiresAt` et **`newsletter.expiresAt`** sur le projet de test.
 - **Décision demandée** : police des deux intitulés de la page de connexion (Q5).
+
+## Mise à jour du 2026-11-05 : suppression d'un compte
+
+| # | Parcours | Résultat | Preuve |
+|---|---|---|---|
+| P18 | Cliente : « Supprimer mon compte » (discret, en bas de « Mes données ») → fenêtre « OK / Annuler » ; Annuler et Échap ne suppriment rien ; OK supprime (compte, profil, adresses, panier), commandes gardées sans lien ; refus si commande en cours | OK | `compte.spec.ts` ; capture `compte-suppression.png` |
+| P19 | Atelier : onglet Clientes, recherche par e-mail (casse ignorée), fiche (compte, adresses, commandes) ; « Êtes-vous sûre ? » → mot SUPPRIMER (minuscules refusées) → suppression, message, journal | OK | `atelier-clientes.spec.ts` ; captures `atelier-clientes.png`, `atelier-cliente.png`, `atelier-suppression-1.png`, `atelier-suppression-2.png` |
+| P20 | Compte d'administratrice : pas de bouton dans l'Atelier ; refus depuis « Mes données » | OK | `atelier-clientes.spec.ts` |
+
+Vérifications exécutées : `npm run typecheck` et `npm run lint` : 0 erreur · `npm test` : **537/537** · parcours (ordinateur, mobile, Safari iPhone) : **239 réussis, 0 échec** (124 ignorés : prévus pour un seul navigateur) · `npm run test:visual` : **24/24**.

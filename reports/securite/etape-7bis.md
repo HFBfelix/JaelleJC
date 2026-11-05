@@ -78,3 +78,29 @@ Aucune anomalie Critique ni Élevée. La clé Brevo exposée (étape 0) est clos
 | Erreur trouvée en cours de route : une constante exportée d'un fichier `'use server'` faisait échouer le rendu de toutes les pages (pied de page) ; invisible aux tests unitaires, vue par les parcours | Corrigé avant tout envoi | parcours 234/235 ensuite |
 
 **À faire par Jaelle** : politique TTL sur `newsletter.expiresAt` (projet de test, puis production) pour effacer les demandes jamais confirmées.
+
+## Mise à jour du 2026-11-05 : suppression d'un compte (cliente et Atelier)
+
+Décision de Jaelle : côté cliente, lien discret puis confirmation simple « OK » ; côté Atelier, onglet « Clientes », « Êtes-vous sûre ? » puis le mot SUPPRIMER à taper. Les deux passent par la même fonction serveur `deleteAccount` (commandes gardées et détachées, client Stripe effacé, refus si une commande ou un paiement est en cours).
+
+| Contrôle | Cas testé | Résultat | Preuve |
+|---|---|---|---|
+| Pages `/atelier/clientes` et `/atelier/clientes/[uid]` | Anonyme et cliente → connexion de l'Atelier ; identifiant validé (`[A-Za-z0-9_-]{1,128}`), inconnu → 404 ; `?q` répété ignoré | OK | `atelier-clientes.spec.ts` |
+| Action `deleteClientAction` | Anonyme, cliente, droit retiré → « connexion » ; mot autre que SUPPRIMER (casse, espace) → « invalide » ; connexion de plus de 10 min → « reconnexion » ; 11e suppression de l'heure → « limite » ; rien supprimé dans ces cas | OK | `clients-actions.test.ts`, `clients-logic.test.ts` |
+| Comptes protégés | Administratrice, soi-même : refusés depuis l'Atelier ; **et dans `deleteAccount` (tous chemins) : droit relu sur le compte** | OK | `clients.test.ts`, `atelier-clientes.spec.ts` (« son propre compte ne se supprime pas depuis Mes données ») |
+| Journal | `auditLog` : action `cliente.supprimee`, autrice, identifiant technique ; jamais l'e-mail ; `console.error` sans identifiant | OK | `clients.test.ts`, `clients-actions.test.ts`, parcours |
+| Reconnexion de l'Atelier | `/atelier/connexion?info=reconnexion` : formulaire pour une administratrice connectée, sans effet pour une non-administratrice ; retour fixe `/atelier` | OK | `atelier-clientes.spec.ts` |
+| Échappement | Noms et e-mails affichés par React (aucun HTML injecté) | OK | relecture |
+| Relecture indépendante (second agent, lecture seule) | Diff de la fonctionnalité | 0 Critique, 0 Élevée, 1 Moyenne (corrigée), 2 Faibles (1 corrigée, 1 acceptée), 4 Info | ci-dessous |
+
+| # | Gravité | Description | Correction | Statut |
+|---|---|---|---|---|
+| S1 | Moyenne | Une administratrice pouvait supprimer son propre compte depuis « Mes données » (défaut antérieur, rendu plus facile par la confirmation en un clic) : l'Atelier serait resté sans accès | Refus `admin` dans `deleteAccount`, droit relu sur le compte, message à l'écran | **Corrigé**, testé |
+| S2 | Faible | `?q=a&q=b` : erreur 500 sur la page Clientes (administratrice seule) | `q` lu seulement s'il est une chaîne | **Corrigé** |
+| S3 | Faible | La liste relit tous les comptes à chaque affichage (petite boutique : acceptable) | À surveiller si la base grandit | Accepté |
+| S4 | Info | Identifiants avec `-` ou `_` (comptes importés) exclus de la fiche | Autorisés | **Corrigé**, testé |
+| S5 | Info | `confirm: true` envoyé d'office côté cliente (confirmation simple voulue) ; la protection réelle reste la connexion récente | — | Accepté (décision de Jaelle) |
+| S6 | Info | Reconnexion de l'Atelier sans configuration Firebase : mauvais message | Message « connexion momentanément indisponible » | **Corrigé** |
+| S7 | Info | Le journal garde l'identifiant technique (pseudonyme) du compte supprimé | À citer dans la politique de conservation (étape 8) | Ouvert → étape 8 |
+
+Aucune anomalie Critique, Élevée ni Moyenne ouverte. Décision inchangée : **Go en local et sur le projet de test.**
